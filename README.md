@@ -76,7 +76,7 @@ Sobem três serviços: o **banco** (não exposto fora do Docker), um serviço **
 
 ### Local, sem Docker
 
-Pré-requisitos: Node 20+ e um PostgreSQL acessível.
+Pré-requisitos: Node 22.12+ (para rodar os **testes**, Node 24.9+: o Jest só carrega os pacotes ESM do Nest 12 a partir dele) e um PostgreSQL acessível.
 
 ```bash
 cp .env.example .env            # preencha DATABASE_URL, JWT_SECRET, ADMIN_EMAIL e ADMIN_SENHA
