@@ -136,7 +136,7 @@ describe('API de empréstimo de equipamentos (integração)', () => {
         .post('/v1/auth/registro')
         .send({ nome: 'Atacante', email: 'atacante@teste.com', senha: SENHA, role: 'ADMIN' })
         .expect(400);
-      expect(JSON.stringify(r.body.mensagem)).toContain('role');
+      expect(r.body.mensagem).toEqual(['O campo "role" não é permitido.']);
       expect(await prisma.usuario.count({ where: { email: 'atacante@teste.com' } })).toBe(0);
     });
 

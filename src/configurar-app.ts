@@ -1,5 +1,4 @@
-import { VersioningType } from '@nestjs/common';
-import { ValidationPipe } from '@nestjs/common';
+import { BadRequestException, ValidationError, ValidationPipe, VersioningType } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
@@ -26,6 +25,15 @@ export function configurarApp(app: NestExpressApplication) {
       whitelist: true, // remove campos desconhecidos...
       forbidNonWhitelisted: true, // ...e recusa a requisição que os enviar (ex.: "role" no cadastro)
       transform: true, // converte tipos da query string e do corpo
+      // Mensagens em português, uma por problema. O aviso padrão de campo proibido vem em inglês.
+      exceptionFactory: (erros: ValidationError[]) =>
+        new BadRequestException(
+          erros.flatMap((erro) =>
+            Object.entries(erro.constraints ?? {}).map(([regra, mensagem]) =>
+              regra === 'whitelistValidation' ? `O campo "${erro.property}" não é permitido.` : mensagem,
+            ),
+          ),
+        ),
     }),
   );
   app.useGlobalFilters(new HttpExceptionFilter());

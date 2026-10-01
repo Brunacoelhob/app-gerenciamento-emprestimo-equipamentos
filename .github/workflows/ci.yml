@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancela execuções antigas da mesma branch quando chega um push novo
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualidade:
+    name: Lint, tipos, testes unitários e de integração
+    runs-on: ubuntu-latest
+    # Banco real só para os testes de integração (nunca o de desenvolvimento)
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: emprestimo_teste
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d emprestimo_teste"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/emprestimo_teste?schema=public
+      DATABASE_URL_TESTE: postgresql://postgres:postgres@127.0.0.1:5432/emprestimo_teste?schema=public
+      JWT_SECRET: segredo-de-ci-com-mais-de-32-caracteres-xxxxxxxx
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Checagem de tipos
+        run: npx tsc --noEmit
+      - name: Testes unitários
+        run: npm test
+      - name: Testes de integração (API inteira + PostgreSQL)
+        run: npm run test:e2e
+      - name: Build
+        run: npm run build
+
+  docker:
+    name: Imagens Docker e compose
+    runs-on: ubuntu-latest
+    needs: qualidade
+    env:
+      DB_USER: postgres
+      DB_SENHA: ci
+      JWT_SECRET: segredo-de-ci-com-mais-de-32-caracteres-xxxxxxxx
+    steps:
+      - uses: actions/checkout@v4
+      - name: Valida o docker-compose
+        run: docker compose config -q
+      - name: Constrói as imagens
+        run: docker compose build
+      - name: Sobe a stack e confere a saúde da API
+        run: |
+          docker compose up -d
+          for i in $(seq 1 40); do
+            [ "$(docker compose ps api --format '{{.Health}}')" = "healthy" ] && break
+            sleep 3
+          done
+          docker compose ps
+          curl --fail --silent http://127.0.0.1:3000/saude
+      - name: Logs em caso de falha
+        if: failure()
+        run: docker compose logs

@@ -1,0 +1,73 @@
+# API de empréstimo de equipamentos + PostgreSQL.
+# As credenciais vêm do arquivo .env (veja .env.example). Suba tudo com:  docker compose up -d --build
+
+services:
+  banco:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:?defina DB_USER no .env}
+      POSTGRES_PASSWORD: ${DB_SENHA:?defina DB_SENHA no .env}
+      POSTGRES_DB: ${DB_NOME:-emprestimo_equipamentos}
+    volumes:
+      - dados_banco:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [rede]
+    # Sem "ports": o banco NÃO é exposto fora do Docker. Só a API o alcança.
+
+  # Serviço de uso único: aplica as migrations (e cria o 1º administrador) e termina.
+  migrar:
+    build:
+      context: .
+      target: migracao
+    environment:
+      DATABASE_URL: postgresql://${DB_USER}:${DB_SENHA}@banco:5432/${DB_NOME:-emprestimo_equipamentos}?schema=public
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_SENHA: ${ADMIN_SENHA:-}
+      ADMIN_NOME: ${ADMIN_NOME:-Administrador}
+    depends_on:
+      banco:
+        condition: service_healthy
+    restart: 'no'
+    networks: [rede]
+
+  api:
+    build:
+      context: .
+      target: producao
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${DB_USER}:${DB_SENHA}@banco:5432/${DB_NOME:-emprestimo_equipamentos}?schema=public
+      JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env (mínimo 32 caracteres)}
+      JWT_EXPIRA_EM: ${JWT_EXPIRA_EM:-15m}
+      REFRESH_DIAS: ${REFRESH_DIAS:-7}
+      CORS_ORIGENS: ${CORS_ORIGENS:-}
+      SWAGGER_ATIVO: ${SWAGGER_ATIVO:-false}
+    depends_on:
+      migrar:
+        condition: service_completed_successfully
+    ports:
+      # Somente localhost: publique atrás de um proxy reverso com HTTPS (veja docs/deploy.md)
+      - '127.0.0.1:${PORTA_API:-3000}:3000'
+    healthcheck:
+      # A imagem só tem node: usa o fetch nativo para chamar a rota de saúde
+      test: ['CMD', 'node', '-e', "fetch('http://127.0.0.1:3000/saude').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      start_period: 20s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+    networks: [rede]
+
+networks:
+  rede:
+
+volumes:
+  dados_banco:

@@ -1,260 +1,166 @@
-# API de Empréstimo de Equipamentos
+# App de gerenciamento de empréstimo de equipamentos
 
-API REST para gerenciamento de empréstimo de equipamentos, com autenticação via JWT e dois perfis de acesso (`USER` e `ADMIN`).
+[![CI](https://github.com/Brunacoelhob/app-gerenciamento-emprestimo-equipamentos/actions/workflows/ci.yml/badge.svg)](https://github.com/Brunacoelhob/app-gerenciamento-emprestimo-equipamentos/actions/workflows/ci.yml)
+![Node](https://img.shields.io/badge/Node-22-339933?logo=node.js&logoColor=white)
+![NestJS](https://img.shields.io/badge/NestJS-11-E0234E?logo=nestjs&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-compose-2496ED?logo=docker&logoColor=white)
+![Licença MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-green)
 
-## Stack
+API REST para controlar quem está com cada equipamento (notebooks, projetores, ferramentas...): cadastro, retirada, devolução, prazo e atraso. O foco do projeto é **segurança e integridade**: ninguém vira administrador sem permissão, e **um equipamento nunca é emprestado a duas pessoas ao mesmo tempo, nem sob requisições simultâneas**.
 
-- [NestJS](https://nestjs.com/) + TypeScript
-- [PostgreSQL](https://www.postgresql.org/)
-- [Prisma ORM](https://www.prisma.io/) 7.10.0 (com driver adapter, sem engine binária)
-- Autenticação JWT (`@nestjs/jwt` + `passport-jwt`)
-- Validação de entrada com `class-validator`
-- Documentação interativa com Swagger (`@nestjs/swagger`)
-- Rate limiting (`@nestjs/throttler`), CORS e cabeçalhos de segurança (`helmet`)
-- Testes e2e com Jest + Supertest
+## O que ela faz
 
-## Pré-requisitos
+- **Autenticação** com e-mail e senha: token de acesso curto (15 min) + *refresh token* de uso único, com detecção de roubo. Troca de senha e saída encerram as sessões.
+- **Dois papéis:** `USER` retira e devolve equipamentos; `ADMIN` também cadastra equipamentos, vê todos os empréstimos e gerencia usuários.
+- **Equipamentos:** cadastro, edição, busca, desativação (só se não estiver emprestado) e situação sempre correta (`emprestado`/`disponivel` são derivados, nunca ficam desatualizados).
+- **Empréstimos:** prazo de 1 a 30 dias (padrão 7), devolução pelo dono ou por um ADMIN, **atraso** calculado, e listagens com filtros (status, atrasados, pessoa, equipamento).
+- **Listagens paginadas** com metadados (`total`, `totalPaginas`) e ordenação estável.
+- **Documentação interativa (Swagger)** em `/docs` fora de produção, e rota de saúde `/saude`.
 
-- [Node.js](https://nodejs.org/) 20 ou superior
-- [PostgreSQL](https://www.postgresql.org/download/) 14 ou superior, rodando localmente ou acessível pela rede
+## Garantia de integridade (o diferencial)
 
-## Instalação
+A regra "um equipamento só tem **um** empréstimo ativo" não depende de um `if` no código, que duas requisições simultâneas conseguem burlar. Ela é garantida em **três camadas**:
 
-```bash
-npm install
+1. **Trava da linha** (`SELECT ... FOR UPDATE`): pedidos simultâneos pelo mesmo equipamento entram em fila.
+2. **Índice único parcial no PostgreSQL** (`WHERE status = 'ATIVO'`): o banco recusa o segundo empréstimo ativo, mesmo que alguém grave direto nele.
+3. **Devolução atômica:** a condição "ainda está ATIVO" faz parte do próprio `UPDATE`, então só uma devolução vence.
+
+Há testes de integração que provam isso: **30 retiradas simultâneas do mesmo equipamento resultam em exatamente 1 sucesso e 29 conflitos**, repetido várias vezes, além de devoluções duplas e de retirada contra desativação ao mesmo tempo. Veja a história completa em [docs/seguranca.md](docs/seguranca.md).
+
+## Arquitetura
+
+```mermaid
+flowchart LR
+    C([Cliente / Front-end]) -->|HTTPS| P[Proxy reverso]
+    P --> A
+
+    subgraph A[API NestJS]
+      direction TB
+      G[Guards globais<br/>limite de requisições · JWT · papéis] --> K[Controllers<br/>validação · Swagger]
+      K --> S[Serviços<br/>regras de negócio]
+      S --> R[Repositórios<br/>acesso ao banco]
+    end
+
+    R --> DB[(PostgreSQL 16<br/>índice único parcial)]
 ```
 
-## Configuração
+Cada módulo (`auth`, `usuarios`, `equipamentos`, `emprestimos`) segue **controller → serviço → repositório**: o controller só trata HTTP e validação, o serviço decide as regras, o repositório é a única porta para o banco. Detalhes e decisões em [docs/arquitetura.md](docs/arquitetura.md).
 
-Copie o arquivo de exemplo e preencha com os valores do seu ambiente:
+```
+src/
+├── auth/            login, registro, refresh token, troca de senha
+├── usuarios/        gestão de contas (ADMIN)
+├── equipamentos/    cadastro, busca, edição, desativação
+├── emprestimos/     retirada, devolução, prazo, atraso
+├── sessoes/         refresh tokens (guardados só como hash)
+├── saude/           GET /saude
+├── common/          guards, filtro de erros, paginação, validação
+├── config/          leitura e validação do ambiente
+└── prisma/          conexão com o banco
+prisma/              schema, migrations e seed
+test/                testes de integração
+```
+
+## Como executar
+
+### Com Docker (mais simples)
 
 ```bash
 cp .env.example .env
+# edite o .env: DB_SENHA, JWT_SECRET, ADMIN_EMAIL e ADMIN_SENHA (veja os comentários do arquivo)
+docker compose up -d --build
 ```
 
-Variáveis necessárias:
+Sobem três serviços: o **banco** (não exposto fora do Docker), um serviço **migrar** que aplica as migrations e cria o primeiro administrador (e termina), e a **API** em `http://localhost:3000`. Confira em `http://localhost:3000/saude`.
 
-| Variável       | Descrição                                                                 |
-| -------------- | --------------------------------------------------------------------------- |
-| `DATABASE_URL` | String de conexão do PostgreSQL (`postgresql://usuario:senha@host:porta/banco?schema=public`) |
-| `PORT`         | Porta em que a API vai rodar (opcional, padrão `3000`)                     |
-| `JWT_SECRET`   | Chave secreta usada para assinar os tokens JWT                             |
+### Local, sem Docker
 
-Para gerar uma chave aleatória para o `JWT_SECRET`:
+Pré-requisitos: Node 20+ e um PostgreSQL acessível.
 
 ```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+cp .env.example .env            # preencha DATABASE_URL, JWT_SECRET, ADMIN_EMAIL e ADMIN_SENHA
+npm install
+npx prisma migrate deploy       # cria as tabelas
+npm run seed                    # cria o primeiro administrador a partir do .env
+npm run start:dev               # http://localhost:3000  ·  Swagger em /docs
 ```
 
-> A aplicação valida essas variáveis na inicialização — se `DATABASE_URL` ou `JWT_SECRET` estiverem ausentes, o boot falha com uma mensagem explicando qual variável falta.
+> **Não existe senha de administrador padrão.** O `seed` se recusa a rodar sem `ADMIN_EMAIL` e `ADMIN_SENHA` (12+ caracteres, com letras e números) e nunca imprime a senha.
 
-## Banco de dados
+## Configuração
 
-Com o PostgreSQL rodando e o `DATABASE_URL` configurado, crie o banco (se ainda não existir) e aplique as migrations:
+| Variável | Obrigatória | Descrição |
+|---|---|---|
+| `DATABASE_URL` | sim | Conexão do PostgreSQL |
+| `JWT_SECRET` | sim | Chave dos tokens, **mínimo 32 caracteres** (o valor de exemplo é recusado) |
+| `JWT_EXPIRA_EM` | não | Duração do token de acesso (padrão `15m`) |
+| `REFRESH_DIAS` | não | Validade do refresh token (padrão `7`) |
+| `BCRYPT_CUSTO` | não | Custo do bcrypt, 4 a 15 (padrão `12`) |
+| `CORS_ORIGENS` | não | Origens de navegador liberadas, separadas por vírgula. **Vazio = nenhuma** |
+| `SWAGGER_ATIVO` | não | Padrão: ligado fora de produção, desligado em produção |
+| `ADMIN_EMAIL` / `ADMIN_SENHA` | só no seed | Primeiro administrador |
+| `DATABASE_URL_TESTE` | só nos testes | Banco exclusivo de testes (o nome precisa conter `test`) |
 
-```bash
-npx prisma migrate deploy
-npx prisma generate
+A aplicação **valida tudo na partida** e falha com uma mensagem clara se algo estiver faltando ou inseguro.
+
+## API
+
+Todas as rotas de negócio ficam em `/v1`. Tudo exige o cabeçalho `Authorization: Bearer <accessToken>`, exceto as rotas públicas indicadas.
+
+| Método | Rota | Quem | Descrição |
+|---|---|---|---|
+| `POST` | `/v1/auth/registro` | público | Cria uma conta **sempre como USER** (`role` é recusado com 400) |
+| `POST` | `/v1/auth/login` | público | Devolve `accessToken` e `refreshToken` |
+| `POST` | `/v1/auth/renovar` | público | Troca o refresh token por um par novo (uso único) |
+| `POST` | `/v1/auth/sair` | público | Invalida o refresh token |
+| `GET` | `/v1/auth/eu` | logado | Dados de quem está logado |
+| `PATCH` | `/v1/auth/senha` | logado | Troca a própria senha e encerra as sessões |
+| `GET` · `POST` | `/v1/usuarios` | ADMIN | Lista e cria usuários (inclusive outro ADMIN) |
+| `GET` · `PATCH` | `/v1/usuarios/:id` | ADMIN | Detalha; muda papel; ativa ou desativa a conta |
+| `GET` | `/v1/equipamentos` | logado | Lista (`pagina`, `limite`, `ativo`, `emprestado`, `busca`) |
+| `POST` | `/v1/equipamentos` | ADMIN | Cadastra |
+| `GET` · `PATCH` | `/v1/equipamentos/:id` | logado · ADMIN | Detalha; edita ou desativa |
+| `POST` | `/v1/emprestimos` | logado | Retira um equipamento (`equipamentoId`, `dias`) |
+| `PATCH` | `/v1/emprestimos/:id/devolucao` | dono ou ADMIN | Devolve |
+| `GET` | `/v1/emprestimos/meus` | logado | Os seus (`status`, `atrasados`) |
+| `GET` | `/v1/emprestimos` | ADMIN | Todos (`usuarioId`, `equipamentoId`, `status`, `atrasados`) |
+| `GET` | `/saude` | público | API e banco no ar |
+
+### Respostas e erros
+
+Listas voltam como `{ "itens": [...], "meta": { "total", "pagina", "limite", "totalPaginas" } }`. Todo erro segue o mesmo formato, em português:
+
+```json
+{
+  "statusCode": 409,
+  "erro": "Conflito",
+  "mensagem": "Este equipamento já está emprestado.",
+  "caminho": "/v1/emprestimos",
+  "timestamp": "2026-10-01T12:00:00.000Z"
+}
 ```
 
-O `prisma generate` já roda automaticamente após as migrations em ambiente de desenvolvimento (`npx prisma migrate dev`), mas rodá-lo manualmente garante que o Prisma Client esteja atualizado.
-
-### Seed (usuário ADMIN inicial)
-
-Como não há um endpoint de cadastro protegido nos requisitos mínimos, o seed cria um `ADMIN` padrão para você começar a testar:
-
-```bash
-npm run seed
-```
-
-Cria (se ainda não existir) o usuário `admin@sistema.com` / senha `admin123`. É seguro rodar mais de uma vez — se o admin já existir, o script não faz nada.
-
-## Executando a aplicação
-
-```bash
-# desenvolvimento (com reload automático)
-npm run start:dev
-
-# build de produção
-npm run build
-npm run start:prod
-```
-
-A API sobe em `http://localhost:3000` (ou na porta definida em `PORT`).
-
-## Documentação da API (Swagger)
-
-Com a aplicação rodando, a documentação interativa fica disponível em:
-
-```
-http://localhost:3000/docs
-```
-
-Para testar rotas autenticadas: faça login em `POST /auth/login`, copie o `accessToken` da resposta, clique em **Authorize** no topo da página e cole o token (sem o prefixo `Bearer`).
+Em erros de validação (`400`), `mensagem` é uma lista com um texto por campo inválido. Códigos usados: `400` dados inválidos · `401` sem login ou sessão inválida · `403` sem permissão · `404` não encontrado · `409` conflito (já emprestado, já devolvido, e-mail repetido) · `422` senha atual incorreta · `429` muitas requisições.
 
 ## Testes
 
 ```bash
-# testes unitários
-npm run test
-
-# testes end-to-end (sobem a aplicação e usam o banco configurado no .env)
-npm run test:e2e
+npm test            # 39 testes unitários (regras de negócio, sem banco)
+npm run test:e2e    # 42 testes de integração: API inteira + PostgreSQL de teste
+npm run lint        # sem erros
 ```
 
-## Endpoints
+Os testes de integração sobem a aplicação com **a mesma configuração da produção** e cobrem permissões por papel, o fluxo completo de empréstimos, sessões (rotação e roubo de refresh token, troca de senha, desativação) e **concorrência**. Usam um banco exclusivo: defina `DATABASE_URL_TESTE` (o teste **recusa** qualquer nome de banco sem `test`, para nunca apagar o de desenvolvimento).
 
-Todas as rotas (exceto `/auth/*`) exigem o header `Authorization: Bearer <token>`.
+O **GitHub Actions** roda tudo a cada envio, com um PostgreSQL real, e ainda constrói as imagens Docker e sobe a stack conferindo `/saude`.
 
-| Método  | Rota                 | Acesso           | Descrição                                            |
-| ------- | -------------------- | ---------------- | ----------------------------------------------------- |
-| `POST`  | `/auth/register`     | Público          | Cria um usuário (`USER` por padrão, ou `ADMIN`)        |
-| `POST`  | `/auth/login`        | Público          | Autentica e retorna um `accessToken` (JWT)             |
-| `POST`  | `/equipment`         | `ADMIN`          | Cadastra um equipamento                                |
-| `GET`   | `/equipment`         | Autenticado      | Lista os equipamentos                                  |
-| `POST`  | `/loans`              | Autenticado      | Retira um equipamento disponível (cria um empréstimo)  |
-| `PATCH` | `/loans/:id/return`   | Autenticado (dono ou `ADMIN`) | Devolve um empréstimo                    |
-| `GET`   | `/loans/my`           | Autenticado      | Lista os empréstimos do usuário autenticado            |
+## Documentação
 
-### Regra central
+- [docs/arquitetura.md](docs/arquitetura.md): camadas, modelo de dados, decisões e como a integridade é garantida
+- [docs/seguranca.md](docs/seguranca.md): auditoria, falhas encontradas e corrigidas, controles e riscos aceitos
+- [docs/deploy.md](docs/deploy.md): publicação em um servidor com HTTPS, backup e atualização
 
-Um equipamento inativo ou já emprestado não pode ser retirado (`409 Conflict`). Um empréstimo não pode ser devolvido duas vezes (`409 Conflict`). Apenas o dono do empréstimo (ou um `ADMIN`) pode devolvê-lo (`403 Forbidden`).
+## Licença
 
-### Formato padrão de erro
-
-Todas as respostas de erro (qualquer status 4xx) seguem o mesmo formato:
-
-```json
-{
-  "statusCode": 404,
-  "erro": "Nao encontrado",
-  "mensagem": "Equipamento nao encontrado.",
-  "caminho": "/loans",
-  "timestamp": "2026-09-17T14:38:11.697Z"
-}
-```
-
-`mensagem` é uma string para a maioria dos erros, e um array de strings especificamente no `400` (uma entrada por campo inválido).
-
-### Detalhes por rota
-
-#### `POST /auth/register`
-
-Cria um usuário. `role` é opcional (padrão `USER`).
-
-**Body**
-
-```json
-{
-  "nome": "Maria Silva",
-  "email": "maria.silva@empresa.com",
-  "senha": "senha123",
-  "role": "ADMIN"
-}
-```
-
-| Status | Situação | Corpo da resposta |
-| --- | --- | --- |
-| `201` | Usuário criado | `{ "id": 1, "nome": "Maria Silva", "email": "maria.silva@empresa.com", "role": "ADMIN", "criadoEm": "2026-09-17T13:13:28.610Z" }` |
-| `400` | Campo inválido/ausente | `{ "statusCode": 400, "erro": "Requisicao invalida", "mensagem": ["Informe um e-mail valido.", "A senha deve ter pelo menos 6 caracteres."], "caminho": "/auth/register", "timestamp": "..." }` |
-| `409` | E-mail já cadastrado | `{ "statusCode": 409, "erro": "Conflito", "mensagem": "Já existe um usuário com esse e-mail.", "caminho": "/auth/register", "timestamp": "..." }` |
-
-#### `POST /auth/login`
-
-**Body**
-
-```json
-{
-  "email": "maria.silva@empresa.com",
-  "senha": "senha123"
-}
-```
-
-| Status | Situação | Corpo da resposta |
-| --- | --- | --- |
-| `200` | Credenciais válidas | `{ "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." }` |
-| `400` | Campo inválido/ausente | `{ "statusCode": 400, "erro": "Requisicao invalida", "mensagem": ["Informe um e-mail valido."], "caminho": "/auth/login", "timestamp": "..." }` |
-| `401` | E-mail ou senha incorretos | `{ "statusCode": 401, "erro": "Nao autenticado", "mensagem": "Credenciais invalidas.", "caminho": "/auth/login", "timestamp": "..." }` |
-| `429` | Mais de 5 tentativas em 1 minuto (mesmo IP) | `{ "statusCode": 429, "erro": "Muitas requisicoes", "mensagem": "Muitas tentativas em pouco tempo. Aguarde um minuto e tente novamente.", "caminho": "/auth/login", "timestamp": "..." }` |
-
-#### `POST /equipment` — requer `ADMIN`
-
-**Body**
-
-```json
-{
-  "nome": "Notebook Dell Latitude 5440",
-  "descricao": "Notebook i5, 16GB RAM, para uso em campo"
-}
-```
-
-| Status | Situação | Corpo da resposta |
-| --- | --- | --- |
-| `201` | Equipamento criado | `{ "id": 1, "nome": "Notebook Dell Latitude 5440", "descricao": "Notebook i5, 16GB RAM, para uso em campo", "ativo": true, "emprestado": false, "criadoEm": "..." }` |
-| `400` | Campo inválido/ausente | `{ "statusCode": 400, "erro": "Requisicao invalida", "mensagem": ["O nome do equipamento deve ser um texto."], "caminho": "/equipment", "timestamp": "..." }` |
-| `401` | Sem token / token inválido | `{ "statusCode": 401, "erro": "Nao autenticado", "mensagem": "Token de autenticacao ausente, invalido ou expirado.", "caminho": "/equipment", "timestamp": "..." }` |
-| `403` | Autenticado, mas não é `ADMIN` | `{ "statusCode": 403, "erro": "Sem permissao", "mensagem": "Voce nao tem permissao para acessar este recurso.", "caminho": "/equipment", "timestamp": "..." }` |
-
-#### `GET /equipment` — qualquer usuário autenticado
-
-Paginação opcional via query string (`?page=1&limit=10`) e filtros opcionais (`?ativo=true&emprestado=false`). Sem parâmetros, retorna a lista completa.
-
-| Status | Situação | Corpo da resposta |
-| --- | --- | --- |
-| `200` | Lista retornada | `[ { "id": 1, "nome": "Notebook Dell Latitude 5440", "descricao": "...", "ativo": true, "emprestado": false, "criadoEm": "..." } ]` |
-| `401` | Sem token / token inválido | `{ "statusCode": 401, "erro": "Nao autenticado", "mensagem": "Token de autenticacao ausente, invalido ou expirado.", "caminho": "/equipment", "timestamp": "..." }` |
-
-#### `POST /loans` — qualquer usuário autenticado
-
-**Body**
-
-```json
-{
-  "equipamentoId": 1
-}
-```
-
-| Status | Situação | Corpo da resposta |
-| --- | --- | --- |
-| `201` | Empréstimo criado | `{ "id": 1, "usuarioId": 2, "equipamentoId": 1, "status": "ATIVO", "dataRetirada": "...", "dataDevolucao": null }` |
-| `400` | `equipamentoId` inválido/ausente | `{ "statusCode": 400, "erro": "Requisicao invalida", "mensagem": ["O equipamentoId deve ser um numero inteiro."], "caminho": "/loans", "timestamp": "..." }` |
-| `401` | Sem token / token inválido | `{ "statusCode": 401, "erro": "Nao autenticado", "mensagem": "Token de autenticacao ausente, invalido ou expirado.", "caminho": "/loans", "timestamp": "..." }` |
-| `404` | Equipamento não existe | `{ "statusCode": 404, "erro": "Nao encontrado", "mensagem": "Equipamento nao encontrado.", "caminho": "/loans", "timestamp": "..." }` |
-| `409` | Equipamento inativo ou já emprestado | `{ "statusCode": 409, "erro": "Conflito", "mensagem": "Equipamento inativo ou ja emprestado nao pode ser retirado.", "caminho": "/loans", "timestamp": "..." }` |
-
-#### `PATCH /loans/:id/return` — dono do empréstimo ou `ADMIN`
-
-Sem body.
-
-| Status | Situação | Corpo da resposta |
-| --- | --- | --- |
-| `200` | Devolução registrada | `{ "id": 1, "usuarioId": 2, "equipamentoId": 1, "status": "DEVOLVIDO", "dataRetirada": "...", "dataDevolucao": "..." }` |
-| `401` | Sem token / token inválido | `{ "statusCode": 401, "erro": "Nao autenticado", "mensagem": "Token de autenticacao ausente, invalido ou expirado.", "caminho": "/loans/1/return", "timestamp": "..." }` |
-| `403` | Empréstimo não é do usuário autenticado (e ele não é `ADMIN`) | `{ "statusCode": 403, "erro": "Sem permissao", "mensagem": "Voce so pode devolver seus proprios emprestimos.", "caminho": "/loans/1/return", "timestamp": "..." }` |
-| `404` | Empréstimo não existe | `{ "statusCode": 404, "erro": "Nao encontrado", "mensagem": "Emprestimo nao encontrado.", "caminho": "/loans/1/return", "timestamp": "..." }` |
-| `409` | Empréstimo já foi devolvido | `{ "statusCode": 409, "erro": "Conflito", "mensagem": "Este emprestimo ja foi devolvido.", "caminho": "/loans/1/return", "timestamp": "..." }` |
-
-#### `GET /loans/my` — qualquer usuário autenticado
-
-Paginação opcional via query string (`?page=1&limit=10`) e filtro opcional por status (`?status=ATIVO` ou `?status=DEVOLVIDO`). Sem parâmetros, retorna a lista completa.
-
-| Status | Situação | Corpo da resposta |
-| --- | --- | --- |
-| `200` | Lista retornada (só os empréstimos do usuário logado) | `[ { "id": 1, "usuarioId": 2, "equipamentoId": 1, "status": "DEVOLVIDO", "dataRetirada": "...", "dataDevolucao": "..." } ]` |
-| `401` | Sem token / token inválido | `{ "statusCode": 401, "erro": "Nao autenticado", "mensagem": "Token de autenticacao ausente, invalido ou expirado.", "caminho": "/loans/my", "timestamp": "..." }` |
-
-## Estrutura do projeto
-
-```
-src/
-├── auth/          # registro, login, estrategia e guards de JWT
-├── common/        # guards, decorators, filtro de erro e utils compartilhados
-├── equipamento/   # cadastro e listagem de equipamentos
-├── emprestimo/    # retirada, devolucao e listagem de emprestimos
-└── prisma/        # PrismaService (client + driver adapter)
-
-prisma/
-├── schema.prisma  # modelos Usuario, Equipamento, Emprestimo
-├── migrations/    # historico de migrations
-└── seed.ts        # cria o usuario ADMIN inicial
-```
+[MIT](LICENSE). Autora: Bruna Coelho.
