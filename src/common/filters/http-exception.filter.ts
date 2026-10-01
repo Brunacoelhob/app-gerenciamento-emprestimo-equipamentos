@@ -1,61 +1,59 @@
-import {
-  ArgumentsHost,
-  Catch,
-  ExceptionFilter,
-  HttpException,
-  HttpStatus,
-} from '@nestjs/common';
+import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import type { Request, Response } from 'express';
 
-// Rotulo em portugues pra cada status HTTP que a API usa
+// Rótulo em português para cada status HTTP que a API usa.
 const ROTULOS_STATUS: Partial<Record<number, string>> = {
-  [HttpStatus.BAD_REQUEST]: 'Requisicao invalida',
-  [HttpStatus.UNAUTHORIZED]: 'Nao autenticado',
-  [HttpStatus.FORBIDDEN]: 'Sem permissao',
-  [HttpStatus.NOT_FOUND]: 'Nao encontrado',
+  [HttpStatus.BAD_REQUEST]: 'Requisição inválida',
+  [HttpStatus.UNAUTHORIZED]: 'Não autenticado',
+  [HttpStatus.FORBIDDEN]: 'Sem permissão',
+  [HttpStatus.NOT_FOUND]: 'Não encontrado',
   [HttpStatus.CONFLICT]: 'Conflito',
-  [HttpStatus.TOO_MANY_REQUESTS]: 'Muitas requisicoes',
+  [HttpStatus.PAYLOAD_TOO_LARGE]: 'Corpo grande demais',
+  [HttpStatus.UNPROCESSABLE_ENTITY]: 'Não processável',
+  [HttpStatus.TOO_MANY_REQUESTS]: 'Muitas requisições',
 };
 
-// Padroniza toda resposta de erro da API num formato unico e em portugues,
-// independente de quem lancou a excecao (ValidationPipe, guard, service,
-// ou algo inesperado tipo erro de conexao com o banco).
+// Padroniza TODA resposta de erro num formato único, em português, venha de onde vier:
+// validação, guard, regra de negócio ou falha inesperada (banco fora do ar, bug...).
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
-  catch(exception: unknown, host: ArgumentsHost) {
-    const ctx = host.switchToHttp();
-    const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<Request>();
+  private readonly log = new Logger('Erros');
 
-    // erro previsto (lancado por nos, por um guard ou pelo ValidationPipe)
-    if (exception instanceof HttpException) {
-      const status = exception.getStatus();
-      const corpo = exception.getResponse();
+  catch(excecao: unknown, host: ArgumentsHost) {
+    const contexto = host.switchToHttp();
+    const resposta = contexto.getResponse<Response>();
+    const requisicao = contexto.getRequest<Request>();
+
+    if (excecao instanceof HttpException) {
+      const status = excecao.getStatus();
+      const corpo = excecao.getResponse();
       const mensagem =
-        status === HttpStatus.TOO_MANY_REQUESTS
-          ? 'Muitas tentativas em pouco tempo. Aguarde um minuto e tente novamente.'
+        Number(status) === Number(HttpStatus.TOO_MANY_REQUESTS)
+          ? 'Muitas tentativas em pouco tempo. Aguarde um pouco e tente novamente.'
           : typeof corpo === 'string'
             ? corpo
-            : ((corpo as { message?: string | string[] }).message ??
-              'Erro inesperado.');
+            : ((corpo as { message?: string | string[] }).message ?? 'Erro inesperado.');
 
-      response.status(status).json({
+      resposta.status(status).json({
         statusCode: status,
         erro: ROTULOS_STATUS[status] ?? 'Erro',
         mensagem,
-        caminho: request.url,
+        caminho: requisicao.url,
         timestamp: new Date().toISOString(),
       });
       return;
     }
 
-    // erro nao previsto (bug, falha de conexao, etc) - nao expoe detalhes internos
-    console.error(exception);
-    response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+    // Erro não previsto: registra o detalhe no log (com a pilha) mas NÃO o devolve ao cliente.
+    this.log.error(
+      `${requisicao.method} ${requisicao.url}`,
+      excecao instanceof Error ? excecao.stack : String(excecao),
+    );
+    resposta.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
       statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
       erro: 'Erro interno',
       mensagem: 'Ocorreu um erro inesperado. Tente novamente mais tarde.',
-      caminho: request.url,
+      caminho: requisicao.url,
       timestamp: new Date().toISOString(),
     });
   }

@@ -1,37 +1,24 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  ForbiddenException,
-  Injectable,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { ROLES_KEY } from '../decorators/roles.decorator';
+import type { Request } from 'express';
 import { Role } from '../../../generated/prisma/enums';
+import { ROLES_KEY } from '../decorators/roles.decorator';
+import type { UsuarioAutenticado } from '../interfaces/usuario-autenticado.interface';
 
-// Bloqueia a rota se o usuario nao tiver um dos roles marcados com @Roles();
-// sem @Roles() na rota, libera pra qualquer usuario autenticado
+// Guard GLOBAL de autorização: confere o papel quando a rota usa @Roles().
+// Sem @Roles(), qualquer usuário autenticado passa.
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const rolesPermitidos = this.reflector.getAllAndOverride<Role[]>(
-      ROLES_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const permitidos = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [context.getHandler(), context.getClass()]);
+    if (!permitidos || permitidos.length === 0) return true;
 
-    if (!rolesPermitidos || rolesPermitidos.length === 0) {
-      return true;
+    const { user } = context.switchToHttp().getRequest<Request & { user?: UsuarioAutenticado }>();
+    if (!user || !permitidos.includes(user.role)) {
+      throw new ForbiddenException('Você não tem permissão para acessar este recurso.');
     }
-
-    const { user } = context.switchToHttp().getRequest();
-
-    if (!user || !rolesPermitidos.includes(user.role)) {
-      throw new ForbiddenException(
-        'Voce nao tem permissao para acessar este recurso.',
-      );
-    }
-
     return true;
   }
 }

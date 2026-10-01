@@ -1,41 +1,37 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { ThrottlerModule } from '@nestjs/throttler';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { PrismaModule } from './prisma/prisma.module';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module';
-import { EquipamentoModule } from './equipamento/equipamento.module';
-import { EmprestimoModule } from './emprestimo/emprestimo.module';
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { RolesGuard } from './common/guards/roles.guard';
+import { lerConfiguracao } from './config/variaveis';
+import { EmprestimosModule } from './emprestimos/emprestimos.module';
+import { EquipamentosModule } from './equipamentos/equipamentos.module';
+import { PrismaModule } from './prisma/prisma.module';
+import { SaudeModule } from './saude/saude.module';
+import { SessoesModule } from './sessoes/sessoes.module';
+import { UsuariosModule } from './usuarios/usuarios.module';
 
 @Module({
-  // isGlobal: true carrega o .env uma unica vez e deixa process.env
-  // disponivel em qualquer lugar (inclusive no PrismaService, que le
-  // DATABASE_URL direto no construtor).
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      // falha logo no boot se faltar alguma variavel critica, em vez de
-      // deixar o erro aparecer confuso (ex: 500) na primeira request que usar
-      validate: (env: Record<string, unknown>) => {
-        for (const chave of ['DATABASE_URL', 'JWT_SECRET']) {
-          if (!env[chave]) {
-            throw new Error(
-              `Variavel de ambiente obrigatoria ausente: ${chave}`,
-            );
-          }
-        }
-        return env;
-      },
-    }),
-    // usado no login pra limitar tentativas de forca bruta (5 por minuto por IP)
-    ThrottlerModule.forRoot([{ ttl: 60000, limit: 5 }]),
+    // Lê e VALIDA o ambiente na partida (veja config/variaveis.ts): configuração ruim derruba o boot, não o runtime.
+    ConfigModule.forRoot({ isGlobal: true, load: [() => lerConfiguracao()] }),
+    // Limite geral: 100 requisições por minuto por IP. Login, cadastro e troca de senha têm limites próprios, mais rígidos.
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
     PrismaModule,
+    SessoesModule,
+    UsuariosModule,
     AuthModule,
-    EquipamentoModule,
-    EmprestimoModule,
+    EquipamentosModule,
+    EmprestimosModule,
+    SaudeModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    // A ordem importa: limite de requisições -> autenticação -> autorização.
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
+  ],
 })
 export class AppModule {}

@@ -1,0 +1,69 @@
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import * as bcrypt from 'bcrypt';
+import { Role } from '../../generated/prisma/enums';
+import { intervalo, montarPagina } from '../common/dto/pagina';
+import { SessoesRepository } from '../sessoes/sessoes.repository';
+import { AtualizarUsuarioDto } from './dto/atualizar-usuario.dto';
+import { CriarUsuarioDto } from './dto/criar-usuario.dto';
+import { ListarUsuariosDto } from './dto/listar-usuarios.dto';
+import { UsuariosRepository } from './usuarios.repository';
+
+// Gestão de contas pelo ADMIN. As regras que protegem o sistema de ficar sem administrador ficam aqui.
+@Injectable()
+export class UsuariosService {
+  constructor(
+    private readonly usuarios: UsuariosRepository,
+    private readonly sessoes: SessoesRepository,
+    private readonly config: ConfigService,
+  ) {}
+
+  async criar(dto: CriarUsuarioDto) {
+    const senhaHash = await bcrypt.hash(dto.senha, this.config.getOrThrow<number>('bcryptCusto'));
+    const criado = await this.usuarios.criar({
+      nome: dto.nome,
+      email: dto.email,
+      senhaHash,
+      role: dto.role ?? Role.USER,
+    });
+    if (!criado) throw new ConflictException('Já existe um usuário com esse e-mail.');
+    return criado;
+  }
+
+  async listar(dto: ListarUsuariosDto) {
+    const { total, itens } = await this.usuarios.listar({ role: dto.role, ativo: dto.ativo }, intervalo(dto));
+    return montarPagina(itens, total, dto);
+  }
+
+  async obter(id: number) {
+    const usuario = await this.usuarios.buscarPorId(id);
+    if (!usuario) throw new NotFoundException('Usuário não encontrado.');
+    return usuario;
+  }
+
+  async atualizar(id: number, dto: AtualizarUsuarioDto, idDoAdmin: number) {
+    const atual = await this.obter(id);
+
+    const rebaixa = dto.role !== undefined && dto.role !== atual.role && atual.role === Role.ADMIN;
+    const desativa = dto.ativo === false && atual.ativo;
+
+    // Um admin não mexe nas próprias permissões: evita se trancar para fora por engano.
+    if (id === idDoAdmin && (rebaixa || desativa)) {
+      throw new ForbiddenException('Você não pode rebaixar nem desativar a sua própria conta.');
+    }
+    // Nunca deixar o sistema sem nenhum administrador ativo.
+    if (
+      atual.role === Role.ADMIN &&
+      atual.ativo &&
+      (rebaixa || desativa) &&
+      (await this.usuarios.contarAdminsAtivos()) <= 1
+    ) {
+      throw new ConflictException('Não é possível remover o último administrador ativo.');
+    }
+
+    const atualizado = await this.usuarios.atualizar(id, { role: dto.role, ativo: dto.ativo });
+    // Desativar ou rebaixar encerra as sessões: o refresh token antigo deixa de valer na hora.
+    if (desativa || rebaixa) await this.sessoes.revogarTodasDoUsuario(id);
+    return atualizado;
+  }
+}

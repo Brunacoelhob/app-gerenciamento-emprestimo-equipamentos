@@ -1,7 +1,9 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// Modelo de dados do sistema de empréstimo de equipamentos.
+//
+// ATENÇÃO: duas regras de integridade vivem em SQL puro, dentro da migration
+// 20261001120000_seguranca_e_integridade, porque o Prisma não as representa:
+//   1. índice único PARCIAL: no máximo UM empréstimo ATIVO por equipamento;
+//   2. CHECK: o e-mail do usuário é sempre gravado em minúsculas.
 
 generator client {
   provider = "prisma-client"
@@ -23,33 +25,54 @@ enum StatusEmprestimo {
 }
 
 model Usuario {
-  id          Int          @id @default(autoincrement())
-  nome        String
-  email       String       @unique
-  senha       String
-  role        Role         @default(USER)
-  criadoEm    DateTime     @default(now())
-  emprestimos Emprestimo[]
+  id           Int            @id @default(autoincrement())
+  nome         String
+  email        String         @unique // sempre minúsculo (ver CHECK na migration)
+  senhaHash    String // hash bcrypt: a senha em si nunca é guardada
+  role         Role           @default(USER)
+  ativo        Boolean        @default(true) // conta desativada não entra nem usa tokens antigos
+  criadoEm     DateTime       @default(now())
+  atualizadoEm DateTime       @default(now()) @updatedAt
+  emprestimos  Emprestimo[]
+  refreshTokens RefreshToken[]
 }
 
 model Equipamento {
-  id          Int          @id @default(autoincrement())
-  nome        String
-  descricao   String?
-  ativo       Boolean      @default(true)
-  emprestado  Boolean      @default(false)
-  criadoEm    DateTime     @default(now())
-  emprestimos Emprestimo[]
+  id           Int          @id @default(autoincrement())
+  nome         String
+  descricao    String?
+  ativo        Boolean      @default(true)
+  criadoEm     DateTime     @default(now())
+  atualizadoEm DateTime     @default(now()) @updatedAt
+  emprestimos  Emprestimo[]
+  // "emprestado" NÃO é uma coluna: é derivado da existência de um empréstimo ATIVO,
+  // para o estado ter uma única fonte da verdade e nunca divergir.
 }
 
 model Emprestimo {
-  id            Int              @id @default(autoincrement())
-  usuarioId     Int
-  usuario       Usuario          @relation(fields: [usuarioId], references: [id])
-  equipamentoId Int
-  equipamento   Equipamento      @relation(fields: [equipamentoId], references: [id])
-  status        StatusEmprestimo @default(ATIVO)
-  dataRetirada  DateTime         @default(now())
-  dataDevolucao DateTime?
+  id             Int              @id @default(autoincrement())
+  usuarioId      Int
+  usuario        Usuario          @relation(fields: [usuarioId], references: [id])
+  equipamentoId  Int
+  equipamento    Equipamento      @relation(fields: [equipamentoId], references: [id])
+  status         StatusEmprestimo @default(ATIVO)
+  dataRetirada   DateTime         @default(now())
+  prazoDevolucao DateTime // combinado na retirada; passou disso e ainda ATIVO = atrasado
+  dataDevolucao  DateTime?
+
+  @@index([usuarioId, status])
+  @@index([equipamentoId, status])
 }
 
+// Sessões renováveis. Guarda só o HASH do token (como uma senha): quem lê o banco não consegue usá-lo.
+model RefreshToken {
+  id          Int       @id @default(autoincrement())
+  usuarioId   Int
+  usuario     Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  tokenHash   String    @unique
+  criadoEm    DateTime  @default(now())
+  expiraEm    DateTime
+  revogadoEm  DateTime? // preenchido ao renovar (rotação), sair ou trocar a senha
+
+  @@index([usuarioId])
+}
