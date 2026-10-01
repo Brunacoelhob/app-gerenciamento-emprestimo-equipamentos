@@ -9,6 +9,7 @@ process.env.NODE_ENV = 'test';
 process.env.BCRYPT_CUSTO = '4'; // rápido nos testes; em produção o padrão é 12
 delete process.env.CORS_ORIGENS;
 
+import { AddressInfo } from 'node:net';
 import { JwtService } from '@nestjs/jwt';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { Test } from '@nestjs/testing';
@@ -57,11 +58,14 @@ describe('API de empréstimo de equipamentos (integração)', () => {
     const modulo = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = modulo.createNestApplication<NestExpressApplication>();
     configurarApp(app);
-    await app.init();
+    // A aplicação ESCUTA de verdade em uma porta livre. Sem isso o supertest abre um servidor temporário por
+    // requisição, e dezenas de pedidos simultâneos (testes de concorrência) se atropelam com ECONNRESET no Linux.
+    await app.listen(0, '127.0.0.1');
+    const { port } = app.getHttpServer().address() as AddressInfo;
 
     prisma = app.get(PrismaService);
     jwt = app.get(JwtService);
-    http = request(app.getHttpServer());
+    http = request(`http://127.0.0.1:${port}`);
     senhaHash = await bcrypt.hash(SENHA, 4);
   });
 
