@@ -12,6 +12,7 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { Role } from '../../generated/prisma/enums';
+import { Auditar } from '../auditoria/auditar.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import type { UsuarioAutenticado } from '../common/interfaces/usuario-autenticado.interface';
@@ -42,6 +43,11 @@ export class UsuariosController {
   @ApiCreatedResponse({ type: UsuarioRespostaDto })
   @ApiBadRequestResponse({ description: 'Dados inválidos (senha fraca, e-mail inválido...).' })
   @ApiConflictResponse({ description: 'Já existe um usuário com esse e-mail.' })
+  @Auditar<UsuarioRespostaDto>({
+    entidade: 'usuario',
+    acao: 'USUARIO_CRIADO',
+    detalhes: (_c, r) => ({ email: r?.email, role: r?.role }),
+  })
   @Post()
   criar(@Body() dto: CriarUsuarioDto) {
     return this.usuarios.criar(dto);
@@ -63,6 +69,15 @@ export class UsuariosController {
   @ApiOkResponse({ type: UsuarioRespostaDto })
   @ApiNotFoundResponse({ description: 'Usuário não encontrado.' })
   @ApiConflictResponse({ description: 'Seria removido o último administrador ativo.' })
+  @Auditar<UsuarioRespostaDto>({
+    entidade: 'usuario',
+    acao: (c) => [
+      ...(c.role !== undefined ? (['PAPEL_ALTERADO'] as const) : []),
+      ...(c.ativo === false ? (['CONTA_DESATIVADA'] as const) : []),
+      ...(c.ativo === true ? (['CONTA_REATIVADA'] as const) : []),
+    ],
+    detalhes: (c) => ({ role: c.role, ativo: c.ativo }),
+  })
   @Patch(':id')
   atualizar(
     @Param('id', ParseIntPipe) id: number,

@@ -54,6 +54,10 @@ As falhas críticas foram **reproduzidas rodando a API original** contra um banc
 - Erros inesperados devolvem mensagem genérica (o detalhe e a pilha vão só para o log). O log de requisições **nunca** registra corpo, cabeçalhos nem tokens.
 - Cabeçalhos de segurança com Helmet; `x-powered-by` removido.
 
+**Auditoria**
+- **Trilha de auditoria** (`GET /v1/auditoria`, só ADMIN, e a tela "Auditoria"): registra quem criou conta, mudou papel, desativou ou reativou conta, cadastrou, editou ou desativou equipamento, devolveu o empréstimo de outra pessoa, trocou ou redefiniu senha, trocou e-mail e quando um refresh token já usado reapareceu (possível roubo de acesso). Guarda o nome de quem agiu junto, então o registro continua legível se a conta for anonimizada. **Senhas e tokens nunca entram na trilha**, e uma operação que falha (409, 403...) não gera registro.
+- A gravação é "melhor esforço": se falhar, a ação do usuário não é desfeita (o erro vai para o log). Não é uma trilha à prova de adulteração: quem tem acesso direto ao banco consegue alterá-la.
+
 **Operação**
 - Limite de requisições: 100/min por IP, mais rígido no login (5/min), cadastro (10/h), troca de senha (5/min) e recuperação de senha (5 pedidos/h).
 - Container sem root, `no-new-privileges`, banco **sem porta exposta** fora do Docker, API publicada só em `127.0.0.1`.

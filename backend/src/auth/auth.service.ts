@@ -1,3 +1,4 @@
+import { AuditoriaService } from '../auditoria/auditoria.service';
 import {
   ConflictException,
   Injectable,
@@ -32,6 +33,7 @@ export class AuthService {
     private readonly sessoes: SessoesRepository,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    private readonly auditoria: AuditoriaService,
   ) {
     this.custo = this.config.getOrThrow<number>('bcryptCusto');
     this.hashFalso = bcrypt.hashSync('senha-falsa-para-igualar-o-tempo', this.custo);
@@ -65,6 +67,12 @@ export class AuthService {
     if (!sessao) throw new UnauthorizedException('Sessão inválida. Entre novamente.');
 
     if (sessao.revogadoEm) {
+      void this.auditoria.registrar({
+        atorId: sessao.usuarioId,
+        acao: 'SESSAO_REUTILIZADA',
+        entidade: 'usuario',
+        entidadeId: sessao.usuarioId,
+      });
       await this.sessoes.revogarTodasDoUsuario(sessao.usuarioId);
       throw new UnauthorizedException('Sessão inválida. Entre novamente.');
     }
@@ -75,6 +83,12 @@ export class AuthService {
 
     // Revogação atômica: se outro pedido com o mesmo token chegou junto, só um vence.
     if (!(await this.sessoes.revogar(sessao.id))) {
+      void this.auditoria.registrar({
+        atorId: sessao.usuarioId,
+        acao: 'SESSAO_REUTILIZADA',
+        entidade: 'usuario',
+        entidadeId: sessao.usuarioId,
+      });
       await this.sessoes.revogarTodasDoUsuario(sessao.usuarioId);
       throw new UnauthorizedException('Sessão inválida. Entre novamente.');
     }

@@ -13,6 +13,7 @@ import {
   ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import { Auditar } from '../auditoria/auditar.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Publica } from '../common/decorators/publica.decorator';
 import type { UsuarioAutenticado } from '../common/interfaces/usuario-autenticado.interface';
@@ -110,6 +111,11 @@ export class AuthController {
   @ApiOkResponse({ type: UsuarioRespostaDto })
   @ApiBadRequestResponse({ description: 'Dados inválidos (CPF, CEP, telefone, avatar...).' })
   @ApiConflictResponse({ description: 'E-mail ou CPF já pertence a outra conta.' })
+  @Auditar({
+    entidade: 'usuario',
+    acao: (c) => (c.email !== undefined ? 'EMAIL_ALTERADO' : null),
+    entidadeDoAtor: true,
+  })
   @Patch('eu')
   atualizarPerfil(@CurrentUser() usuario: UsuarioAutenticado, @Body() dto: AtualizarPerfilDto) {
     return this.usuarios.atualizarPerfil(usuario.id, dto);
@@ -123,6 +129,7 @@ export class AuthController {
   @ApiTooManyRequestsResponse({ description: 'Mais de 5 tentativas por minuto.' })
   @Throttle({ default: { limit: 5, ttl: UM_MINUTO } })
   @HttpCode(204)
+  @Auditar({ entidade: 'usuario', acao: 'SENHA_ALTERADA', entidadeDoAtor: true })
   @Patch('senha')
   async alterarSenha(@CurrentUser() usuario: UsuarioAutenticado, @Body() dto: AlterarSenhaDto) {
     await this.auth.alterarSenha(usuario.id, dto);

@@ -765,6 +765,144 @@ describe('API de empréstimo de equipamentos (integração)', () => {
   });
 
   // =====================================================================================================
+  describe('auditoria de ações', () => {
+    const aguardar = (ms = 200) => new Promise((r) => setTimeout(r, ms)); // o registro é gravado em segundo plano
+    const registros = (atorId: number) =>
+      prisma.registroAuditoria.findMany({ where: { atorId }, orderBy: { id: 'asc' } });
+
+    // Outros testes limpam a tabela de equipamentos: não deixa empréstimos pendurados neles
+    afterAll(async () => {
+      await prisma.emprestimo.deleteMany();
+    });
+
+    it('administrador criando conta, mudando papel e desativando: tudo fica registrado, sem a senha', async () => {
+      const admin = await criarUsuario('ADMIN');
+      const criada = await http
+        .post('/v1/usuarios')
+        .set(auth(admin.token))
+        .send({ nome: 'Pessoa Nova', email: 'pessoa.nova.auditoria@teste.com', senha: 'SenhaSecreta123', role: 'USER' })
+        .expect(201);
+      await http.patch(`/v1/usuarios/${criada.body.id}`).set(auth(admin.token)).send({ role: 'ADMIN' }).expect(200);
+      await http.patch(`/v1/usuarios/${criada.body.id}`).set(auth(admin.token)).send({ ativo: false }).expect(200);
+      await aguardar();
+
+      const lista = await registros(admin.id);
+      expect(lista.map((r) => r.acao)).toEqual(['USUARIO_CRIADO', 'PAPEL_ALTERADO', 'CONTA_DESATIVADA']);
+      expect(lista.every((r) => r.entidade === 'usuario' && r.entidadeId === criada.body.id)).toBe(true);
+      expect(lista[0].atorNome).toBe(admin.nome);
+      expect(lista[0].detalhes).toMatchObject({ email: 'pessoa.nova.auditoria@teste.com', role: 'USER' });
+      expect(JSON.stringify(lista)).not.toContain('SenhaSecreta123'); // senha nunca vai para a trilha
+    });
+
+    it('equipamento: criação, edição e desativação; operação que FALHA não deixa registro', async () => {
+      const admin = await criarUsuario('ADMIN');
+      const pessoa = await criarUsuario('USER');
+      const equip = await http
+        .post('/v1/equipamentos')
+        .set(auth(admin.token))
+        .send({ nome: 'Roteador Auditado' })
+        .expect(201);
+      await http
+        .patch(`/v1/equipamentos/${equip.body.id}`)
+        .set(auth(admin.token))
+        .send({ descricao: 'Novo texto' })
+        .expect(200);
+      await http.patch(`/v1/equipamentos/${equip.body.id}`).set(auth(admin.token)).send({ ativo: false }).expect(200);
+      await http.patch(`/v1/equipamentos/${equip.body.id}`).set(auth(admin.token)).send({ ativo: true }).expect(200);
+
+      // empresta e tenta desativar: 409, e isso NÃO é uma ação que aconteceu
+      await http.post('/v1/emprestimos').set(auth(pessoa.token)).send({ equipamentoId: equip.body.id }).expect(201);
+      await http.patch(`/v1/equipamentos/${equip.body.id}`).set(auth(admin.token)).send({ ativo: false }).expect(409);
+      await http.patch('/v1/equipamentos/999999').set(auth(admin.token)).send({ nome: 'X' }).expect(404);
+      await aguardar();
+
+      expect((await registros(admin.id)).map((r) => r.acao)).toEqual([
+        'EQUIPAMENTO_CRIADO',
+        'EQUIPAMENTO_EDITADO',
+        'EQUIPAMENTO_DESATIVADO',
+        'EQUIPAMENTO_REATIVADO',
+      ]);
+    });
+
+    it('troca de senha e reuso de refresh token (sessão suspeita) ficam registrados', async () => {
+      const pessoa = await criarUsuario('USER');
+      const sessao = await http.post('/v1/auth/login').send({ email: pessoa.email, senha: SENHA }).expect(200);
+      const renovada = await http.post('/v1/auth/renovar').send({ refreshToken: sessao.body.refreshToken }).expect(200);
+      // apresentar de novo o token antigo (já usado) indica roubo
+      await http.post('/v1/auth/renovar').send({ refreshToken: sessao.body.refreshToken }).expect(401);
+      expect(renovada.body.refreshToken).toBeTruthy();
+
+      const nova = await criarUsuario('USER');
+      await http
+        .patch('/v1/auth/senha')
+        .set(auth(nova.token))
+        .send({ senhaAtual: SENHA, novaSenha: 'OutraSenha456' })
+        .expect(204);
+      await aguardar();
+
+      expect((await registros(pessoa.id)).map((r) => r.acao)).toContain('SESSAO_REUTILIZADA');
+      const dela = await registros(nova.id);
+      expect(dela.map((r) => r.acao)).toEqual(['SENHA_ALTERADA']);
+      expect(dela[0].entidadeId).toBe(nova.id);
+      expect(JSON.stringify(dela)).not.toContain('OutraSenha456');
+    });
+
+    it('administrador devolvendo o empréstimo de OUTRA pessoa é registrado; a pessoa devolvendo o seu, não', async () => {
+      const admin = await criarUsuario('ADMIN');
+      const a = await criarUsuario('USER');
+      const b = await criarUsuario('USER');
+      const equipA = await criarEquipamento();
+      const equipB = await criarEquipamento();
+      const ea = await http.post('/v1/emprestimos').set(auth(a.token)).send({ equipamentoId: equipA.id }).expect(201);
+      const eb = await http.post('/v1/emprestimos').set(auth(b.token)).send({ equipamentoId: equipB.id }).expect(201);
+
+      await http.patch(`/v1/emprestimos/${ea.body.id}/devolucao`).set(auth(admin.token)).expect(200); // em nome de outra pessoa
+      await http.patch(`/v1/emprestimos/${eb.body.id}/devolucao`).set(auth(b.token)).expect(200); // a própria pessoa
+      await aguardar();
+
+      const doAdmin = await registros(admin.id);
+      expect(doAdmin.map((r) => r.acao)).toEqual(['DEVOLUCAO_POR_ADMIN']);
+      expect(doAdmin[0].detalhes).toMatchObject({ pessoaId: a.id });
+      expect(await registros(b.id)).toHaveLength(0);
+    });
+
+    it('só ADMIN lê a trilha; lista do mais recente para o mais antigo, com filtros e paginação', async () => {
+      const admin = await criarUsuario('ADMIN');
+      const comum = await criarUsuario('USER');
+      await http.get('/v1/auditoria').expect(401);
+      await http.get('/v1/auditoria').set(auth(comum.token)).expect(403);
+
+      for (let i = 0; i < 3; i++) {
+        await http
+          .post('/v1/equipamentos')
+          .set(auth(admin.token))
+          .send({ nome: `Item de trilha ${i}` })
+          .expect(201);
+      }
+      await aguardar();
+
+      const r = await http
+        .get(`/v1/auditoria?atorId=${admin.id}&acao=EQUIPAMENTO_CRIADO&limite=2&pagina=1`)
+        .set(auth(admin.token))
+        .expect(200);
+      expect(r.body.meta).toMatchObject({ total: 3, limite: 2, totalPaginas: 2 });
+      expect(r.body.itens).toHaveLength(2);
+      expect(r.body.itens[0].detalhes.nome).toBe('Item de trilha 2'); // o mais recente primeiro
+      expect(r.body.itens.every((i: { atorNome: string }) => i.atorNome === admin.nome)).toBe(true);
+
+      await http.get('/v1/auditoria?atorId=abc').set(auth(admin.token)).expect(400);
+    });
+
+    it('a trilha não deixa registrar nada sem login (rotas administrativas protegidas continuam protegidas)', async () => {
+      const antes = await prisma.registroAuditoria.count();
+      await http.post('/v1/equipamentos').send({ nome: 'Sem login' }).expect(401);
+      await http.patch('/v1/usuarios/1').send({ role: 'ADMIN' }).expect(401);
+      await aguardar();
+      expect(await prisma.registroAuditoria.count()).toBe(antes);
+    });
+  });
+
+  // =====================================================================================================
   describe('limite de requisições', () => {
     it('mais de 5 logins por minuto devolvem 429', async () => {
       const pessoa = await criarUsuario('USER');

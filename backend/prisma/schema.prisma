@@ -106,3 +106,20 @@ model RecuperacaoSenha {
 
   @@index([usuarioId, criadoEm])
 }
+
+// Trilha de auditoria: quem fez o quê e quando. O nome de quem agiu fica gravado junto (não é chave estrangeira):
+// o registro continua legível mesmo depois de a conta ser anonimizada.
+model RegistroAuditoria {
+  id         Int      @id @default(autoincrement())
+  criadoEm   DateTime @default(now())
+  atorId     Int?
+  atorNome   String?
+  acao       String
+  entidade   String
+  entidadeId Int?
+  detalhes   Json?
+
+  @@index([criadoEm])
+  @@index([acao, criadoEm])
+  @@index([atorId, criadoEm])
+}

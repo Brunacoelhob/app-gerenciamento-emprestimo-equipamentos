@@ -39,7 +39,7 @@ describe('AuthService', () => {
     const config = {
       getOrThrow: jest.fn((chave: string) => (chave === 'bcryptCusto' ? CUSTO : 7)),
     } as unknown as ConfigService;
-    servico = new AuthService(usuarios, sessoes, jwt, config);
+    servico = new AuthService(usuarios, sessoes, jwt, config, { registrar: jest.fn() } as never);
   });
 
   describe('registrar', () => {

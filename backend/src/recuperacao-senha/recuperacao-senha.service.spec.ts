@@ -43,7 +43,7 @@ describe('RecuperacaoSenhaService', () => {
     const config = {
       getOrThrow: jest.fn((chave: string) => (chave === 'appUrl' ? 'https://app.exemplo.com' : 4)),
     } as unknown as ConfigService;
-    servico = new RecuperacaoSenhaService(pedidos, usuarios, sessoes, email, config);
+    servico = new RecuperacaoSenhaService(pedidos, usuarios, sessoes, email, config, { registrar: jest.fn() } as never);
   });
 
   describe('solicitar', () => {

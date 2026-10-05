@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'node:crypto';
+import { AuditoriaService } from '../auditoria/auditoria.service';
 import { EmailService } from '../email/email.service';
 import { emailRecuperacaoSenha, emailSenhaAlterada } from '../email/modelos';
 import { SessoesRepository } from '../sessoes/sessoes.repository';
@@ -24,6 +25,7 @@ export class RecuperacaoSenhaService {
     private readonly sessoes: SessoesRepository,
     private readonly email: EmailService,
     private readonly config: ConfigService,
+    private readonly auditoria: AuditoriaService,
   ) {}
 
   /**
@@ -67,6 +69,12 @@ export class RecuperacaoSenhaService {
     await this.usuarios.atualizar(usuario.id, { senhaHash });
     await this.sessoes.revogarTodasDoUsuario(usuario.id); // quem tinha a senha antiga (ou um token roubado) sai
     await this.pedidos.invalidarPendentes(usuario.id);
+    void this.auditoria.registrar({
+      atorId: usuario.id,
+      acao: 'SENHA_REDEFINIDA_POR_EMAIL',
+      entidade: 'usuario',
+      entidadeId: usuario.id,
+    });
 
     this.enviarEmSegundoPlano(emailSenhaAlterada({ para: usuario.email, nome: usuario.nome }), usuario.id);
   }

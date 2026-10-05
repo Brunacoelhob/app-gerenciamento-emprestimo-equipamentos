@@ -12,6 +12,7 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { Role } from '../../generated/prisma/enums';
+import { Auditar } from '../auditoria/auditar.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import type { UsuarioAutenticado } from '../common/interfaces/usuario-autenticado.interface';
@@ -69,6 +70,12 @@ export class EmprestimosController {
   @ApiForbiddenResponse({ description: 'O empréstimo é de outra pessoa.' })
   @ApiNotFoundResponse({ description: 'Empréstimo não encontrado.' })
   @ApiConflictResponse({ description: 'O empréstimo já foi devolvido.' })
+  // Só vira registro quando um ADMIN devolve o empréstimo de OUTRA pessoa (a devolução normal é o fluxo do dia a dia)
+  @Auditar<EmprestimoRespostaDto>({
+    entidade: 'emprestimo',
+    acao: (_c, r, ator) => (r?.usuario?.id !== ator.id ? 'DEVOLUCAO_POR_ADMIN' : null),
+    detalhes: (_c, r) => ({ equipamento: r?.equipamento?.nome, pessoaId: r?.usuario?.id }),
+  })
   @Patch(':id/devolucao')
   devolver(@CurrentUser() usuario: UsuarioAutenticado, @Param('id', ParseIntPipe) id: number) {
     return this.emprestimos.devolver(usuario, id);

@@ -1,0 +1,56 @@
+<div class="cabecalho">
+  <div>
+    <h1>Auditoria</h1>
+    <p class="subtitulo">Quem fez o quê e quando: contas, permissões, acervo e sessões suspeitas.</p>
+  </div>
+</div>
+
+@if (erro(); as mensagem) {
+  <div class="alerta erro" role="alert">{{ mensagem }}</div>
+}
+
+<div class="filtros">
+  <select name="acao" aria-label="Filtrar por ação" [(ngModel)]="acao" (ngModelChange)="carregar(1)">
+    <option value="">Todas as ações</option>
+    @for (a of acoes; track a.valor) {
+      <option [value]="a.valor">{{ a.rotulo }}</option>
+    }
+  </select>
+</div>
+
+<div class="cartao tabela-caixa">
+  @if (carregando() && !dados()) {
+    <p class="vazio">Carregando...</p>
+  } @else if (dados(); as d) {
+    @if (d.itens.length === 0) {
+      <p class="vazio">Nenhum registro encontrado.</p>
+    } @else {
+      <table>
+        <thead>
+          <tr>
+            <th>Quando</th>
+            <th>Quem</th>
+            <th>Ação</th>
+            <th>Detalhes</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of d.itens; track r.id) {
+            <tr>
+              <td class="nowrap">{{ r.criadoEm | date: 'dd/MM/yyyy HH:mm' }}</td>
+              <td>{{ r.atorNome ?? 'Sistema' }}</td>
+              <td>
+                <span class="selo" [class.vermelho]="suspeita(r.acao)" [class.cinza]="!suspeita(r.acao)">{{ rotulo(r.acao) }}</span>
+                @if (r.entidadeId) {
+                  <div class="descricao">{{ r.entidade }} nº {{ r.entidadeId }}</div>
+                }
+              </td>
+              <td class="descricao">{{ detalhes(r) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      <app-paginacao [meta]="d.meta" (mudar)="carregar($event)" />
+    }
+  }
+</div>

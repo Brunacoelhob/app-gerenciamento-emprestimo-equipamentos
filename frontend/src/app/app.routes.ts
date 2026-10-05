@@ -43,6 +43,11 @@ export const routes: Routes = [
         canActivate: [adminGuard],
         loadComponent: () => import('./paginas/usuarios/usuarios').then((m) => m.Usuarios),
       },
+      {
+        path: 'auditoria',
+        canActivate: [adminGuard],
+        loadComponent: () => import('./paginas/auditoria/auditoria').then((m) => m.Auditoria),
+      },
       { path: 'perfil', loadComponent: () => import('./paginas/perfil/perfil').then((m) => m.Perfil) },
       { path: 'senha', redirectTo: 'perfil' },
     ],

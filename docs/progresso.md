@@ -7,7 +7,7 @@ Legenda: `[x]` feito e verificado · `[~]` feito, mas com parte **não verificad
 
 | Parte | Situação |
 |---|---|
-| API (NestJS + PostgreSQL) | 56 testes unitários e 67 de integração passando; lint e tipos limpos |
+| API (NestJS + PostgreSQL) | 56 testes unitários e 73 de integração passando; lint e tipos limpos |
 | Interface (Angular) | 19 testes passando; build de produção sem erros |
 | Docker | `docker compose` sobe banco, migrações, API e interface (nginx); o CI constrói e confere a saúde |
 | CI (GitHub Actions) | Backend, frontend e Docker |
@@ -58,6 +58,12 @@ Legenda: `[x]` feito e verificado · `[~]` feito, mas com parte **não verificad
 - [x] `POST /v1/notificacoes/executar` (administrador) roda na hora
 - [~] *Verificado com os dados de demonstração e o Mailpit; o agendador no horário real (8h) só foi conferido pelo log, não esperei o relógio.*
 
+### Auditoria
+- [x] Trilha de quem fez o quê e quando: contas, papéis, acervo, devolução por administrador, senhas, e-mail e sessões suspeitas
+- [x] Tela "Auditoria" (administrador), com filtro por ação e paginação
+- [x] Não registra segredos nem operações que falharam
+- [~] *Não é à prova de adulteração (acesso direto ao banco altera). Não registra leituras de dados pessoais.*
+
 ### Recuperação de senha por e-mail
 - [x] "Esqueci minha senha" e "Redefinir senha" (telas e API)
 - [x] Link de **uso único**, validade de **30 minutos**, só o **hash** do token é guardado
@@ -76,7 +82,6 @@ Legenda: `[x]` feito e verificado · `[~]` feito, mas com parte **não verificad
 - [ ] **Testes de interface (Playwright):** login, pegar emprestado, devolver, recuperar senha, trocar perfil. Hoje esses fluxos só foram conferidos manualmente
 - [ ] **Refresh token em cookie `HttpOnly`** (hoje fica no `localStorage`: um XSS o rouba)
 - [ ] **CSP em modo bloqueio:** hoje está em "somente relatório" no nginx, porque o VLibras precisa de permissões ainda não mapeadas
-- [ ] **Auditoria de ações:** registrar quem desativou conta, mudou papel ou editou equipamento
 - [ ] **LGPD:** mascarar o CPF nas listagens, permitir apagar/anonimizar a conta, registrar o consentimento
 
 ### Prioridade média
