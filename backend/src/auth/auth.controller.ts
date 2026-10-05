@@ -16,6 +16,7 @@ import { Throttle } from '@nestjs/throttler';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Publica } from '../common/decorators/publica.decorator';
 import type { UsuarioAutenticado } from '../common/interfaces/usuario-autenticado.interface';
+import { AtualizarPerfilDto } from '../usuarios/dto/atualizar-perfil.dto';
 import { UsuarioRespostaDto } from '../usuarios/dto/usuario-resposta.dto';
 import { UsuariosService } from '../usuarios/usuarios.service';
 import { AuthService } from './auth.service';
@@ -98,6 +99,20 @@ export class AuthController {
   @Get('eu')
   eu(@CurrentUser() usuario: UsuarioAutenticado) {
     return this.usuarios.obter(usuario.id);
+  }
+
+  @ApiOperation({
+    summary: 'Edita o próprio perfil (nome, e-mail, CPF, telefone, endereço e avatar)',
+    description:
+      'Só os campos enviados mudam; `null` ou texto vazio apaga um campo opcional. Papel e situação da conta não são editáveis aqui.',
+  })
+  @ApiBearerAuth()
+  @ApiOkResponse({ type: UsuarioRespostaDto })
+  @ApiBadRequestResponse({ description: 'Dados inválidos (CPF, CEP, telefone, avatar...).' })
+  @ApiConflictResponse({ description: 'E-mail ou CPF já pertence a outra conta.' })
+  @Patch('eu')
+  atualizarPerfil(@CurrentUser() usuario: UsuarioAutenticado, @Body() dto: AtualizarPerfilDto) {
+    return this.usuarios.atualizarPerfil(usuario.id, dto);
   }
 
   @ApiOperation({ summary: 'Troca a própria senha (encerra todas as sessões)' })

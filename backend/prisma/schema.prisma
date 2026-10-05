@@ -31,6 +31,17 @@ model Usuario {
   senhaHash    String // hash bcrypt: a senha em si nunca é guardada
   role         Role           @default(USER)
   ativo        Boolean        @default(true) // conta desativada não entra nem usa tokens antigos
+  // Dados de perfil (todos opcionais). CPF, telefone e CEP são guardados só com dígitos.
+  cpf          String?        @unique
+  telefone     String?
+  cep          String?
+  logradouro   String?
+  numero       String?
+  complemento  String?
+  bairro       String?
+  cidade       String?
+  uf           String?
+  avatar       String? // "animal:<nome>" (acervo) ou data URL de imagem enviada (png/jpeg/webp, pequena)
   criadoEm     DateTime       @default(now())
   atualizadoEm DateTime       @default(now()) @updatedAt
   emprestimos  Emprestimo[]

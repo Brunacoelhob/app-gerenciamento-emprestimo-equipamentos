@@ -3,7 +3,24 @@ import { Prisma, Role, Usuario } from '../../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 // Campos públicos de um usuário. O hash da senha NUNCA entra aqui: só os métodos de login o devolvem.
-const PUBLICOS = { id: true, nome: true, email: true, role: true, ativo: true, criadoEm: true } as const;
+const PUBLICOS = {
+  id: true,
+  nome: true,
+  email: true,
+  role: true,
+  ativo: true,
+  cpf: true,
+  telefone: true,
+  cep: true,
+  logradouro: true,
+  numero: true,
+  complemento: true,
+  bairro: true,
+  cidade: true,
+  uf: true,
+  avatar: true,
+  criadoEm: true,
+} as const;
 export type UsuarioPublico = Prisma.UsuarioGetPayload<{ select: typeof PUBLICOS }>;
 
 export interface FiltroUsuarios {
@@ -22,6 +39,21 @@ export class UsuariosRepository {
       return await this.prisma.usuario.create({ data: dados, select: PUBLICOS });
     } catch (erro) {
       if (erro instanceof Prisma.PrismaClientKnownRequestError && erro.code === 'P2002') return null;
+      throw erro;
+    }
+  }
+
+  /** Edita o perfil. Devolve o campo em conflito ("email" ou "cpf") se o valor já pertencer a outra conta. */
+  async atualizarPerfil(
+    id: number,
+    dados: Prisma.UsuarioUpdateInput,
+  ): Promise<{ usuario: UsuarioPublico } | { conflito: 'email' | 'cpf' }> {
+    try {
+      return { usuario: await this.prisma.usuario.update({ where: { id }, data: dados, select: PUBLICOS }) };
+    } catch (erro) {
+      if (erro instanceof Prisma.PrismaClientKnownRequestError && erro.code === 'P2002') {
+        return { conflito: JSON.stringify(erro.meta ?? {}).includes('cpf') ? 'cpf' : 'email' };
+      }
       throw erro;
     }
   }

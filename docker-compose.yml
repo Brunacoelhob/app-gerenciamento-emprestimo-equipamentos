@@ -22,7 +22,7 @@ services:
   # Serviço de uso único: aplica as migrations (e cria o 1º administrador) e termina.
   migrar:
     build:
-      context: .
+      context: ./backend
       target: migracao
     environment:
       DATABASE_URL: postgresql://${DB_USER}:${DB_SENHA}@banco:5432/${DB_NOME:-emprestimo_equipamentos}?schema=public
@@ -37,7 +37,7 @@ services:
 
   api:
     build:
-      context: .
+      context: ./backend
       target: producao
     restart: unless-stopped
     environment:

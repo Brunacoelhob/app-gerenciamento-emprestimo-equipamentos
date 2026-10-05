@@ -4,6 +4,7 @@ import * as bcrypt from 'bcrypt';
 import { Role } from '../../generated/prisma/enums';
 import { intervalo, montarPagina } from '../common/dto/pagina';
 import { SessoesRepository } from '../sessoes/sessoes.repository';
+import { AtualizarPerfilDto } from './dto/atualizar-perfil.dto';
 import { AtualizarUsuarioDto } from './dto/atualizar-usuario.dto';
 import { CriarUsuarioDto } from './dto/criar-usuario.dto';
 import { ListarUsuariosDto } from './dto/listar-usuarios.dto';
@@ -39,6 +40,17 @@ export class UsuariosService {
     const usuario = await this.usuarios.buscarPorId(id);
     if (!usuario) throw new NotFoundException('Usuário não encontrado.');
     return usuario;
+  }
+
+  // Edição do próprio perfil (quem chama é sempre o dono da conta: o id vem do token, nunca do corpo).
+  async atualizarPerfil(id: number, dto: AtualizarPerfilDto) {
+    const resultado = await this.usuarios.atualizarPerfil(id, dto);
+    if ('conflito' in resultado) {
+      throw new ConflictException(
+        resultado.conflito === 'cpf' ? 'Já existe um usuário com esse CPF.' : 'Já existe um usuário com esse e-mail.',
+      );
+    }
+    return resultado.usuario;
   }
 
   async atualizar(id: number, dto: AtualizarUsuarioDto, idDoAdmin: number) {

@@ -335,6 +335,91 @@ describe('API de empréstimo de equipamentos (integração)', () => {
   });
 
   // =====================================================================================================
+  describe('perfil: edição dos próprios dados', () => {
+    const PNG =
+      'data:image/png;base64,' + Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).toString('base64');
+
+    it('edita dados pessoais, guarda só dígitos e devolve o perfil atualizado', async () => {
+      const pessoa = await criarUsuario('USER');
+      const r = await http
+        .patch('/v1/auth/eu')
+        .set(auth(pessoa.token))
+        .send({
+          nome: 'Novo Nome',
+          cpf: '529.982.247-25',
+          telefone: '(11) 98765-4321',
+          cep: '01310-100',
+          uf: 'sp',
+          avatar: 'animal:gato',
+        })
+        .expect(200);
+      expect(r.body).toMatchObject({
+        nome: 'Novo Nome',
+        cpf: '52998224725',
+        telefone: '11987654321',
+        cep: '01310100',
+        uf: 'SP',
+        avatar: 'animal:gato',
+        role: 'USER',
+      });
+      expect(r.body.senhaHash).toBeUndefined();
+      const eu = await http.get('/v1/auth/eu').set(auth(pessoa.token)).expect(200);
+      expect(eu.body.cpf).toBe('52998224725');
+    });
+
+    it('papel e situação da conta NÃO são editáveis pelo perfil', async () => {
+      const pessoa = await criarUsuario('USER');
+      for (const corpo of [{ role: 'ADMIN' }, { ativo: false }, { senhaHash: 'x' }]) {
+        await http.patch('/v1/auth/eu').set(auth(pessoa.token)).send(corpo).expect(400);
+      }
+      expect((await prisma.usuario.findUniqueOrThrow({ where: { id: pessoa.id } })).role).toBe('USER');
+    });
+
+    it('recusa CPF inválido, telefone e CEP malformados', async () => {
+      const pessoa = await criarUsuario('USER');
+      for (const corpo of [{ cpf: '111.111.111-11' }, { telefone: '123' }, { cep: '123' }, { uf: 'SPX' }]) {
+        await http.patch('/v1/auth/eu').set(auth(pessoa.token)).send(corpo).expect(400);
+      }
+    });
+
+    it('CPF e e-mail não podem pertencer a duas contas (409)', async () => {
+      const a = await criarUsuario('USER');
+      const b = await criarUsuario('USER');
+      await http.patch('/v1/auth/eu').set(auth(a.token)).send({ cpf: '11144477735' }).expect(200);
+      await http.patch('/v1/auth/eu').set(auth(b.token)).send({ cpf: '111.444.777-35' }).expect(409);
+      await http.patch('/v1/auth/eu').set(auth(b.token)).send({ email: a.email.toUpperCase() }).expect(409);
+    });
+
+    it('avatar: aceita acervo e imagem real; recusa SVG, HTML disfarçado e tamanho absurdo', async () => {
+      const pessoa = await criarUsuario('USER');
+      await http.patch('/v1/auth/eu').set(auth(pessoa.token)).send({ avatar: PNG }).expect(200);
+      const invalidos = [
+        'animal:dragao',
+        'data:image/svg+xml;base64,PHN2ZyBvbmxvYWQ9YWxlcnQoMSk+',
+        'data:image/png;base64,' + Buffer.from('<script>alert(1)</script>').toString('base64'),
+        'https://exemplo.com/foto.png',
+        'data:image/png;base64,' + 'A'.repeat(90_000),
+      ];
+      for (const avatar of invalidos) {
+        await http.patch('/v1/auth/eu').set(auth(pessoa.token)).send({ avatar }).expect(400);
+      }
+      const r = await http.patch('/v1/auth/eu').set(auth(pessoa.token)).send({ avatar: null }).expect(200);
+      expect(r.body.avatar).toBeNull();
+    });
+
+    it('texto vazio apaga um campo opcional', async () => {
+      const pessoa = await criarUsuario('USER');
+      await http.patch('/v1/auth/eu').set(auth(pessoa.token)).send({ cidade: 'Recife' }).expect(200);
+      const r = await http.patch('/v1/auth/eu').set(auth(pessoa.token)).send({ cidade: '' }).expect(200);
+      expect(r.body.cidade).toBeNull();
+    });
+
+    it('sem token devolve 401', async () => {
+      await http.patch('/v1/auth/eu').send({ nome: 'X' }).expect(401);
+    });
+  });
+
+  // =====================================================================================================
   describe('limite de requisições', () => {
     it('mais de 5 logins por minuto devolvem 429', async () => {
       const pessoa = await criarUsuario('USER');
