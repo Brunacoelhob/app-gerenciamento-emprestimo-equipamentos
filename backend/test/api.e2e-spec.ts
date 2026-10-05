@@ -1081,6 +1081,56 @@ describe('API de empréstimo de equipamentos (integração)', () => {
   });
 
   // =====================================================================================================
+  describe('gestão de usuários: busca, e-mail de conta criada e configuração pública', () => {
+    const aguardar = (ms = 200) => new Promise((r) => setTimeout(r, ms));
+
+    it('busca por parte do nome ou do e-mail, sem diferenciar maiúsculas; combina com os outros filtros', async () => {
+      const admin = await criarUsuario('ADMIN');
+      const a = await prisma.usuario.create({
+        data: { nome: 'Zuleika Buscável', email: 'zuleika.busca@teste.com', senhaHash },
+      });
+      await prisma.usuario.create({
+        data: { nome: 'Outra Pessoa', email: 'zuzu.busca@teste.com', senhaHash, ativo: false },
+      });
+
+      const porNome = await http.get('/v1/usuarios?busca=ZULEIKA').set(auth(admin.token)).expect(200);
+      expect(porNome.body.itens.map((u: { id: number }) => u.id)).toEqual([a.id]);
+
+      const porEmail = await http.get('/v1/usuarios?busca=zuzu.busca').set(auth(admin.token)).expect(200);
+      expect(porEmail.body.itens).toHaveLength(1);
+
+      const dois = await http.get('/v1/usuarios?busca=.busca@teste').set(auth(admin.token)).expect(200);
+      expect(dois.body.itens).toHaveLength(2);
+      const soAtivos = await http.get('/v1/usuarios?busca=.busca@teste&ativo=true').set(auth(admin.token)).expect(200);
+      expect(soAtivos.body.itens).toHaveLength(1);
+
+      const nada = await http.get('/v1/usuarios?busca=nao-existe-ninguem-assim').set(auth(admin.token)).expect(200);
+      expect(nada.body.itens).toEqual([]);
+      expect(nada.body.meta.total).toBe(0);
+    });
+
+    it('conta criada por um administrador avisa a pessoa por e-mail, SEM a senha', async () => {
+      const admin = await criarUsuario('ADMIN');
+      await http
+        .post('/v1/usuarios')
+        .set(auth(admin.token))
+        .send({ nome: 'Pessoa Avisada', email: 'pessoa.avisada@teste.com', senha: 'SenhaMuitoSecreta99', role: 'USER' })
+        .expect(201);
+      await aguardar();
+
+      const recebidos = emails.filter((e) => e.para === 'pessoa.avisada@teste.com');
+      expect(recebidos.map((e) => e.assunto)).toEqual(['Sua conta foi criada']);
+      expect(recebidos[0].texto).toContain('/login');
+      expect(recebidos[0].texto).not.toContain('SenhaMuitoSecreta99');
+    });
+
+    it('a configuração pública informa se o cadastro aberto está ligado (sem login)', async () => {
+      const r = await http.get('/v1/auth/configuracao').expect(200);
+      expect(r.body).toEqual({ cadastroPublico: true });
+    });
+  });
+
+  // =====================================================================================================
   describe('limite de requisições', () => {
     it('mais de 5 logins por minuto devolvem 429', async () => {
       const pessoa = await criarUsuario('USER');

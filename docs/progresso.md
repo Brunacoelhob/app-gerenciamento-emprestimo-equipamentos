@@ -7,7 +7,7 @@ Legenda: `[x]` feito e verificado · `[~]` feito, mas com parte **não verificad
 
 | Parte | Situação |
 |---|---|
-| API (NestJS + PostgreSQL) | 59 testes unitários e 78 de integração passando; lint e tipos limpos |
+| API (NestJS + PostgreSQL) | 60 testes unitários e 81 de integração passando; lint e tipos limpos |
 | Interface (Angular) | 19 testes passando; build de produção sem erros |
 | Docker | `docker compose` sobe banco, migrações, API e interface (nginx); o CI constrói e confere a saúde |
 | CI (GitHub Actions) | Backend, frontend e Docker |
@@ -64,6 +64,11 @@ Legenda: `[x]` feito e verificado · `[~]` feito, mas com parte **não verificad
 - [x] **Excluir minha conta** (anonimização com confirmação por senha): apaga os dados pessoais, derruba as sessões, limpa o nome da trilha e **preserva o histórico** de empréstimos
 - [~] *Falta o que depende de decisão jurídica: política de privacidade, registro de consentimento e prazos de retenção. O CPF continua guardado em texto puro (sem criptografia em repouso).*
 
+### Gestão de contas
+- [x] **Busca** por nome ou e-mail na lista de usuários (combina com os filtros de perfil e situação)
+- [x] **E-mail de aviso** quando um administrador cria uma conta (a senha nunca vai no e-mail)
+- [x] **Tela de cadastro aberto** ("Criar conta") com um interruptor (`CADASTRO_PUBLICO`) para quem prefere que só administradores criem contas
+
 ### Auditoria
 - [x] Trilha de quem fez o quê e quando: contas, papéis, acervo, devolução por administrador, senhas, e-mail e sessões suspeitas
 - [x] Tela "Auditoria" (administrador), com filtro por ação e paginação
@@ -94,12 +99,9 @@ Legenda: `[x]` feito e verificado · `[~]` feito, mas com parte **não verificad
 - [ ] Reserva de equipamento e fila de espera; renovação de prazo
 - [ ] Categorias, número de patrimônio, foto do equipamento e QR code para retirada
 - [ ] Relatórios com exportação CSV
-- [ ] Tela de **cadastro público** (a rota `/auth/registro` existe na API, mas não há tela)
-- [ ] Busca por nome na lista de usuários
 - [ ] Avatar em armazenamento de objetos (hoje vai em base64 no banco e em cada listagem)
 - [ ] Gerar o cliente TypeScript do frontend a partir do OpenAPI (os tipos hoje são escritos à mão e podem divergir)
 - [ ] Limite de requisições em armazenamento compartilhado (Redis), se houver mais de uma instância
-- [ ] E-mail de aviso quando o administrador cria uma conta (hoje ele passa a senha por outro canal)
 
 ### Operação
 - [ ] Logs estruturados, métricas e alerta quando `/saude` falha

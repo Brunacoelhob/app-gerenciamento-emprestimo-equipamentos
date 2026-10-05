@@ -25,6 +25,7 @@ export class Usuarios implements OnInit {
 
   protected role: Role | '' = '';
   protected ativo: '' | 'true' | 'false' = '';
+  protected busca = '';
 
   protected readonly form = inject(FormBuilder).nonNullable.group({
     nome: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
@@ -40,7 +41,7 @@ export class Usuarios implements OnInit {
 
   protected carregar(pagina: number) {
     this.carregando.set(true);
-    this.servico.listar({ role: this.role, ativo: this.ativo, pagina }).subscribe({
+    this.servico.listar({ role: this.role, ativo: this.ativo, busca: this.busca, pagina }).subscribe({
       next: (d) => {
         this.dados.set(d);
         this.carregando.set(false);

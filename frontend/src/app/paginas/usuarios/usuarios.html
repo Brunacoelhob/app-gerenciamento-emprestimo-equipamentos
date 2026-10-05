@@ -54,7 +54,8 @@
   </form>
 }
 
-<div class="filtros">
+<form class="filtros" (ngSubmit)="filtrar()">
+  <input type="search" name="busca" placeholder="Buscar por nome ou e-mail" aria-label="Buscar por nome ou e-mail" [(ngModel)]="busca" />
   <select name="role" aria-label="Perfil" [(ngModel)]="role" (ngModelChange)="filtrar()">
     <option value="">Todos os perfis</option>
     <option value="ADMIN">Administradores</option>
@@ -65,7 +66,8 @@
     <option value="true">Ativas</option>
     <option value="false">Desativadas</option>
   </select>
-</div>
+  <button class="botao secundario" type="submit">Buscar</button>
+</form>
 
 <div class="cartao tabela-caixa">
   @if (carregando() && !dados()) {

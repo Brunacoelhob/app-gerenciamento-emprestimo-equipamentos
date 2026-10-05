@@ -43,6 +43,15 @@ export class AuthService {
     return this.http.patch<Usuario>(`${API}/auth/eu`, dados).pipe(tap((u) => this.usuario.set(u)));
   }
 
+  // Configuração pública da tela de login (por enquanto: o cadastro aberto está ligado?)
+  configuracaoPublica() {
+    return this.http.get<{ cadastroPublico: boolean }>(`${API}/auth/configuracao`);
+  }
+
+  cadastrar(nome: string, email: string, senha: string) {
+    return this.http.post<Usuario>(`${API}/auth/registro`, { nome, email, senha });
+  }
+
   // LGPD: levar os próprios dados e excluir a conta (anonimização)
   baixarMeusDados() {
     return this.http.get(`${API}/auth/eu/dados`, { responseType: 'blob' });

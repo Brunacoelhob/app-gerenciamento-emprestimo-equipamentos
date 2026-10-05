@@ -1,0 +1,56 @@
+<main class="pagina">
+  @if (criada()) {
+    <section class="cartao sucesso-tela" role="status">
+      <h1>Conta criada</h1>
+      <p>Tudo certo! Agora é só entrar com o seu e-mail e a senha que você escolheu.</p>
+      <a class="botao" routerLink="/login">Ir para o login</a>
+    </section>
+  } @else {
+    <form class="cartao" [formGroup]="form" (ngSubmit)="cadastrar()" novalidate>
+      <h1>Criar conta</h1>
+      <p class="subtitulo">Preencha os dados abaixo para usar o sistema de empréstimo de equipamentos.</p>
+
+      @if (erro(); as mensagem) {
+        <div class="alerta erro" role="alert">{{ mensagem }}</div>
+      }
+
+      <div class="campo">
+        <label for="nome">Nome</label>
+        <input id="nome" formControlName="nome" autocomplete="name" [attr.aria-invalid]="form.controls.nome.touched && form.controls.nome.invalid" />
+        @if (form.controls.nome.touched && form.controls.nome.invalid) {
+          <span class="erro-campo">Informe o seu nome (2 a 100 caracteres).</span>
+        }
+      </div>
+
+      <div class="campo">
+        <label for="email">E-mail</label>
+        <input id="email" type="email" formControlName="email" autocomplete="username" [attr.aria-invalid]="form.controls.email.touched && form.controls.email.invalid" />
+        <span class="ajuda">É o seu login.</span>
+        @if (form.controls.email.touched && form.controls.email.invalid) {
+          <span class="erro-campo">Informe um e-mail válido.</span>
+        }
+      </div>
+
+      <div class="campo">
+        <label for="senha">Senha</label>
+        <input id="senha" type="password" formControlName="senha" autocomplete="new-password" [attr.aria-invalid]="form.controls.senha.touched && form.controls.senha.invalid" />
+        <span class="ajuda">8 a 72 caracteres, com pelo menos uma letra e um número.</span>
+        @if (form.controls.senha.touched && form.controls.senha.invalid) {
+          <span class="erro-campo">A senha não atende aos requisitos.</span>
+        }
+      </div>
+
+      <div class="campo">
+        <label for="confirmacao">Repita a senha</label>
+        <input id="confirmacao" type="password" formControlName="confirmacao" autocomplete="new-password" [attr.aria-invalid]="form.controls.confirmacao.touched && form.hasError('diferentes')" />
+        @if (form.controls.confirmacao.touched && form.hasError('diferentes')) {
+          <span class="erro-campo">As senhas não são iguais.</span>
+        }
+      </div>
+
+      <button class="botao" type="submit" [disabled]="enviando()">{{ enviando() ? 'Criando...' : 'Criar conta' }}</button>
+
+      <p class="esqueci">Já tem conta? <a routerLink="/login">Entrar</a></p>
+    </form>
+  }
+</main>

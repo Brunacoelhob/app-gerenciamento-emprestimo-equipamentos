@@ -22,6 +22,7 @@ No `.env`:
 | `CORS_ORIGENS` | O endereço do seu front-end (ex.: `https://app.exemplo.com`). Vazio = nenhum site de navegador |
 | `SWAGGER_ATIVO` | Deixe desligado em produção |
 | `APP_URL` | O endereço público da interface (ex.: `https://app.exemplo.com`). **Obrigatória**: vai nos links dos e-mails de recuperação de senha |
+| `CADASTRO_PUBLICO` | `true` (padrão) deixa qualquer pessoa criar a própria conta na tela de login (sempre como usuário comum). Use `false` se só administradores devem criar contas |
 | `NOTIFICACOES_ATIVAS`, `NOTIFICACOES_CRON`, `NOTIFICACOES_FUSO` | Avisos automáticos de vencimento e atraso (padrão: ligados, todo dia às 8h, fuso de São Paulo). Dependem do SMTP abaixo |
 | `SMTP_HOST`, `SMTP_PORTA`, `SMTP_SEGURO`, `SMTP_USUARIO`, `SMTP_SENHA`, `EMAIL_REMETENTE` | O servidor de e-mail (qualquer provedor SMTP). `SMTP_SEGURO=true` para a porta 465. **Sem `SMTP_HOST` os e-mails não são enviados** e "esqueci minha senha" não chega a ninguém |
 
@@ -88,6 +89,7 @@ As migrations têm **pré-checagens**: se os dados antigos violarem uma regra no
 
 - [ ] `JWT_SECRET`, `DB_SENHA` e `ADMIN_SENHA` trocados e fortes.
 - [ ] HTTPS ativo e `CORS_ORIGENS` com o domínio real.
+- [ ] Decidiu se o **cadastro aberto** deve ficar ligado (`CADASTRO_PUBLICO`): com ele, qualquer pessoa com acesso à tela cria uma conta e pode pegar equipamentos emprestados.
 - [ ] `APP_URL` com o endereço real e SMTP configurado: peça "esqueci minha senha" com uma conta de teste e confira que o e-mail chega e o link abre a tela certa.
 - [ ] Banco **sem** porta publicada (o compose já não publica).
 - [ ] Backup agendado e restauração testada.

@@ -40,7 +40,7 @@ describe('UsuariosService', () => {
     } as unknown as jest.Mocked<UsuariosRepository>;
     sessoes = { revogarTodasDoUsuario: jest.fn() } as unknown as jest.Mocked<SessoesRepository>;
     const config = { getOrThrow: jest.fn().mockReturnValue(4) } as unknown as ConfigService;
-    servico = new UsuariosService(repo, sessoes, config);
+    servico = new UsuariosService(repo, sessoes, config, { enviar: jest.fn().mockResolvedValue(undefined) } as never);
   });
 
   describe('criar', () => {

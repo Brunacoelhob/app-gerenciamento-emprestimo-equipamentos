@@ -26,6 +26,8 @@ export interface Configuracao {
   smtpUsuario: string;
   smtpSenha: string;
   emailRemetente: string;
+  /** Permite o cadastro aberto (POST /auth/registro). CADASTRO_PUBLICO=false desliga: só administradores criam contas. */
+  cadastroPublico: boolean;
   /** Liga a rotina diária de avisos por e-mail (vencimento e atraso). Ligada por padrão; NOTIFICACOES_ATIVAS=false desliga. */
   notificacoesAtivas: boolean;
   /** Quando a rotina roda (cron de 5 campos). Padrão: todo dia às 8h. */
@@ -102,6 +104,7 @@ export function lerConfiguracao(env: Record<string, unknown> = process.env): Con
     smtpSeguro: texto('SMTP_SEGURO') === 'true',
     smtpUsuario: texto('SMTP_USUARIO'),
     smtpSenha: texto('SMTP_SENHA'),
+    cadastroPublico: texto('CADASTRO_PUBLICO') !== 'false',
     notificacoesAtivas: texto('NOTIFICACOES_ATIVAS') !== 'false',
     notificacoesCron: texto('NOTIFICACOES_CRON') || '0 8 * * *',
     notificacoesFuso: texto('NOTIFICACOES_FUSO') || 'America/Sao_Paulo',

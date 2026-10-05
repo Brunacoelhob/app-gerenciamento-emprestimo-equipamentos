@@ -8,6 +8,11 @@ export const routes: Routes = [
     loadComponent: () => import('./paginas/login/login').then((m) => m.Login),
   },
   {
+    path: 'registro',
+    canActivate: [visitanteGuard],
+    loadComponent: () => import('./paginas/registro/registro').then((m) => m.Registro),
+  },
+  {
     path: 'esqueci-senha',
     canActivate: [visitanteGuard],
     loadComponent: () => import('./paginas/esqueci-senha/esqueci-senha').then((m) => m.EsqueciSenha),

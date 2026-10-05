@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { switchMap } from 'rxjs';
@@ -11,7 +11,7 @@ import { mensagemDeErro } from '../../core/erro';
   templateUrl: './login.html',
   styleUrl: './login.scss',
 })
-export class Login {
+export class Login implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   protected readonly contaExcluida =
@@ -22,6 +22,7 @@ export class Login {
     senha: ['', [Validators.required, Validators.maxLength(72)]],
   });
   protected readonly enviando = signal(false);
+  protected readonly cadastroAberto = signal(false);
   protected readonly erro = signal<string | null>(null);
 
   protected entrar() {
@@ -43,5 +44,13 @@ export class Login {
           this.enviando.set(false);
         },
       });
+  }
+
+  ngOnInit() {
+    // Se a configuração não vier (API fora do ar), o link simplesmente não aparece
+    this.auth.configuracaoPublica().subscribe({
+      next: (c) => this.cadastroAberto.set(c.cadastroPublico),
+      error: () => undefined,
+    });
   }
 }

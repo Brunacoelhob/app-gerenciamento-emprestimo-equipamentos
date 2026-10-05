@@ -26,6 +26,7 @@ export type UsuarioPublico = Prisma.UsuarioGetPayload<{ select: typeof PUBLICOS 
 export interface FiltroUsuarios {
   role?: Role;
   ativo?: boolean;
+  busca?: string;
 }
 
 // Única porta de acesso ao banco para usuários: o serviço decide as regras, aqui só se consulta e grava.
@@ -80,6 +81,12 @@ export class UsuariosRepository {
     const where: Prisma.UsuarioWhereInput = {
       ...(filtro.role && { role: filtro.role }),
       ...(filtro.ativo !== undefined && { ativo: filtro.ativo }),
+      ...(filtro.busca?.trim() && {
+        OR: [
+          { nome: { contains: filtro.busca.trim(), mode: 'insensitive' } },
+          { email: { contains: filtro.busca.trim().toLowerCase() } },
+        ],
+      }),
     };
     const [total, itens] = await Promise.all([
       this.prisma.usuario.count({ where }),

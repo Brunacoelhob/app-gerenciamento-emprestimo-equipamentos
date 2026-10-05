@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { Role } from '../../generated/prisma/enums';
 import { intervalo, montarPagina } from '../common/dto/pagina';
+import { EmailService } from '../email/email.service';
+import { emailContaCriada } from '../email/modelos';
 import { SessoesRepository } from '../sessoes/sessoes.repository';
 import { AtualizarPerfilDto } from './dto/atualizar-perfil.dto';
 import { AtualizarUsuarioDto } from './dto/atualizar-usuario.dto';
@@ -17,6 +19,7 @@ export class UsuariosService {
     private readonly usuarios: UsuariosRepository,
     private readonly sessoes: SessoesRepository,
     private readonly config: ConfigService,
+    private readonly email: EmailService,
   ) {}
 
   async criar(dto: CriarUsuarioDto) {
@@ -28,11 +31,26 @@ export class UsuariosService {
       role: dto.role ?? Role.USER,
     });
     if (!criado) throw new ConflictException('Já existe um usuário com esse e-mail.');
+
+    // Avisa a pessoa de que a conta existe (a senha NUNCA vai no e-mail: quem criou a combina por outro canal).
+    // Em segundo plano: falha de e-mail não desfaz a criação.
+    this.email
+      .enviar(
+        emailContaCriada({
+          para: criado.email,
+          nome: criado.nome,
+          link: `${this.config.getOrThrow<string>('appUrl')}/login`,
+        }),
+      )
+      .catch(() => undefined);
     return criado;
   }
 
   async listar(dto: ListarUsuariosDto) {
-    const { total, itens } = await this.usuarios.listar({ role: dto.role, ativo: dto.ativo }, intervalo(dto));
+    const { total, itens } = await this.usuarios.listar(
+      { role: dto.role, ativo: dto.ativo, busca: dto.busca },
+      intervalo(dto),
+    );
     return montarPagina(itens, total, dto);
   }
 

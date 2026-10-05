@@ -1,4 +1,4 @@
-import { ConflictException, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -40,6 +40,22 @@ describe('AuthService', () => {
       getOrThrow: jest.fn((chave: string) => (chave === 'bcryptCusto' ? CUSTO : 7)),
     } as unknown as ConfigService;
     servico = new AuthService(usuarios, sessoes, jwt, config, { registrar: jest.fn() } as never);
+  });
+
+  describe('cadastro público desligado (CADASTRO_PUBLICO=false)', () => {
+    it('recusa com 403 e não cria nada', async () => {
+      const config = {
+        getOrThrow: jest.fn((chave: string) =>
+          chave === 'cadastroPublico' ? false : chave === 'bcryptCusto' ? CUSTO : 7,
+        ),
+      } as unknown as ConfigService;
+      const fechado = new AuthService(usuarios, sessoes, jwt, config, { registrar: jest.fn() } as never);
+      await expect(fechado.registrar({ nome: 'A', email: 'a@t.com', senha: 'Senha12345' })).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
+      expect(usuarios.criar).not.toHaveBeenCalled();
+      expect(fechado.cadastroPublico()).toBe(false);
+    });
   });
 
   describe('registrar', () => {

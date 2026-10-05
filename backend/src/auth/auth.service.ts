@@ -1,6 +1,7 @@
 import { AuditoriaService } from '../auditoria/auditoria.service';
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
   UnprocessableEntityException,
@@ -41,10 +42,19 @@ export class AuthService {
 
   /** Cadastro público: SEMPRE cria um USER. Não existe caminho aqui para virar administrador. */
   async registrar(dto: RegistrarUsuarioDto) {
+    if (!this.config.getOrThrow<boolean>('cadastroPublico')) {
+      throw new ForbiddenException(
+        'O cadastro aberto está desativado. Peça a um administrador para criar a sua conta.',
+      );
+    }
     const senhaHash = await bcrypt.hash(dto.senha, this.custo);
     const criado = await this.usuarios.criar({ nome: dto.nome, email: dto.email, senhaHash, role: Role.USER });
     if (!criado) throw new ConflictException('Já existe um usuário com esse e-mail.');
     return criado;
+  }
+
+  cadastroPublico(): boolean {
+    return this.config.getOrThrow<boolean>('cadastroPublico');
   }
 
   async login(dto: LoginDto): Promise<TokensRespostaDto> {

@@ -44,5 +44,8 @@
     </button>
 
     <p class="esqueci"><a routerLink="/esqueci-senha">Esqueci minha senha</a></p>
+    @if (cadastroAberto()) {
+      <p class="esqueci">Ainda não tem conta? <a routerLink="/registro">Criar conta</a></p>
+    }
   </form>
 </main>

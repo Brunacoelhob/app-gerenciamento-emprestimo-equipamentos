@@ -39,6 +39,17 @@ export class AuthController {
   ) {}
 
   @ApiOperation({
+    summary: 'Configurações públicas que a tela de login precisa saber',
+    description: 'Hoje: se o cadastro aberto está ligado (CADASTRO_PUBLICO).',
+  })
+  @ApiOkResponse({ description: 'Objeto com cadastroPublico (boolean).' })
+  @Publica()
+  @Get('configuracao')
+  configuracao() {
+    return { cadastroPublico: this.auth.cadastroPublico() };
+  }
+
+  @ApiOperation({
     summary: 'Cadastro público (a conta sempre nasce como USER)',
     description:
       'Não existe campo de papel: quem tentar enviar `role` recebe 400. Administradores só são criados por outro ADMIN.',

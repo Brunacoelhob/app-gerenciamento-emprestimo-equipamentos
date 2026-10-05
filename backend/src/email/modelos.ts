@@ -182,3 +182,29 @@ export function emailContaRemovida(dados: { para: string; nome: string }): Mensa
     ),
   };
 }
+
+export function emailContaCriada(dados: { para: string; nome: string; link: string }): Mensagem {
+  const { para, nome, link } = dados;
+  return {
+    para,
+    assunto: 'Sua conta foi criada',
+    texto: [
+      `Olá, ${nome}.`,
+      '',
+      'Um administrador criou uma conta para você no sistema de empréstimo de equipamentos.',
+      'Para entrar, use este e-mail e a senha que a pessoa que criou a conta combinou com você. Depois do primeiro acesso, troque a senha no seu perfil.',
+      '',
+      `Entrar: ${link}`,
+      '',
+      'Se você não esperava este e-mail, ignore-o: nenhuma ação é necessária.',
+    ].join('\n'),
+    html: moldura(
+      'Sua conta foi criada',
+      `<p>Olá, ${escapar(nome)}.</p>
+<p>Um administrador criou uma conta para você no sistema de empréstimo de equipamentos.</p>
+<p>Para entrar, use este e-mail e a senha que a pessoa que criou a conta combinou com você. Depois do primeiro acesso, troque a senha no seu perfil.</p>
+<p style="margin:24px 0"><a href="${escapar(link)}" style="background:#2457c5;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:bold;display:inline-block">Entrar</a></p>
+<p style="font-size:13px;color:#5b6676">Se você não esperava este e-mail, ignore-o: nenhuma ação é necessária.</p>`,
+    ),
+  };
+}

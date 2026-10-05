@@ -6,6 +6,7 @@ import { Pagina, Role, Usuario } from './modelos';
 export interface FiltroUsuarios {
   role: Role | '';
   ativo: '' | 'true' | 'false';
+  busca: string;
   pagina: number;
 }
 
@@ -18,6 +19,7 @@ export class UsuariosService {
     let params = new HttpParams().set('pagina', filtro.pagina).set('limite', 10);
     if (filtro.role) params = params.set('role', filtro.role);
     if (filtro.ativo) params = params.set('ativo', filtro.ativo);
+    if (filtro.busca.trim()) params = params.set('busca', filtro.busca.trim());
     return this.http.get<Pagina<Usuario>>(`${API}/usuarios`, { params });
   }
 
