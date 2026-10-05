@@ -82,6 +82,7 @@ jobs:
       DB_USER: postgres
       DB_SENHA: ci
       JWT_SECRET: segredo-de-ci-com-mais-de-32-caracteres-xxxxxxxx
+      APP_URL: http://localhost:8080
     steps:
       - uses: actions/checkout@v4
       - name: Valida o docker-compose

@@ -43,6 +43,15 @@ export class AuthService {
     return this.http.patch<Usuario>(`${API}/auth/eu`, dados).pipe(tap((u) => this.usuario.set(u)));
   }
 
+  // Recuperação de senha: a resposta é sempre a mesma (204), exista a conta ou não
+  esqueciSenha(email: string) {
+    return this.http.post<void>(`${API}/auth/esqueci-senha`, { email });
+  }
+
+  redefinirSenha(token: string, novaSenha: string) {
+    return this.http.post<void>(`${API}/auth/redefinir-senha`, { token, novaSenha });
+  }
+
   // Troca o refresh token por um par novo. Chamadas simultâneas compartilham UMA renovação:
   // o refresh token é de uso único e reapresentá-lo derrubaria todas as sessões da pessoa.
   renovar(): Observable<string> {

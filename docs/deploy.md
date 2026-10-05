@@ -21,6 +21,8 @@ No `.env`:
 | `ADMIN_EMAIL` / `ADMIN_SENHA` | O primeiro administrador (senha de 12+ caracteres, com letras e números) |
 | `CORS_ORIGENS` | O endereço do seu front-end (ex.: `https://app.exemplo.com`). Vazio = nenhum site de navegador |
 | `SWAGGER_ATIVO` | Deixe desligado em produção |
+| `APP_URL` | O endereço público da interface (ex.: `https://app.exemplo.com`). **Obrigatória**: vai nos links dos e-mails de recuperação de senha |
+| `SMTP_HOST`, `SMTP_PORTA`, `SMTP_SEGURO`, `SMTP_USUARIO`, `SMTP_SENHA`, `EMAIL_REMETENTE` | O servidor de e-mail (qualquer provedor SMTP). `SMTP_SEGURO=true` para a porta 465. **Sem `SMTP_HOST` os e-mails não são enviados** e "esqueci minha senha" não chega a ninguém |
 
 O `.env` está no `.gitignore`: não o envie ao repositório.
 
@@ -85,6 +87,7 @@ As migrations têm **pré-checagens**: se os dados antigos violarem uma regra no
 
 - [ ] `JWT_SECRET`, `DB_SENHA` e `ADMIN_SENHA` trocados e fortes.
 - [ ] HTTPS ativo e `CORS_ORIGENS` com o domínio real.
+- [ ] `APP_URL` com o endereço real e SMTP configurado: peça "esqueci minha senha" com uma conta de teste e confira que o e-mail chega e o link abre a tela certa.
 - [ ] Banco **sem** porta publicada (o compose já não publica).
 - [ ] Backup agendado e restauração testada.
 - [ ] `docker compose ps` mostrando a API como *healthy*.

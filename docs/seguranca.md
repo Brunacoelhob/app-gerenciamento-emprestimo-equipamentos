@@ -40,6 +40,7 @@ As falhas críticas foram **reproduzidas rodando a API original** contra um banc
 - Resposta de login **idêntica** para e-mail inexistente, senha errada e conta desativada, e comparação com um hash falso quando o e-mail não existe (tempo de resposta parecido): não revela quais e-mails existem.
 - **Refresh token:** aleatório (48 bytes), guardado só como **SHA-256**; uso único (rotação); **reuso de um token já usado derruba todas as sessões** da pessoa; revogação atômica (dois pedidos simultâneos nunca vencem os dois).
 - Troca de senha e desativação de conta encerram todas as sessões.
+- **Recuperação de senha por e-mail:** o link carrega um token aleatório (32 bytes) guardado só como **SHA-256**; vale **30 minutos**, é de **uso único** (consumo atômico: dois cliques simultâneos nunca vencem os dois) e um pedido novo invalida o anterior. A resposta de "esqueci minha senha" é **idêntica** exista a conta ou não, e o envio roda em segundo plano (o tempo não revela nada). No máximo 3 pedidos por hora por conta e 5 por IP. Redefinir **encerra todas as sessões** e avisa a pessoa por e-mail. Em produção, sem SMTP o e-mail não é enviado e o conteúdo (que equivale a uma credencial) **nunca vai para o log**. O front-end remove o token do endereço assim que a página abre.
 - JWT com algoritmo fixado (`HS256`) e `JWT_SECRET` obrigatório de 32+ caracteres (o valor de exemplo é recusado na partida).
 
 **Autorização**
@@ -54,7 +55,7 @@ As falhas críticas foram **reproduzidas rodando a API original** contra um banc
 - Cabeçalhos de segurança com Helmet; `x-powered-by` removido.
 
 **Operação**
-- Limite de requisições: 100/min por IP, mais rígido no login (5/min), cadastro (10/h) e troca de senha (5/min).
+- Limite de requisições: 100/min por IP, mais rígido no login (5/min), cadastro (10/h), troca de senha (5/min) e recuperação de senha (5 pedidos/h).
 - Container sem root, `no-new-privileges`, banco **sem porta exposta** fora do Docker, API publicada só em `127.0.0.1`.
 - Segredos só no `.env` (no `.gitignore`); nenhum valor real em `.env.example`.
 
@@ -63,6 +64,8 @@ As falhas críticas foram **reproduzidas rodando a API original** contra um banc
 | Risco | Por que foi aceito |
 |---|---|
 | `npm audit` aponta 6 vulnerabilidades (4 altas) em `prisma`/`@prisma/config`/`deepmerge-ts`/`mysql2` e 2 moderadas em `@nestjs/swagger`/`js-yaml` | As quatro primeiras estão no **CLI do Prisma**, que o `@prisma/client` 7 traz como dependência par; o CLI só roda em build e migração, **nunca no tratamento de requisições**, e `mysql2` não é usado com PostgreSQL. A "correção" automática seria rebaixar o Prisma para a versão 6 (mudança incompatível). As do Swagger não atingem produção, onde ele fica desligado. Reavaliar a cada atualização do Prisma e do `@nestjs/swagger` |
+| O e-mail de redefinição fica na caixa de entrada de quem o recebe | Quem controla a caixa de e-mail controla a conta: é a premissa de qualquer recuperação por e-mail. Mitigado pela validade curta, pelo uso único, pelo encerramento das sessões e pelo e-mail de aviso depois da troca |
+| Pequena diferença de tempo entre "e-mail existe" e "não existe" no pedido de recuperação | A resposta é idêntica e o e-mail sai em segundo plano, mas só o caso "existe" grava no banco. Mitigado pelo limite por IP (5/h); para eliminar de vez, enfileirar o pedido |
 | Limite de requisições em memória (por processo) | Suficiente para uma instância. Com várias réplicas, usar armazenamento compartilhado (Redis) |
 | Uma consulta ao banco por requisição autenticada | É o preço de o papel e a conta valerem na hora. Consulta por chave primária |
 | Dois administradores se rebaixando exatamente ao mesmo tempo poderiam zerar os administradores | A checagem do "último administrador" não é transacional. Cenário raro e que exige dois admins agindo no mesmo instante; mitigado pelo seed (recria o admin) |

@@ -51,6 +51,15 @@ services:
       SWAGGER_ATIVO: ${SWAGGER_ATIVO:-false}
       # A API fica atrás do nginx (1 proxy): o IP do cliente vem do X-Forwarded-For, e o limite de tentativas é por pessoa
       TRUST_PROXY: 1
+      # Recuperação de senha por e-mail. APP_URL é o endereço público da interface (vai nos links dos e-mails).
+      # Sem SMTP_HOST os e-mails NÃO são enviados (em produção o conteúdo nunca vai para o log).
+      APP_URL: '${APP_URL:?defina APP_URL no .env (ex.: https://app.exemplo.com)}'
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORTA: ${SMTP_PORTA:-587}
+      SMTP_SEGURO: ${SMTP_SEGURO:-false}
+      SMTP_USUARIO: ${SMTP_USUARIO:-}
+      SMTP_SENHA: ${SMTP_SENHA:-}
+      EMAIL_REMETENTE: '${EMAIL_REMETENTE:-Empréstimo de Equipamentos <nao-responda@localhost>}'
     depends_on:
       migrar:
         condition: service_completed_successfully
@@ -89,6 +98,16 @@ services:
     read_only: true
     tmpfs:
       - /tmp
+    networks: [rede]
+
+  # Só para desenvolvimento (docker compose --profile dev up -d): caixa de entrada de teste. Nenhum e-mail sai de
+  # verdade; veja os que a aplicação enviaria em http://localhost:8025. Use SMTP_HOST=mailpit e SMTP_PORTA=1025.
+  mailpit:
+    image: axllent/mailpit:v1.31
+    profiles: [dev]
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:${PORTA_MAILPIT:-8025}:8025'
     networks: [rede]
 
 networks:

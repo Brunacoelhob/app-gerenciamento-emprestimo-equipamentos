@@ -1,0 +1,42 @@
+<main class="pagina">
+  @if (enviado()) {
+    <section class="cartao sucesso-tela" role="status">
+      <h1>Confira o seu e-mail</h1>
+      <p>
+        Se <strong>{{ form.controls.email.value }}</strong> estiver cadastrado, enviamos um link para escolher uma nova senha.
+        Ele vale por 30 minutos e só pode ser usado uma vez.
+      </p>
+      <p>Não chegou? Veja a caixa de spam ou tente de novo em alguns minutos.</p>
+      <a class="botao secundario" routerLink="/login">Voltar para o login</a>
+    </section>
+  } @else {
+    <form class="cartao" [formGroup]="form" (ngSubmit)="enviar()" novalidate>
+      <h1>Esqueci minha senha</h1>
+      <p class="subtitulo">Informe o e-mail da sua conta. Vamos enviar um link para você escolher uma nova senha.</p>
+
+      @if (erro(); as mensagem) {
+        <div class="alerta erro" role="alert">{{ mensagem }}</div>
+      }
+
+      <div class="campo">
+        <label for="email">E-mail</label>
+        <input
+          id="email"
+          type="email"
+          formControlName="email"
+          autocomplete="username"
+          [attr.aria-invalid]="form.controls.email.touched && form.controls.email.invalid"
+        />
+        @if (form.controls.email.touched && form.controls.email.invalid) {
+          <span class="erro-campo">Informe um e-mail válido.</span>
+        }
+      </div>
+
+      <button class="botao" type="submit" [disabled]="enviando()">
+        {{ enviando() ? 'Enviando...' : 'Enviar link' }}
+      </button>
+
+      <p class="esqueci"><a routerLink="/login">Voltar para o login</a></p>
+    </form>
+  }
+</main>

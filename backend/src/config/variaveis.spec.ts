@@ -14,6 +14,9 @@ describe('lerConfiguracao', () => {
       corsOrigens: [], // sem CORS liberado por padrão
       swaggerAtivo: true,
       trustProxy: 0, // sem proxy confiável: o cabeçalho X-Forwarded-For é ignorado
+      smtpHost: '', // sem SMTP: em desenvolvimento o e-mail só vai para o log
+      smtpPorta: 587,
+      appUrl: 'http://localhost:4200',
     });
   });
 
@@ -30,8 +33,13 @@ describe('lerConfiguracao', () => {
   });
 
   it('em produção o Swagger fica DESLIGADO, a menos que seja ligado de propósito', () => {
-    expect(lerConfiguracao({ ...base, NODE_ENV: 'production' }).swaggerAtivo).toBe(false);
-    expect(lerConfiguracao({ ...base, NODE_ENV: 'production', SWAGGER_ATIVO: 'true' }).swaggerAtivo).toBe(true);
+    expect(lerConfiguracao({ ...base, NODE_ENV: 'production', APP_URL: 'https://app.exemplo.com' }).swaggerAtivo).toBe(
+      false,
+    );
+    expect(
+      lerConfiguracao({ ...base, NODE_ENV: 'production', APP_URL: 'https://app.exemplo.com', SWAGGER_ATIVO: 'true' })
+        .swaggerAtivo,
+    ).toBe(true);
     expect(lerConfiguracao({ ...base, NODE_ENV: 'development', SWAGGER_ATIVO: 'false' }).swaggerAtivo).toBe(false);
   });
 
@@ -54,5 +62,18 @@ describe('lerConfiguracao', () => {
     expect(lerConfiguracao({ ...base, TRUST_PROXY: '1' }).trustProxy).toBe(1);
     expect(() => lerConfiguracao({ ...base, TRUST_PROXY: '-1' })).toThrow('TRUST_PROXY');
     expect(() => lerConfiguracao({ ...base, TRUST_PROXY: 'sim' })).toThrow('TRUST_PROXY');
+  });
+
+  it('APP_URL: aceita http(s), tira a barra final e é obrigatória em produção', () => {
+    expect(lerConfiguracao({ ...base, APP_URL: 'https://app.exemplo.com/' }).appUrl).toBe('https://app.exemplo.com');
+    expect(() => lerConfiguracao({ ...base, APP_URL: 'ftp://x.com' })).toThrow('APP_URL');
+    expect(() => lerConfiguracao({ ...base, APP_URL: 'não é uma url' })).toThrow('APP_URL');
+    expect(() => lerConfiguracao({ ...base, NODE_ENV: 'production' })).toThrow('APP_URL');
+  });
+
+  it('lê as variáveis de SMTP', () => {
+    const c = lerConfiguracao({ ...base, SMTP_HOST: 'smtp.exemplo.com', SMTP_PORTA: '465', SMTP_SEGURO: 'true' });
+    expect(c).toMatchObject({ smtpHost: 'smtp.exemplo.com', smtpPorta: 465, smtpSeguro: true });
+    expect(() => lerConfiguracao({ ...base, SMTP_PORTA: '0' })).toThrow('SMTP_PORTA');
   });
 });

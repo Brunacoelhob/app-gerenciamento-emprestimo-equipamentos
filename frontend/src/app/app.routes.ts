@@ -8,6 +8,16 @@ export const routes: Routes = [
     loadComponent: () => import('./paginas/login/login').then((m) => m.Login),
   },
   {
+    path: 'esqueci-senha',
+    canActivate: [visitanteGuard],
+    loadComponent: () => import('./paginas/esqueci-senha/esqueci-senha').then((m) => m.EsqueciSenha),
+  },
+  {
+    path: 'redefinir-senha',
+    canActivate: [visitanteGuard],
+    loadComponent: () => import('./paginas/redefinir-senha/redefinir-senha').then((m) => m.RedefinirSenha),
+  },
+  {
     path: '',
     canActivate: [autenticadoGuard],
     loadComponent: () => import('./layout/layout').then((m) => m.Layout),

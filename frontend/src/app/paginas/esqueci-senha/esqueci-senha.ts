@@ -1,45 +1,43 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
-import { switchMap } from 'rxjs';
+import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { mensagemDeErro } from '../../core/erro';
 
 @Component({
-  selector: 'app-login',
+  selector: 'app-esqueci-senha',
   imports: [ReactiveFormsModule, RouterLink],
-  templateUrl: './login.html',
-  styleUrl: './login.scss',
+  templateUrl: './esqueci-senha.html',
+  styleUrl: '../login/login.scss',
 })
-export class Login {
+export class EsqueciSenha {
   private readonly auth = inject(AuthService);
-  private readonly router = inject(Router);
 
   protected readonly form = inject(FormBuilder).nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
-    senha: ['', [Validators.required, Validators.maxLength(72)]],
   });
   protected readonly enviando = signal(false);
+  protected readonly enviado = signal(false);
   protected readonly erro = signal<string | null>(null);
 
-  protected entrar() {
+  protected enviar() {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
-    const { email, senha } = this.form.getRawValue();
     this.enviando.set(true);
     this.erro.set(null);
 
-    this.auth
-      .login(email.trim(), senha)
-      .pipe(switchMap(() => this.auth.carregarUsuario()))
-      .subscribe({
-        next: () => void this.router.navigate(['/']),
-        error: (e: unknown) => {
-          this.erro.set(mensagemDeErro(e));
-          this.enviando.set(false);
-        },
-      });
+    this.auth.esqueciSenha(this.form.getRawValue().email.trim()).subscribe({
+      // A API responde igual exista a conta ou não: a tela também não revela nada
+      next: () => {
+        this.enviado.set(true);
+        this.enviando.set(false);
+      },
+      error: (e: unknown) => {
+        this.erro.set(mensagemDeErro(e));
+        this.enviando.set(false);
+      },
+    });
   }
 }

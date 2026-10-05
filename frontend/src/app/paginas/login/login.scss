@@ -23,3 +23,22 @@ h1 {
 .botao {
   width: 100%;
 }
+
+.esqueci {
+  margin: 1rem 0 0;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.sucesso-tela {
+  text-align: center;
+
+  p {
+    color: var(--texto-suave);
+  }
+
+  .botao {
+    width: auto;
+    margin-top: 0.5rem;
+  }
+}

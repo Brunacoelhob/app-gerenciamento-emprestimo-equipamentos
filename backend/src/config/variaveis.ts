@@ -16,6 +16,16 @@ export interface Configuracao {
   swaggerAtivo: boolean;
   /** Quantos proxies reversos confiáveis existem na frente da API (0 = acesso direto). Define de onde sai o IP do cliente. */
   trustProxy: number;
+  /** Endereço público da interface web: vai nos links dos e-mails (ex.: https://app.exemplo.com). */
+  appUrl: string;
+  /** Servidor SMTP para enviar e-mails. Vazio = nenhum: em desenvolvimento o e-mail só é escrito no log. */
+  smtpHost: string;
+  smtpPorta: number;
+  /** true = TLS direto (porta 465); false = STARTTLS quando o servidor oferece (587). */
+  smtpSeguro: boolean;
+  smtpUsuario: string;
+  smtpSenha: string;
+  emailRemetente: string;
 }
 
 const SEGREDOS_FRACOS = ['troque-por-uma-chave-aleatoria-longa-e-secreta', 'changeme', 'secret', 'senha'];
@@ -27,6 +37,25 @@ function inteiro(valor: string | undefined, padrao: number, nome: string, minimo
     throw new Error(`Variável ${nome} inválida: use um número inteiro de ${minimo} a ${maximo} (recebido "${valor}").`);
   }
   return n;
+}
+
+// O endereço entra nos links dos e-mails (recuperação de senha): precisa ser http(s) e, em produção, informado de
+// propósito. Um endereço padrão errado mandaria o link de redefinição para o lugar errado.
+function lerAppUrl(valor: string, ambiente: Configuracao['ambiente']): string {
+  if (!valor) {
+    if (ambiente === 'production') {
+      throw new Error('Variável de ambiente obrigatória ausente em produção: APP_URL (ex.: https://app.exemplo.com).');
+    }
+    return 'http://localhost:4200';
+  }
+  let url: URL;
+  try {
+    url = new URL(valor);
+  } catch {
+    throw new Error(`APP_URL inválida: "${valor}". Use um endereço completo, como https://app.exemplo.com.`);
+  }
+  if (!['http:', 'https:'].includes(url.protocol)) throw new Error('APP_URL precisa começar com http:// ou https://.');
+  return url.origin + url.pathname.replace(/\/+$/, '');
 }
 
 export function lerConfiguracao(env: Record<string, unknown> = process.env): Configuracao {
@@ -61,5 +90,12 @@ export function lerConfiguracao(env: Record<string, unknown> = process.env): Con
     // Em produção o Swagger fica desligado, a menos que seja ligado de propósito.
     swaggerAtivo: texto('SWAGGER_ATIVO') ? texto('SWAGGER_ATIVO') === 'true' : ambiente !== 'production',
     trustProxy: inteiro(texto('TRUST_PROXY'), 0, 'TRUST_PROXY', 0, 5),
+    appUrl: lerAppUrl(texto('APP_URL'), ambiente),
+    smtpHost: texto('SMTP_HOST'),
+    smtpPorta: inteiro(texto('SMTP_PORTA'), 587, 'SMTP_PORTA', 1, 65535),
+    smtpSeguro: texto('SMTP_SEGURO') === 'true',
+    smtpUsuario: texto('SMTP_USUARIO'),
+    smtpSenha: texto('SMTP_SENHA'),
+    emailRemetente: texto('EMAIL_REMETENTE') || 'Empréstimo de Equipamentos <nao-responda@localhost>',
   };
 }

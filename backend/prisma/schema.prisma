@@ -46,6 +46,7 @@ model Usuario {
   atualizadoEm DateTime       @default(now()) @updatedAt
   emprestimos  Emprestimo[]
   refreshTokens RefreshToken[]
+  recuperacoesSenha RecuperacaoSenha[]
 }
 
 model Equipamento {
@@ -86,4 +87,18 @@ model RefreshToken {
   revogadoEm  DateTime? // preenchido ao renovar (rotação), sair ou trocar a senha
 
   @@index([usuarioId])
+}
+
+// Pedidos de "esqueci minha senha". Como o refresh token, só o HASH do token vai para o banco: quem lê a
+// tabela não consegue redefinir a senha de ninguém. Uso único e validade curta.
+model RecuperacaoSenha {
+  id        Int       @id @default(autoincrement())
+  usuarioId Int
+  usuario   Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  criadoEm  DateTime  @default(now())
+  expiraEm  DateTime
+  usadoEm   DateTime? // preenchido ao redefinir a senha ou quando um pedido mais novo substitui este
+
+  @@index([usuarioId, criadoEm])
 }

@@ -27,6 +27,8 @@ describe('API de empréstimo de equipamentos (integração)', () => {
   let http: ReturnType<typeof request>;
   let senhaHash: string;
   let contador = 0;
+  // E-mails "enviados" pela aplicação (o envio real é substituído por este registro)
+  const emails: { para: string; assunto: string; texto: string }[] = [];
 
   // ---------- ajudantes ----------
 
@@ -54,8 +56,12 @@ describe('API de empréstimo de equipamentos (integração)', () => {
   beforeAll(async () => {
     const { AppModule } = await import('../src/app.module.js');
     const { configurarApp } = await import('../src/configurar-app.js');
+    const { EmailService } = await import('../src/email/email.service.js');
 
-    const modulo = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    const modulo = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(EmailService)
+      .useValue({ enviar: (m: (typeof emails)[number]) => Promise.resolve(void emails.push(m)) })
+      .compile();
     app = modulo.createNestApplication<NestExpressApplication>();
     configurarApp(app);
     // A aplicação ESCUTA de verdade em uma porta livre. Sem isso o supertest abre um servidor temporário por
@@ -515,6 +521,139 @@ describe('API de empréstimo de equipamentos (integração)', () => {
       expect(r.body.kpis.disponiveis + r.body.kpis.emprestados).toBe(r.body.kpis.equipamentosAtivos);
       expect(r.body.pessoasMaisAtivas.length).toBeGreaterThan(0);
       expect(r.body.maisEmprestados.length).toBeGreaterThan(0);
+    });
+  });
+
+  // =====================================================================================================
+  describe('recuperação de senha por e-mail', () => {
+    const pedir = (email: string) => http.post('/v1/auth/esqueci-senha').send({ email });
+    const redefinir = (token: string, novaSenha: string) =>
+      http.post('/v1/auth/redefinir-senha').send({ token, novaSenha });
+    const doUsuario = (email: string) => emails.filter((e) => e.para === email);
+    const aguardar = (ms = 150) => new Promise((r) => setTimeout(r, ms)); // o envio roda em segundo plano
+    const tokenDoEmail = (email: string) => {
+      const ultimo = doUsuario(email)
+        .filter((e) => e.assunto === 'Redefinição de senha')
+        .pop();
+      return /redefinir-senha\?token=([\w-]+)/.exec(ultimo?.texto ?? '')?.[1] ?? '';
+    };
+
+    it('a resposta é IDÊNTICA para e-mail cadastrado e não cadastrado, e só o cadastrado recebe o e-mail', async () => {
+      const pessoa = await criarUsuario('USER');
+      const existente = await pedir(pessoa.email);
+      const inexistente = await pedir('ninguem.por.aqui@teste.com');
+      await aguardar();
+      expect(existente.status).toBe(204);
+      expect(inexistente.status).toBe(204);
+      expect(existente.text).toBe(inexistente.text);
+      expect(doUsuario(pessoa.email)).toHaveLength(1);
+      expect(doUsuario('ninguem.por.aqui@teste.com')).toHaveLength(0);
+    });
+
+    it('conta DESATIVADA não recebe e-mail', async () => {
+      const inativa = await criarUsuario('USER', false);
+      await pedir(inativa.email).expect(204);
+      await aguardar();
+      expect(doUsuario(inativa.email)).toHaveLength(0);
+    });
+
+    it('fluxo completo: link do e-mail troca a senha, encerra as sessões e só vale uma vez', async () => {
+      const pessoa = await criarUsuario('USER');
+      const sessao = await http.post('/v1/auth/login').send({ email: pessoa.email, senha: SENHA }).expect(200);
+
+      await pedir(pessoa.email).expect(204);
+      await aguardar();
+      const token = tokenDoEmail(pessoa.email);
+      expect(token.length).toBeGreaterThanOrEqual(40);
+
+      await redefinir(token, 'OutraSenha456').expect(204);
+      await aguardar();
+
+      // senha nova entra; a antiga não; a sessão que já existia foi encerrada
+      await http.post('/v1/auth/login').send({ email: pessoa.email, senha: 'OutraSenha456' }).expect(200);
+      await http.post('/v1/auth/login').send({ email: pessoa.email, senha: SENHA }).expect(401);
+      await http.post('/v1/auth/renovar').send({ refreshToken: sessao.body.refreshToken }).expect(401);
+
+      // o link não funciona uma segunda vez, e a pessoa é avisada da troca
+      const reuso = await redefinir(token, 'TerceiraSenha789').expect(400);
+      expect(reuso.body.mensagem).toContain('inválido ou expirou');
+      expect(doUsuario(pessoa.email).map((e) => e.assunto)).toContain('Sua senha foi alterada');
+    });
+
+    it('só o HASH do token é guardado: ler o banco não permite redefinir a senha de ninguém', async () => {
+      const pessoa = await criarUsuario('USER');
+      await pedir(pessoa.email).expect(204);
+      await aguardar();
+      const token = tokenDoEmail(pessoa.email);
+      const [registro] = await prisma.recuperacaoSenha.findMany({ where: { usuarioId: pessoa.id } });
+      expect(registro.tokenHash).not.toBe(token);
+      expect(registro.tokenHash).toMatch(/^[0-9a-f]{64}$/);
+      expect(JSON.stringify(registro)).not.toContain(token);
+    });
+
+    it('um pedido novo invalida o link anterior', async () => {
+      const pessoa = await criarUsuario('USER');
+      await pedir(pessoa.email).expect(204);
+      await aguardar();
+      const primeiro = tokenDoEmail(pessoa.email);
+      await pedir(pessoa.email).expect(204);
+      await aguardar();
+      const segundo = tokenDoEmail(pessoa.email);
+      expect(segundo).not.toBe(primeiro);
+
+      await redefinir(primeiro, 'OutraSenha456').expect(400);
+      await redefinir(segundo, 'OutraSenha456').expect(204);
+    });
+
+    it('link expirado (30 minutos) é recusado e a senha continua a mesma', async () => {
+      const pessoa = await criarUsuario('USER');
+      await pedir(pessoa.email).expect(204);
+      await aguardar();
+      const token = tokenDoEmail(pessoa.email);
+      await prisma.recuperacaoSenha.updateMany({
+        where: { usuarioId: pessoa.id },
+        data: { expiraEm: new Date(Date.now() - 1000) },
+      });
+      await redefinir(token, 'OutraSenha456').expect(400);
+      await http.post('/v1/auth/login').send({ email: pessoa.email, senha: SENHA }).expect(200);
+    });
+
+    it('recusa senha fraca, código malformado e e-mail inválido (e a senha fraca não queima o link)', async () => {
+      const pessoa = await criarUsuario('USER');
+      await pedir(pessoa.email).expect(204);
+      await aguardar();
+      const token = tokenDoEmail(pessoa.email);
+
+      await redefinir(token, 'curta').expect(400);
+      await redefinir(token, 'somenteletrasaqui').expect(400);
+      await redefinir('curto', 'OutraSenha456').expect(400);
+      await redefinir('x'.repeat(43), 'OutraSenha456').expect(400); // código que nunca foi emitido
+      await http.post('/v1/auth/esqueci-senha').send({ email: 'isto-nao-e-email' }).expect(400);
+      await http.post('/v1/auth/esqueci-senha').send({}).expect(400);
+
+      await redefinir(token, 'OutraSenha456').expect(204); // o link continua valendo
+    });
+
+    it('no máximo 3 pedidos por hora por conta: o excedente não manda mais e-mail (e a resposta não muda)', async () => {
+      const pessoa = await criarUsuario('USER');
+      for (let i = 0; i < 4; i++) {
+        zerarLimites(); // o limite por IP não é o que está em teste aqui
+        await pedir(pessoa.email).expect(204);
+      }
+      await aguardar();
+      expect(doUsuario(pessoa.email).filter((e) => e.assunto === 'Redefinição de senha')).toHaveLength(3);
+    });
+
+    it('limite por IP: o 6º pedido na mesma hora recebe 429', async () => {
+      const status: number[] = [];
+      for (let i = 0; i < 7; i++) status.push((await pedir(`alguem${i}@teste.com`)).status);
+      expect(status.slice(0, 5)).toEqual([204, 204, 204, 204, 204]);
+      expect(status.slice(5)).toEqual([429, 429]);
+    });
+
+    it('as rotas são públicas (sem token) e ficam sob /v1', async () => {
+      await http.post('/auth/esqueci-senha').send({ email: 'a@teste.com' }).expect(404);
+      await http.post('/v1/auth/esqueci-senha').send({ email: 'a@teste.com' }).expect(204);
     });
   });
 

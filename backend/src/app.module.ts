@@ -9,6 +9,7 @@ import { lerConfiguracao } from './config/variaveis';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { EmprestimosModule } from './emprestimos/emprestimos.module';
 import { EquipamentosModule } from './equipamentos/equipamentos.module';
+import { RecuperacaoSenhaModule } from './recuperacao-senha/recuperacao-senha.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SaudeModule } from './saude/saude.module';
 import { SessoesModule } from './sessoes/sessoes.module';
@@ -24,6 +25,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     SessoesModule,
     UsuariosModule,
     AuthModule,
+    RecuperacaoSenhaModule,
     EquipamentosModule,
     EmprestimosModule,
     DashboardModule,
