@@ -29,22 +29,29 @@ O `.env` está no `.gitignore`: não o envie ao repositório.
 ```bash
 docker compose up -d --build
 docker compose ps          # banco e api "healthy"; migrar "exited (0)"
-curl http://127.0.0.1:3000/saude
+curl http://127.0.0.1:3000/saude        # a API
+curl http://127.0.0.1:8080/api/saude    # a mesma API, pela interface web (nginx)
 ```
+
+A interface web (`web`) escuta em `127.0.0.1:8080` (`PORTA_WEB`). Ela serve o Angular e encaminha `/api/*` para a API na mesma origem, por isso **`CORS_ORIGENS` pode ficar vazio** quando o navegador só acessa pelo endereço da interface. A API sabe que há um proxy na frente (`TRUST_PROXY=1`, já definido no compose): assim o limite de tentativas de login vale **por pessoa**, e não para todos juntos. Se você colocar mais um proxy na frente (próxima seção), aumente `TRUST_PROXY` para 2 e faça esse proxy repassar o `X-Forwarded-For`.
 
 A ordem é automática: o banco fica saudável → o serviço **migrar** aplica as migrations e cria o primeiro administrador → a **API** sobe e é considerada saudável quando `/saude` responde.
 
 ## 3. HTTPS com proxy reverso
 
-A API escuta só em `127.0.0.1:3000`. Coloque um proxy com certificado na frente. Exemplo com **Caddy** (certificado automático):
+A interface web escuta só em `127.0.0.1:8080`. Coloque um proxy com certificado na frente **dela** (ela já encaminha `/api` para a API). Exemplo com **Caddy** (certificado automático):
 
 ```
-api.exemplo.com {
-    reverse_proxy 127.0.0.1:3000
+app.exemplo.com {
+    reverse_proxy 127.0.0.1:8080
 }
 ```
 
-Com nginx e Certbot a ideia é a mesma (`proxy_pass http://127.0.0.1:3000;`). Se a API ficar atrás do proxy, o limite de requisições enxergará o IP do proxy; configure o `trust proxy` do Express antes de ir a produção com tráfego real.
+Com nginx e Certbot a ideia é a mesma (`proxy_pass http://127.0.0.1:8080;`, repassando `X-Forwarded-For`).
+
+Agora há **dois** proxies entre o navegador e a API (o seu, com HTTPS, e o nginx do compose). Ajuste `TRUST_PROXY=2` na API: sem isso ela enxerga o IP do primeiro proxy e o limite de tentativas de login volta a valer para todos juntos. O nginx do compose acrescenta o IP de quem o acessou ao `X-Forwarded-For` e a API só confia nos últimos `TRUST_PROXY` itens da lista: o seu proxy informa o IP do navegador, o nginx informa o do seu proxy, e a API usa o do navegador. Confira, depois de publicar, que tentativas de login de IPs diferentes não dividem o mesmo limite.
+
+Se a API ficar exposta diretamente, mantenha `TRUST_PROXY` em `0`: assim ninguém consegue forjar o próprio IP por cabeçalho.
 
 ## 4. Backup e restauração
 

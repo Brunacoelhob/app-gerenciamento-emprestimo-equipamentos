@@ -95,8 +95,17 @@ jobs:
             [ "$(docker compose ps api --format '{{.Health}}')" = "healthy" ] && break
             sleep 3
           done
+          for i in $(seq 1 40); do
+            [ "$(docker compose ps web --format '{{.Health}}')" = "healthy" ] && break
+            sleep 3
+          done
           docker compose ps
           curl --fail --silent http://127.0.0.1:3000/saude
+          echo
+          # A interface web: a página, uma rota do Angular e a API pelo proxy do nginx
+          curl --fail --silent --output /dev/null http://127.0.0.1:8080/
+          curl --fail --silent --output /dev/null http://127.0.0.1:8080/perfil
+          curl --fail --silent http://127.0.0.1:8080/api/saude
       - name: Logs em caso de falha
         if: failure()
         run: docker compose logs

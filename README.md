@@ -79,7 +79,7 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-Sobem três serviços: o **banco** (não exposto fora do Docker), um serviço **migrar** que aplica as migrations e cria o primeiro administrador (e termina), e a **API** em `http://localhost:3000`. Confira em `http://localhost:3000/saude`.
+Sobem quatro serviços: o **banco** (não exposto fora do Docker), um serviço **migrar** que aplica as migrations e cria o primeiro administrador (e termina), a **API** em `http://localhost:3000` e a **interface web** em `http://localhost:8080` (nginx servindo o Angular e encaminhando `/api` para a API, então não há CORS no navegador). Confira em `http://localhost:3000/saude` e abra `http://localhost:8080`.
 
 ### Local, sem Docker
 

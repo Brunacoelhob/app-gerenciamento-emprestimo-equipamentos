@@ -13,6 +13,7 @@ describe('lerConfiguracao', () => {
       bcryptCusto: 12,
       corsOrigens: [], // sem CORS liberado por padrão
       swaggerAtivo: true,
+      trustProxy: 0, // sem proxy confiável: o cabeçalho X-Forwarded-For é ignorado
     });
   });
 
@@ -47,5 +48,11 @@ describe('lerConfiguracao', () => {
     expect(() => lerConfiguracao({ ...base, BCRYPT_CUSTO: '2' })).toThrow('BCRYPT_CUSTO');
     expect(() => lerConfiguracao({ ...base, REFRESH_DIAS: '0' })).toThrow('REFRESH_DIAS');
     expect(() => lerConfiguracao({ ...base, NODE_ENV: 'staging' })).toThrow('NODE_ENV');
+  });
+
+  it('TRUST_PROXY aceita de 0 a 5 e recusa o resto', () => {
+    expect(lerConfiguracao({ ...base, TRUST_PROXY: '1' }).trustProxy).toBe(1);
+    expect(() => lerConfiguracao({ ...base, TRUST_PROXY: '-1' })).toThrow('TRUST_PROXY');
+    expect(() => lerConfiguracao({ ...base, TRUST_PROXY: 'sim' })).toThrow('TRUST_PROXY');
   });
 });

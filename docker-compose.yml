@@ -1,4 +1,4 @@
-# API de empréstimo de equipamentos + PostgreSQL.
+# Aplicação completa: PostgreSQL + API (NestJS) + interface web (Angular servida por nginx).
 # As credenciais vêm do arquivo .env (veja .env.example). Suba tudo com:  docker compose up -d --build
 
 services:
@@ -49,6 +49,8 @@ services:
       REFRESH_DIAS: ${REFRESH_DIAS:-7}
       CORS_ORIGENS: ${CORS_ORIGENS:-}
       SWAGGER_ATIVO: ${SWAGGER_ATIVO:-false}
+      # A API fica atrás do nginx (1 proxy): o IP do cliente vem do X-Forwarded-For, e o limite de tentativas é por pessoa
+      TRUST_PROXY: 1
     depends_on:
       migrar:
         condition: service_completed_successfully
@@ -64,6 +66,29 @@ services:
       retries: 5
     security_opt:
       - no-new-privileges:true
+    networks: [rede]
+
+  # Interface web: arquivos estáticos do Angular + proxy de /api para a API (mesma origem: sem CORS no navegador).
+  web:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      # Somente localhost: publique atrás de um proxy reverso com HTTPS (veja docs/deploy.md)
+      - '127.0.0.1:${PORTA_WEB:-8080}:8080'
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:8080/saude-web']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
     networks: [rede]
 
 networks:

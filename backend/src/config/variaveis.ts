@@ -14,6 +14,8 @@ export interface Configuracao {
   /** Origens liberadas no CORS. Vazio = nenhuma origem de navegador. */
   corsOrigens: string[];
   swaggerAtivo: boolean;
+  /** Quantos proxies reversos confiáveis existem na frente da API (0 = acesso direto). Define de onde sai o IP do cliente. */
+  trustProxy: number;
 }
 
 const SEGREDOS_FRACOS = ['troque-por-uma-chave-aleatoria-longa-e-secreta', 'changeme', 'secret', 'senha'];
@@ -58,5 +60,6 @@ export function lerConfiguracao(env: Record<string, unknown> = process.env): Con
       .filter(Boolean),
     // Em produção o Swagger fica desligado, a menos que seja ligado de propósito.
     swaggerAtivo: texto('SWAGGER_ATIVO') ? texto('SWAGGER_ATIVO') === 'true' : ambiente !== 'production',
+    trustProxy: inteiro(texto('TRUST_PROXY'), 0, 'TRUST_PROXY', 0, 5),
   };
 }
