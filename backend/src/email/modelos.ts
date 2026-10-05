@@ -67,3 +67,96 @@ export function emailSenhaAlterada(dados: { para: string; nome: string }): Mensa
     ),
   };
 }
+
+const data = (d: Date) => d.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+
+export function emailLembreteDevolucao(dados: {
+  para: string;
+  nome: string;
+  equipamento: string;
+  prazo: Date;
+  link: string;
+}): Mensagem {
+  const { para, nome, equipamento, prazo, link } = dados;
+  return {
+    para,
+    assunto: `Devolução de "${equipamento}" até ${data(prazo)}`,
+    texto: [
+      `Olá, ${nome}.`,
+      '',
+      `Lembrete: o prazo para devolver "${equipamento}" termina em ${data(prazo)}.`,
+      'Devolva dentro do prazo para que outras pessoas possam usar o equipamento.',
+      '',
+      `Seus empréstimos: ${link}`,
+    ].join('\n'),
+    html: moldura(
+      'Lembrete de devolução',
+      `<p>Olá, ${escapar(nome)}.</p>
+<p>O prazo para devolver <strong>${escapar(equipamento)}</strong> termina em <strong>${data(prazo)}</strong>.</p>
+<p>Devolva dentro do prazo para que outras pessoas possam usar o equipamento.</p>
+<p style="margin:24px 0"><a href="${escapar(link)}" style="background:#2457c5;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:bold;display:inline-block">Ver meus empréstimos</a></p>`,
+    ),
+  };
+}
+
+export function emailEmprestimoAtrasado(dados: {
+  para: string;
+  nome: string;
+  equipamento: string;
+  prazo: Date;
+  diasDeAtraso: number;
+  link: string;
+}): Mensagem {
+  const { para, nome, equipamento, prazo, diasDeAtraso, link } = dados;
+  const dias = `${diasDeAtraso} ${diasDeAtraso === 1 ? 'dia' : 'dias'}`;
+  return {
+    para,
+    assunto: `Empréstimo atrasado: "${equipamento}"`,
+    texto: [
+      `Olá, ${nome}.`,
+      '',
+      `O prazo para devolver "${equipamento}" venceu em ${data(prazo)} (${dias} de atraso).`,
+      'Por favor, devolva o equipamento assim que puder: outras pessoas podem estar esperando por ele.',
+      '',
+      `Seus empréstimos: ${link}`,
+    ].join('\n'),
+    html: moldura(
+      'Empréstimo atrasado',
+      `<p>Olá, ${escapar(nome)}.</p>
+<p>O prazo para devolver <strong>${escapar(equipamento)}</strong> venceu em <strong>${data(prazo)}</strong> (${dias} de atraso).</p>
+<p>Por favor, devolva o equipamento assim que puder: outras pessoas podem estar esperando por ele.</p>
+<p style="margin:24px 0"><a href="${escapar(link)}" style="background:#b3261e;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:bold;display:inline-block">Ver meus empréstimos</a></p>`,
+    ),
+  };
+}
+
+export function emailResumoAtrasos(dados: {
+  para: string;
+  nome: string;
+  itens: { equipamento: string; pessoa: string; diasDeAtraso: number }[];
+  link: string;
+}): Mensagem {
+  const { para, nome, itens, link } = dados;
+  const linhas = itens.map(
+    (i) => `${i.equipamento}: ${i.pessoa} (${i.diasDeAtraso} ${i.diasDeAtraso === 1 ? 'dia' : 'dias'})`,
+  );
+  return {
+    para,
+    assunto: `${itens.length} ${itens.length === 1 ? 'empréstimo atrasado' : 'empréstimos atrasados'} hoje`,
+    texto: [
+      `Olá, ${nome}.`,
+      '',
+      'Empréstimos que estão com a devolução atrasada:',
+      ...linhas.map((l) => `- ${l}`),
+      '',
+      `Painel: ${link}`,
+    ].join('\n'),
+    html: moldura(
+      'Resumo de atrasos',
+      `<p>Olá, ${escapar(nome)}.</p>
+<p>Empréstimos que estão com a devolução atrasada:</p>
+<ul>${linhas.map((l) => `<li>${escapar(l)}</li>`).join('')}</ul>
+<p style="margin:24px 0"><a href="${escapar(link)}" style="background:#2457c5;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:bold;display:inline-block">Abrir o painel</a></p>`,
+    ),
+  };
+}

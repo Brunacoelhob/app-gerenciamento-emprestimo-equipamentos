@@ -26,6 +26,12 @@ export interface Configuracao {
   smtpUsuario: string;
   smtpSenha: string;
   emailRemetente: string;
+  /** Liga a rotina diária de avisos por e-mail (vencimento e atraso). Ligada por padrão; NOTIFICACOES_ATIVAS=false desliga. */
+  notificacoesAtivas: boolean;
+  /** Quando a rotina roda (cron de 5 campos). Padrão: todo dia às 8h. */
+  notificacoesCron: string;
+  /** Fuso do horário acima. */
+  notificacoesFuso: string;
 }
 
 const SEGREDOS_FRACOS = ['troque-por-uma-chave-aleatoria-longa-e-secreta', 'changeme', 'secret', 'senha'];
@@ -96,6 +102,9 @@ export function lerConfiguracao(env: Record<string, unknown> = process.env): Con
     smtpSeguro: texto('SMTP_SEGURO') === 'true',
     smtpUsuario: texto('SMTP_USUARIO'),
     smtpSenha: texto('SMTP_SENHA'),
+    notificacoesAtivas: texto('NOTIFICACOES_ATIVAS') !== 'false',
+    notificacoesCron: texto('NOTIFICACOES_CRON') || '0 8 * * *',
+    notificacoesFuso: texto('NOTIFICACOES_FUSO') || 'America/Sao_Paulo',
     emailRemetente: texto('EMAIL_REMETENTE') || 'Empréstimo de Equipamentos <nao-responda@localhost>',
   };
 }

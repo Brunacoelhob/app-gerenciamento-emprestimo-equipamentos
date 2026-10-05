@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -10,6 +11,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { EmprestimosModule } from './emprestimos/emprestimos.module';
 import { EquipamentosModule } from './equipamentos/equipamentos.module';
 import { RecuperacaoSenhaModule } from './recuperacao-senha/recuperacao-senha.module';
+import { NotificacoesModule } from './notificacoes/notificacoes.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SaudeModule } from './saude/saude.module';
 import { SessoesModule } from './sessoes/sessoes.module';
@@ -21,6 +23,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     ConfigModule.forRoot({ isGlobal: true, load: [() => lerConfiguracao()] }),
     // Limite geral: 100 requisições por minuto por IP. Login, cadastro e troca de senha têm limites próprios, mais rígidos.
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
+    ScheduleModule.forRoot(),
     PrismaModule,
     SessoesModule,
     UsuariosModule,
@@ -29,6 +32,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     EquipamentosModule,
     EmprestimosModule,
     DashboardModule,
+    NotificacoesModule,
     SaudeModule,
   ],
   providers: [

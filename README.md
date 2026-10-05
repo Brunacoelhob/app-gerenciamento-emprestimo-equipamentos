@@ -13,6 +13,7 @@ API REST para controlar quem está com cada equipamento (notebooks, projetores, 
 
 - **Autenticação** com e-mail e senha: token de acesso curto (15 min) + *refresh token* de uso único, com detecção de roubo. Troca de senha e saída encerram as sessões.
 - **Recuperação de senha por e-mail** ("esqueci minha senha"): link de uso único que vale 30 minutos, sem revelar quais e-mails existem. Em desenvolvimento os e-mails vão para um [Mailpit](https://mailpit.axllent.org) local (`docker compose --profile dev up -d mailpit`, caixa de entrada em http://localhost:8025), sem enviar nada de verdade.
+- **Avisos por e-mail:** todo dia às 8h a API lembra quem vence em 24h, cobra quem atrasou (no máximo a cada 3 dias) e manda um resumo aos administradores. Cada aviso sai uma vez só, mesmo com mais de uma instância da API. Administradores podem rodar na hora em `POST /v1/notificacoes/executar`.
 - **Dois papéis:** `USER` retira e devolve equipamentos; `ADMIN` também cadastra equipamentos, vê todos os empréstimos e gerencia usuários.
 - **Equipamentos:** cadastro, edição, busca, desativação (só se não estiver emprestado) e situação sempre correta (`emprestado`/`disponivel` são derivados, nunca ficam desatualizados).
 - **Empréstimos:** prazo de 1 a 30 dias (padrão 7), devolução pelo dono ou por um ADMIN, **atraso** calculado, e listagens com filtros (status, atrasados, pessoa, equipamento).

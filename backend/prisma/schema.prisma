@@ -71,6 +71,10 @@ model Emprestimo {
   dataRetirada   DateTime         @default(now())
   prazoDevolucao DateTime // combinado na retirada; passou disso e ainda ATIVO = atrasado
   dataDevolucao  DateTime?
+  // Controle das notificações por e-mail: guardam QUANDO o aviso saiu, para não repetir (e para duas instâncias
+  // da API não avisarem a mesma pessoa duas vezes: quem grava primeiro, envia)
+  lembreteEnviadoEm   DateTime?
+  ultimoAvisoAtrasoEm DateTime?
 
   @@index([usuarioId, status])
   @@index([equipamentoId, status])

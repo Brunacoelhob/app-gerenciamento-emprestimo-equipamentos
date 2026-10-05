@@ -59,6 +59,9 @@ services:
       SMTP_SEGURO: ${SMTP_SEGURO:-false}
       SMTP_USUARIO: ${SMTP_USUARIO:-}
       SMTP_SENHA: ${SMTP_SENHA:-}
+      NOTIFICACOES_ATIVAS: ${NOTIFICACOES_ATIVAS:-true}
+      NOTIFICACOES_CRON: '${NOTIFICACOES_CRON:-0 8 * * *}'
+      NOTIFICACOES_FUSO: ${NOTIFICACOES_FUSO:-America/Sao_Paulo}
       EMAIL_REMETENTE: '${EMAIL_REMETENTE:-Empréstimo de Equipamentos <nao-responda@localhost>}'
     depends_on:
       migrar:

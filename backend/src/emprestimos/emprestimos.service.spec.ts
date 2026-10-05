@@ -14,6 +14,8 @@ function emprestimo(sobrescrever: Partial<EmprestimoDetalhado> = {}): Emprestimo
     dataRetirada: new Date(),
     prazoDevolucao: new Date(Date.now() + 7 * DIA),
     dataDevolucao: null,
+    lembreteEnviadoEm: null,
+    ultimoAvisoAtrasoEm: null,
     equipamento: { id: 5, nome: 'Notebook' },
     usuario: { id: 1, nome: 'Maria', email: 'maria@teste.com' },
     ...sobrescrever,

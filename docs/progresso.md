@@ -7,7 +7,7 @@ Legenda: `[x]` feito e verificado · `[~]` feito, mas com parte **não verificad
 
 | Parte | Situação |
 |---|---|
-| API (NestJS + PostgreSQL) | 56 testes unitários e 62 de integração passando; lint e tipos limpos |
+| API (NestJS + PostgreSQL) | 56 testes unitários e 67 de integração passando; lint e tipos limpos |
 | Interface (Angular) | 19 testes passando; build de produção sem erros |
 | Docker | `docker compose` sobe banco, migrações, API e interface (nginx); o CI constrói e confere a saúde |
 | CI (GitHub Actions) | Backend, frontend e Docker |
@@ -51,6 +51,13 @@ Legenda: `[x]` feito e verificado · `[~]` feito, mas com parte **não verificad
 - [x] Gráficos que não dependem só da cor (linha tracejada, legenda com números, tabela alternativa)
 - [x] Preferências salvas no navegador
 
+### Avisos por e-mail (vencimento e atraso)
+- [x] Rotina diária (cron configurável, fuso de São Paulo): lembrete 24h antes do prazo, cobrança de atraso a cada 3 dias e resumo para os administradores
+- [x] Cada aviso sai uma vez só, mesmo com várias instâncias da API (a gravação condicional decide quem envia)
+- [x] Conta desativada não recebe; falha de SMTP não derruba a rotina
+- [x] `POST /v1/notificacoes/executar` (administrador) roda na hora
+- [~] *Verificado com os dados de demonstração e o Mailpit; o agendador no horário real (8h) só foi conferido pelo log, não esperei o relógio.*
+
 ### Recuperação de senha por e-mail
 - [x] "Esqueci minha senha" e "Redefinir senha" (telas e API)
 - [x] Link de **uso único**, validade de **30 minutos**, só o **hash** do token é guardado
@@ -66,7 +73,6 @@ Legenda: `[x]` feito e verificado · `[~]` feito, mas com parte **não verificad
 ## O que falta
 
 ### Prioridade alta
-- [ ] **Notificações de atraso por e-mail:** rotina diária avisando quem está com prazo vencendo ou vencido. A infraestrutura de e-mail já existe; falta o agendador e os textos
 - [ ] **Testes de interface (Playwright):** login, pegar emprestado, devolver, recuperar senha, trocar perfil. Hoje esses fluxos só foram conferidos manualmente
 - [ ] **Refresh token em cookie `HttpOnly`** (hoje fica no `localStorage`: um XSS o rouba)
 - [ ] **CSP em modo bloqueio:** hoje está em "somente relatório" no nginx, porque o VLibras precisa de permissões ainda não mapeadas

@@ -6,6 +6,7 @@
 process.env.DATABASE_URL = process.env.DATABASE_URL_TESTE;
 process.env.JWT_SECRET = 'segredo-de-teste-com-mais-de-32-caracteres-0123456789';
 process.env.NODE_ENV = 'test';
+process.env.NOTIFICACOES_ATIVAS = 'false'; // os avisos são disparados à mão nos testes, nunca pelo relógio
 process.env.BCRYPT_CUSTO = '4'; // rápido nos testes; em produção o padrão é 12
 delete process.env.CORS_ORIGENS;
 
@@ -654,6 +655,112 @@ describe('API de empréstimo de equipamentos (integração)', () => {
     it('as rotas são públicas (sem token) e ficam sob /v1', async () => {
       await http.post('/auth/esqueci-senha').send({ email: 'a@teste.com' }).expect(404);
       await http.post('/v1/auth/esqueci-senha').send({ email: 'a@teste.com' }).expect(204);
+    });
+  });
+
+  // =====================================================================================================
+  describe('avisos por e-mail (vencimento e atraso)', () => {
+    const HORA = 3_600_000;
+    const DIA = 24 * HORA;
+
+    // Outros testes limpam a tabela de equipamentos: não deixa empréstimos pendurados neles
+    afterAll(async () => {
+      await prisma.emprestimo.deleteMany();
+    });
+
+    const executar = (token: string) => http.post('/v1/notificacoes/executar').set(auth(token));
+    const assuntos = (email: string) => emails.filter((e) => e.para === email).map((e) => e.assunto);
+    const emprestar = async (usuarioId: number, equipamento: string, prazo: Date, extra: object = {}) =>
+      prisma.emprestimo.create({
+        data: {
+          usuarioId,
+          equipamentoId: (await criarEquipamento(equipamento)).id,
+          dataRetirada: new Date(Date.now() - 6 * DIA),
+          prazoDevolucao: prazo,
+          ...extra,
+        },
+      });
+
+    it('só ADMIN dispara; sem login é 401 e usuário comum é 403', async () => {
+      const comum = await criarUsuario('USER');
+      await http.post('/v1/notificacoes/executar').expect(401);
+      await executar(comum.token).expect(403);
+    });
+
+    it('lembra quem vence em até 24h, cobra quem atrasou e ignora o resto', async () => {
+      const admin = await criarUsuario('ADMIN');
+      const venceLogo = await criarUsuario('USER');
+      const venceDepois = await criarUsuario('USER');
+      const atrasada = await criarUsuario('USER');
+      const quitou = await criarUsuario('USER');
+      const agora = Date.now();
+
+      await emprestar(venceLogo.id, 'Projetor Lembrete', new Date(agora + 10 * HORA));
+      await emprestar(venceDepois.id, 'Câmera Longe', new Date(agora + 5 * DIA));
+      await emprestar(atrasada.id, 'Notebook Atrasado', new Date(agora - 2 * DIA));
+      await emprestar(quitou.id, 'Tablet Devolvido', new Date(agora - 2 * DIA), {
+        status: 'DEVOLVIDO',
+        dataDevolucao: new Date(agora - 3 * DIA),
+      });
+
+      const r = await executar(admin.token).expect(200);
+      expect(r.body.lembretes).toBeGreaterThanOrEqual(1);
+      expect(r.body.atrasos).toBeGreaterThanOrEqual(1);
+
+      expect(assuntos(venceLogo.email)).toEqual([expect.stringContaining('Devolução de "Projetor Lembrete"')]);
+      expect(assuntos(atrasada.email)).toEqual(['Empréstimo atrasado: "Notebook Atrasado"']);
+      expect(assuntos(venceDepois.email)).toEqual([]); // ainda longe do prazo
+      expect(assuntos(quitou.email)).toEqual([]); // já devolveu
+
+      // o administrador recebe o resumo dos atrasos, com quem e o equipamento
+      const resumo = emails.find((e) => e.para === admin.email && e.assunto.includes('atrasado'));
+      expect(resumo?.texto).toContain('Notebook Atrasado');
+      expect(resumo?.texto).toContain(atrasada.nome);
+    });
+
+    it('não repete: rodar de novo não manda nada; a cobrança volta só depois de 3 dias', async () => {
+      const admin = await criarUsuario('ADMIN');
+      const pessoa = await criarUsuario('USER');
+      const agora = Date.now();
+      const lembrete = await emprestar(pessoa.id, 'Monitor Lembrete', new Date(agora + 5 * HORA));
+      const atrasado = await emprestar(pessoa.id, 'Mic Atrasado', new Date(agora - 4 * DIA));
+
+      await executar(admin.token).expect(200);
+      const primeira = assuntos(pessoa.email).length;
+      expect(primeira).toBe(2);
+
+      await executar(admin.token).expect(200);
+      expect(assuntos(pessoa.email)).toHaveLength(primeira); // nada novo
+
+      // passaram 4 dias desde a última cobrança: cobra de novo o atrasado (o lembrete já saiu e não repete)
+      await prisma.emprestimo.update({
+        where: { id: atrasado.id },
+        data: { ultimoAvisoAtrasoEm: new Date(agora - 4 * DIA) },
+      });
+      await executar(admin.token).expect(200);
+      const todos = assuntos(pessoa.email);
+      expect(todos).toHaveLength(primeira + 1);
+      expect(todos.filter((a) => a.startsWith('Empréstimo atrasado'))).toHaveLength(2);
+      expect(todos.filter((a) => a.startsWith('Devolução de'))).toHaveLength(1);
+      expect(
+        (await prisma.emprestimo.findUniqueOrThrow({ where: { id: lembrete.id } })).lembreteEnviadoEm,
+      ).not.toBeNull();
+    });
+
+    it('conta desativada não recebe aviso', async () => {
+      const admin = await criarUsuario('ADMIN');
+      const inativa = await criarUsuario('USER', false);
+      await emprestar(inativa.id, 'Item de Inativa', new Date(Date.now() - 3 * DIA));
+      await executar(admin.token).expect(200);
+      expect(assuntos(inativa.email)).toEqual([]);
+    });
+
+    it('duas rodadas SIMULTÂNEAS avisam a pessoa uma única vez (duas instâncias da API)', async () => {
+      const admin = await criarUsuario('ADMIN');
+      const pessoa = await criarUsuario('USER');
+      await emprestar(pessoa.id, 'Item Concorrente', new Date(Date.now() - 2 * DIA));
+      await Promise.all([executar(admin.token), executar(admin.token), executar(admin.token)]);
+      expect(assuntos(pessoa.email)).toHaveLength(1);
     });
   });
 
