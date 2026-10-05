@@ -18,10 +18,20 @@ export const autenticadoGuard: CanActivateFn = () => {
   );
 };
 
-// Telas de visitante (login): quem já está logado vai para o início.
+// Telas de visitante (login): quem já está logado vai para o início. Abrir o login direto (digitando o endereço ou
+// com uma aba antiga) com uma sessão salva também conta: a sessão é restaurada antes de decidir.
 export const visitanteGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
-  return auth.autenticado() ? inject(Router).createUrlTree(['/']) : true;
+  const router = inject(Router);
+
+  if (auth.autenticado()) return router.createUrlTree(['/']);
+  if (!auth.temSessaoSalva) return true;
+
+  return auth.renovar().pipe(
+    switchMap(() => auth.carregarUsuario()),
+    map(() => router.createUrlTree(['/'])),
+    catchError(() => of(true)), // sessão vencida ou inválida: mostra o login normalmente
+  );
 };
 
 // Telas só de administrador (a API também recusa; aqui só evitamos mostrar uma tela que não funcionaria).

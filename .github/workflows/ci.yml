@@ -110,3 +110,65 @@ jobs:
       - name: Logs em caso de falha
         if: failure()
         run: docker compose logs
+
+  interface:
+    name: Testes de interface (Playwright)
+    runs-on: ubuntu-latest
+    needs: qualidade
+    env:
+      DB_USER: postgres
+      DB_SENHA: ci
+      JWT_SECRET: segredo-de-ci-com-mais-de-32-caracteres-xxxxxxxx
+      APP_URL: http://127.0.0.1:8080
+      ADMIN_EMAIL: admin@e2e.teste.com
+      ADMIN_SENHA: SenhaAdminE2E12345
+      # E-mails de teste vão para o Mailpit (nada sai de verdade)
+      SMTP_HOST: mailpit
+      SMTP_PORTA: 1025
+      # Só neste ambiente de teste: a suíte faz dezenas de logins do mesmo IP
+      LIMITE_LOGIN_POR_MINUTO: 100000
+      LIMITE_GERAL_POR_MINUTO: 100000
+      LIMITE_CADASTRO_POR_HORA: 100000
+      LIMITE_RECUPERACAO_POR_HORA: 100000
+      LIMITE_REDEFINICAO_POR_HORA: 100000
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sobe a aplicação inteira (com o Mailpit)
+        run: |
+          docker compose --profile dev up -d --build
+          for i in $(seq 1 60); do
+            [ "$(docker compose ps web --format '{{.Health}}')" = "healthy" ] && break
+            sleep 3
+          done
+          docker compose ps
+          curl --fail --silent http://127.0.0.1:8080/api/saude
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+      - name: Instala o Playwright
+        working-directory: e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Roda os testes de interface
+        working-directory: e2e
+        env:
+          E2E_URL: http://127.0.0.1:8080
+          E2E_ADMIN_EMAIL: admin@e2e.teste.com
+          E2E_ADMIN_SENHA: SenhaAdminE2E12345
+          E2E_MAILPIT: http://127.0.0.1:8025
+          E2E_SEM_INTERNET: '1' # o VLibras depende de um serviço externo: fora do CI para não deixá-lo instável
+        run: npx playwright test
+      - name: Relatório e vídeos em caso de falha
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorio-playwright
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+      - name: Logs da aplicação em caso de falha
+        if: failure()
+        run: docker compose logs

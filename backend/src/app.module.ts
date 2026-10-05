@@ -7,6 +7,7 @@ import { AuditoriaModule } from './auditoria/auditoria.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
+import { lerLimite } from './config/limites';
 import { lerConfiguracao } from './config/variaveis';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { EmprestimosModule } from './emprestimos/emprestimos.module';
@@ -24,7 +25,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     // Lê e VALIDA o ambiente na partida (veja config/variaveis.ts): configuração ruim derruba o boot, não o runtime.
     ConfigModule.forRoot({ isGlobal: true, load: [() => lerConfiguracao()] }),
     // Limite geral: 100 requisições por minuto por IP. Login, cadastro e troca de senha têm limites próprios, mais rígidos.
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: lerLimite('LIMITE_GERAL_POR_MINUTO', 100) }]),
     ScheduleModule.forRoot(),
     PrismaModule,
     AuditoriaModule,

@@ -14,6 +14,7 @@ import {
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { Auditar } from '../auditoria/auditar.decorator';
+import { lerLimite } from '../config/limites';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Publica } from '../common/decorators/publica.decorator';
 import type { UsuarioAutenticado } from '../common/interfaces/usuario-autenticado.interface';
@@ -28,6 +29,9 @@ import { RenovarSessaoDto } from './dto/renovar-sessao.dto';
 import { TokensRespostaDto } from './dto/tokens-resposta.dto';
 
 const UM_MINUTO = 60_000;
+// 5 tentativas de login por minuto por IP (padrão). LIMITE_LOGIN_POR_MINUTO só deve subir em testes automatizados.
+const LIMITE_LOGIN = lerLimite('LIMITE_LOGIN_POR_MINUTO', 5);
+const LIMITE_CADASTRO = lerLimite('LIMITE_CADASTRO_POR_HORA', 10);
 const UMA_HORA = 3_600_000;
 
 @ApiTags('Autenticação')
@@ -59,7 +63,7 @@ export class AuthController {
   @ApiConflictResponse({ description: 'Já existe um usuário com esse e-mail.' })
   @ApiTooManyRequestsResponse({ description: 'Mais de 10 cadastros por hora neste IP.' })
   @Publica()
-  @Throttle({ default: { limit: 10, ttl: UMA_HORA } }) // cadastro em massa também é abuso
+  @Throttle({ default: { limit: LIMITE_CADASTRO, ttl: UMA_HORA } }) // cadastro em massa também é abuso
   @Post('registro')
   registrar(@Body() dto: RegistrarUsuarioDto) {
     return this.auth.registrar(dto);
@@ -73,7 +77,7 @@ export class AuthController {
   })
   @ApiTooManyRequestsResponse({ description: 'Mais de 5 tentativas por minuto neste IP.' })
   @Publica()
-  @Throttle({ default: { limit: 5, ttl: UM_MINUTO } }) // freio contra força bruta
+  @Throttle({ default: { limit: LIMITE_LOGIN, ttl: UM_MINUTO } }) // freio contra força bruta
   @HttpCode(200)
   @Post('login')
   login(@Body() dto: LoginDto) {

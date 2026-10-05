@@ -7,8 +7,8 @@ Legenda: `[x]` feito e verificado · `[~]` feito, mas com parte **não verificad
 
 | Parte | Situação |
 |---|---|
-| API (NestJS + PostgreSQL) | 60 testes unitários e 81 de integração passando; lint e tipos limpos |
-| Interface (Angular) | 19 testes passando; build de produção sem erros |
+| API (NestJS + PostgreSQL) | 63 testes unitários e 81 de integração passando; lint e tipos limpos |
+| Interface (Angular) | 19 testes unitários + 31 testes de interface (Playwright); build de produção sem erros |
 | Docker | `docker compose` sobe banco, migrações, API e interface (nginx); o CI constrói e confere a saúde |
 | CI (GitHub Actions) | Backend, frontend e Docker |
 
@@ -51,6 +51,12 @@ Legenda: `[x]` feito e verificado · `[~]` feito, mas com parte **não verificad
 - [x] Gráficos que não dependem só da cor (linha tracejada, legenda com números, tabela alternativa)
 - [x] Preferências salvas no navegador
 
+### Testes de interface (Playwright)
+- [x] 31 testes em navegador de verdade: login e sessão, fluxo completo de empréstimo, recuperação de senha por e-mail, cadastro, perfil (avatar, CPF, baixar e excluir dados), barra de acessibilidade e dashboard
+- [x] Job `interface` no CI: sobe a aplicação inteira no Docker (com o Mailpit) e roda a suíte
+- [x] Já pegaram um defeito real: abrir `/login` com sessão salva mostrava o formulário em vez de ir ao dashboard (corrigido)
+- [~] *O job do CI foi ensaiado localmente contra a stack do Docker (30 passaram, 1 pulado), mas só roda de verdade no GitHub depois do push. O teste do VLibras fica fora do CI (depende de serviço externo).*
+
 ### Avisos por e-mail (vencimento e atraso)
 - [x] Rotina diária (cron configurável, fuso de São Paulo): lembrete 24h antes do prazo, cobrança de atraso a cada 3 dias e resumo para os administradores
 - [x] Cada aviso sai uma vez só, mesmo com várias instâncias da API (a gravação condicional decide quem envia)
@@ -90,7 +96,6 @@ Legenda: `[x]` feito e verificado · `[~]` feito, mas com parte **não verificad
 ## O que falta
 
 ### Prioridade alta
-- [ ] **Testes de interface (Playwright):** login, pegar emprestado, devolver, recuperar senha, trocar perfil. Hoje esses fluxos só foram conferidos manualmente
 - [ ] **Refresh token em cookie `HttpOnly`** (hoje fica no `localStorage`: um XSS o rouba)
 - [ ] **CSP em modo bloqueio:** hoje está em "somente relatório" no nginx, porque o VLibras precisa de permissões ainda não mapeadas
 - [ ] **LGPD (o que sobrou):** política de privacidade, registro de consentimento, prazos de retenção e criptografia do CPF em repouso. Dependem de revisão jurídica

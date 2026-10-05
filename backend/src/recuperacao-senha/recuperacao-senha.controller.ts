@@ -7,11 +7,15 @@ import {
   ApiTooManyRequestsResponse,
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import { lerLimite } from '../config/limites';
 import { Publica } from '../common/decorators/publica.decorator';
 import { EsqueciSenhaDto, RedefinirSenhaDto } from './dto/recuperacao-senha.dto';
 import { RecuperacaoSenhaService } from './recuperacao-senha.service';
 
 const UMA_HORA = 3_600_000;
+// Padrões de produção; as variáveis só devem subir em testes automatizados (veja config/limites.ts)
+const LIMITE_PEDIDOS = lerLimite('LIMITE_RECUPERACAO_POR_HORA', 5);
+const LIMITE_REDEFINICOES = lerLimite('LIMITE_REDEFINICAO_POR_HORA', 10);
 
 @ApiTags('Recuperação de senha')
 @Controller('auth')
@@ -27,7 +31,7 @@ export class RecuperacaoSenhaController {
   @ApiBadRequestResponse({ description: 'E-mail com formato inválido.' })
   @ApiTooManyRequestsResponse({ description: 'Mais de 5 pedidos por hora neste IP.' })
   @Publica()
-  @Throttle({ default: { limit: 5, ttl: UMA_HORA } })
+  @Throttle({ default: { limit: LIMITE_PEDIDOS, ttl: UMA_HORA } })
   @HttpCode(204)
   @Post('esqueci-senha')
   async esqueciSenha(@Body() dto: EsqueciSenhaDto) {
@@ -42,7 +46,7 @@ export class RecuperacaoSenhaController {
   @ApiBadRequestResponse({ description: 'Link inválido, expirado ou já usado; ou senha fraca.' })
   @ApiTooManyRequestsResponse({ description: 'Mais de 10 tentativas por hora neste IP.' })
   @Publica()
-  @Throttle({ default: { limit: 10, ttl: UMA_HORA } })
+  @Throttle({ default: { limit: LIMITE_REDEFINICOES, ttl: UMA_HORA } })
   @HttpCode(204)
   @Post('redefinir-senha')
   async redefinirSenha(@Body() dto: RedefinirSenhaDto) {

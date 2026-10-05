@@ -22,6 +22,7 @@ No `.env`:
 | `CORS_ORIGENS` | O endereço do seu front-end (ex.: `https://app.exemplo.com`). Vazio = nenhum site de navegador |
 | `SWAGGER_ATIVO` | Deixe desligado em produção |
 | `APP_URL` | O endereço público da interface (ex.: `https://app.exemplo.com`). **Obrigatória**: vai nos links dos e-mails de recuperação de senha |
+| `LIMITE_LOGIN_POR_MINUTO`, `LIMITE_GERAL_POR_MINUTO`, `LIMITE_CADASTRO_POR_HORA`, `LIMITE_RECUPERACAO_POR_HORA`, `LIMITE_REDEFINICAO_POR_HORA` | **Deixe em branco em produção** (padrões: 5/min no login, 100/min geral, 10/h cadastro, 5/h pedido de nova senha, 10/h redefinição). Existem só para a suíte de interface, que faz dezenas de logins do mesmo IP. O limite do login é a principal defesa contra adivinhação de senhas |
 | `CADASTRO_PUBLICO` | `true` (padrão) deixa qualquer pessoa criar a própria conta na tela de login (sempre como usuário comum). Use `false` se só administradores devem criar contas |
 | `NOTIFICACOES_ATIVAS`, `NOTIFICACOES_CRON`, `NOTIFICACOES_FUSO` | Avisos automáticos de vencimento e atraso (padrão: ligados, todo dia às 8h, fuso de São Paulo). Dependem do SMTP abaixo |
 | `SMTP_HOST`, `SMTP_PORTA`, `SMTP_SEGURO`, `SMTP_USUARIO`, `SMTP_SENHA`, `EMAIL_REMETENTE` | O servidor de e-mail (qualquer provedor SMTP). `SMTP_SEGURO=true` para a porta 465. **Sem `SMTP_HOST` os e-mails não são enviados** e "esqueci minha senha" não chega a ninguém |
