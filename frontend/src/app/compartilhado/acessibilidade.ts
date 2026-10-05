@@ -1,7 +1,9 @@
-import { Component, HostListener, inject } from '@angular/core';
-import { AcessibilidadeService, Tema, ZOOM_MAX, ZOOM_MIN } from '../core/acessibilidade.service';
+import { Component, inject } from '@angular/core';
+import { AcessibilidadeService, ZOOM_MAX, ZOOM_MIN } from '../core/acessibilidade.service';
 import { Icone } from './icone';
 
+// Barra de acessibilidade no topo de todas as telas: um botão ao lado do outro, cada um com texto e estado
+// (aria-pressed) para leitores de tela.
 @Component({
   selector: 'app-acessibilidade',
   imports: [Icone],
@@ -10,22 +12,10 @@ import { Icone } from './icone';
 })
 export class Acessibilidade {
   protected readonly servico = inject(AcessibilidadeService);
-  protected readonly aberto = this.servico.painelAberto;
   protected readonly ZOOM_MIN = ZOOM_MIN;
   protected readonly ZOOM_MAX = ZOOM_MAX;
 
-  protected readonly temas: { valor: Tema; rotulo: string }[] = [
-    { valor: 'auto', rotulo: 'Automático' },
-    { valor: 'claro', rotulo: 'Claro' },
-    { valor: 'escuro', rotulo: 'Escuro' },
-  ];
-
   protected get prefs() {
     return this.servico.prefs();
-  }
-
-  @HostListener('document:keydown.escape')
-  protected fecharComEsc() {
-    this.aberto.set(false);
   }
 }

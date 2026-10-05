@@ -1,75 +1,40 @@
-<button
-  class="gatilho"
-  type="button"
-  aria-haspopup="dialog"
-  aria-controls="painel-acessibilidade"
-  [attr.aria-expanded]="aberto()"
-  (click)="aberto.set(!aberto())"
->
-  <app-icone nome="acessibilidade" />
-  <span class="rotulo">Acessibilidade</span>
-</button>
+<div class="barra" role="toolbar" aria-label="Acessibilidade">
+  <span class="titulo"><app-icone nome="acessibilidade" /> Acessibilidade</span>
 
-@if (aberto()) {
-  <section id="painel-acessibilidade" class="painel-a11y" role="dialog" aria-label="Opções de acessibilidade">
-    <header>
-      <h2>Acessibilidade</h2>
-      <button class="fechar" type="button" aria-label="Fechar" (click)="aberto.set(false)">
-        <app-icone nome="fechar" />
-      </button>
-    </header>
+  <div class="grupo" role="group" aria-label="Tamanho do texto">
+    <button type="button" [disabled]="prefs.zoom <= ZOOM_MIN" (click)="servico.diminuir()" title="Diminuir o texto" aria-label="Diminuir o texto">
+      <span class="letras">A−</span>
+    </button>
+    <button type="button" [disabled]="prefs.zoom >= ZOOM_MAX" (click)="servico.aumentar()" title="Aumentar o texto" aria-label="Aumentar o texto">
+      <span class="letras">A+</span>
+    </button>
+  </div>
 
-    <div class="grupo" role="group" aria-labelledby="a11y-tema">
-      <span id="a11y-tema" class="titulo">Tema</span>
-      <div class="segmentos">
-        @for (t of temas; track t.valor) {
-          <button type="button" [attr.aria-pressed]="prefs.tema === t.valor" (click)="servico.alterar('tema', t.valor)">
-            {{ t.rotulo }}
-          </button>
-        }
-      </div>
-    </div>
+  <button type="button" [attr.aria-pressed]="prefs.contraste" (click)="servico.alterar('contraste', !prefs.contraste)" title="Alto contraste">
+    <app-icone nome="contraste" /> <span class="rotulo">Contraste</span>
+  </button>
 
-    <div class="grupo" role="group" aria-labelledby="a11y-tamanho">
-      <span id="a11y-tamanho" class="titulo">Tamanho do texto: {{ (prefs.zoom * 100).toFixed(0) }}%</span>
-      <div class="segmentos">
-        <button type="button" [disabled]="prefs.zoom <= ZOOM_MIN" (click)="servico.diminuir()" aria-label="Diminuir o texto">
-          A−
-        </button>
-        <button type="button" [disabled]="prefs.zoom === 1" (click)="servico.alterar('zoom', 1)">Normal</button>
-        <button type="button" [disabled]="prefs.zoom >= ZOOM_MAX" (click)="servico.aumentar()" aria-label="Aumentar o texto">
-          A+
-        </button>
-      </div>
-    </div>
+  <button type="button" [attr.aria-pressed]="servico.escuro()" (click)="servico.alternarTema()" title="Modo escuro (desligado: modo claro)">
+    <app-icone [nome]="servico.escuro() ? 'lua' : 'sol'" /> <span class="rotulo">Modo escuro</span>
+  </button>
 
-    <label class="chave">
-      <input type="checkbox" role="switch" [checked]="prefs.contraste" (change)="servico.alterar('contraste', !prefs.contraste)" />
-      <span>Alto contraste</span>
-    </label>
-    <label class="chave">
-      <input type="checkbox" role="switch" [checked]="prefs.dislexia" (change)="servico.alterar('dislexia', !prefs.dislexia)" />
-      <span>Fonte para dislexia</span>
-    </label>
-    <label class="chave">
-      <input type="checkbox" role="switch" [checked]="prefs.daltonismo" (change)="servico.alterar('daltonismo', !prefs.daltonismo)" />
-      <span>
-        Cores para daltonismo
-        <small>Azul e laranja no lugar de verde e vermelho, com símbolos nos status.</small>
-      </span>
-    </label>
-    <label class="chave">
-      <input type="checkbox" role="switch" [checked]="prefs.semAnimacao" (change)="servico.alterar('semAnimacao', !prefs.semAnimacao)" />
-      <span>Reduzir animações</span>
-    </label>
-    <label class="chave">
-      <input type="checkbox" role="switch" [checked]="prefs.vlibras" (change)="servico.alterar('vlibras', !prefs.vlibras)" />
-      <span>
-        VLibras (tradução para Libras)
-        <small>Recurso do governo federal, ligado por padrão (botão azul na lateral direita). Exige internet.</small>
-      </span>
-    </label>
+  <button type="button" [attr.aria-pressed]="prefs.dislexia" (click)="servico.alterar('dislexia', !prefs.dislexia)" title="Fonte para dislexia">
+    <span class="letras">Aa</span> <span class="rotulo">Dislexia</span>
+  </button>
 
-    <button class="botao secundario restaurar" type="button" (click)="servico.restaurar()">Restaurar padrões</button>
-  </section>
-}
+  <button type="button" [attr.aria-pressed]="prefs.daltonismo" (click)="servico.alterar('daltonismo', !prefs.daltonismo)" title="Cores para daltonismo: azul e laranja no lugar de verde e vermelho, com símbolos nos status">
+    <app-icone nome="olho" /> <span class="rotulo">Daltonismo</span>
+  </button>
+
+  <button type="button" [attr.aria-pressed]="prefs.semAnimacao" (click)="servico.alterar('semAnimacao', !prefs.semAnimacao)" title="Reduzir animações">
+    <app-icone nome="movimento" /> <span class="rotulo">Sem animação</span>
+  </button>
+
+  <button type="button" [attr.aria-pressed]="prefs.vlibras" (click)="servico.alternarLibras()" title="VLibras: tradução para Libras (recurso do governo federal, exige internet)">
+    <app-icone nome="maos" /> <span class="rotulo">Libras</span>
+  </button>
+
+  <button type="button" class="restaurar" (click)="servico.restaurar()" title="Restaurar padrões" aria-label="Restaurar padrões de acessibilidade">
+    <app-icone nome="restaurar" />
+  </button>
+</div>

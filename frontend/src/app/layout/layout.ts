@@ -3,7 +3,6 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } fro
 import { filter } from 'rxjs';
 import { Avatar } from '../compartilhado/avatar';
 import { Icone } from '../compartilhado/icone';
-import { AcessibilidadeService } from '../core/acessibilidade.service';
 import { AuthService } from '../core/auth.service';
 
 @Component({
@@ -14,7 +13,6 @@ import { AuthService } from '../core/auth.service';
 })
 export class Layout {
   protected readonly auth = inject(AuthService);
-  protected readonly acessibilidade = inject(AcessibilidadeService);
   // Em telas pequenas o menu lateral abre por cima do conteúdo
   protected readonly menuAberto = signal(false);
 

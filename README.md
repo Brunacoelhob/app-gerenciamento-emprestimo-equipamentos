@@ -106,7 +106,7 @@ npm start                       # http://localhost:4200
 
 O servidor de desenvolvimento encaminha `/api/*` para a API (veja `frontend/proxy.conf.json`), então **não é preciso configurar CORS** localmente.
 
-A interface tem: login e sessão (renovação automática do token), painel com indicadores, equipamentos, empréstimos, **perfil** (foto do acervo de bichinhos ou enviada, dados pessoais com CPF, telefone e CEP com preenchimento do endereço, troca de senha), **gestão de usuários** para administradores (criar contas e perfis) e um painel de **acessibilidade** disponível em todas as telas: tema claro/escuro/automático, tamanho do texto, alto contraste, fonte para dislexia, cores para daltonismo, redução de animações e [VLibras](https://vlibras.gov.br/) (carregado só quando ligado).
+A interface tem: login e sessão (renovação automática do token), painel com indicadores, equipamentos, empréstimos, **perfil** (foto do acervo de bichinhos ou enviada, dados pessoais com CPF, telefone e CEP com preenchimento do endereço, troca de senha), **gestão de usuários** para administradores (criar contas e perfis) e uma **barra de acessibilidade fixa no topo** de todas as telas, com um botão ao lado do outro: tamanho do texto (A− e A+), alto contraste, modo escuro/claro, fonte para dislexia, cores para daltonismo, redução de animações e [VLibras](https://vlibras.gov.br/) (tradução para Libras, carregada só quando você aperta o botão). As escolhas ficam salvas no navegador.
 
 As imagens do acervo de avatares são do [Twemoji](https://github.com/jdecked/twemoji) (CC-BY 4.0), em `frontend/public/avatares/`.
 

@@ -38,9 +38,6 @@
 
       <span class="secao">Conta</span>
       <a routerLink="/perfil" routerLinkActive="ativo"><app-icone nome="pessoa" /> Meu perfil</a>
-      <button class="item-menu" type="button" aria-haspopup="dialog" (click)="menuAberto.set(false); acessibilidade.painelAberto.set(true)">
-        <app-icone nome="acessibilidade" /> Acessibilidade
-      </button>
     </nav>
 
     <button class="sair" type="button" (click)="auth.sair()"><app-icone nome="sair" /> Sair</button>

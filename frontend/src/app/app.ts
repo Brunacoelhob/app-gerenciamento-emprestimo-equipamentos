@@ -7,8 +7,8 @@ import { AcessibilidadeService } from './core/acessibilidade.service';
   selector: 'app-root',
   imports: [RouterOutlet, Acessibilidade],
   template: `
-    <router-outlet />
     <app-acessibilidade />
+    <router-outlet />
   `,
 })
 export class App {

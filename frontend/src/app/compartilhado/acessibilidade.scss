@@ -1,146 +1,110 @@
 :host {
-  position: fixed;
-  left: 1rem;
-  bottom: 1rem;
+  position: sticky;
+  top: 0;
   z-index: 1000;
+  display: block;
+  height: var(--altura-barra);
+  background: var(--superficie);
+  border-bottom: 1px solid var(--borda);
 }
 
-.gatilho {
+.barra {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 100%;
+  padding: 0 0.75rem;
+  // Em telas estreitas a barra rola para o lado em vez de quebrar em duas linhas
+  overflow-x: auto;
+  scrollbar-width: thin;
+
+  > * {
+    flex: none;
+  }
+}
+
+.titulo {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  height: 3rem;
-  padding: 0 1rem 0 0.8rem;
-  font: inherit;
-  font-size: 1rem;
+  gap: 0.4rem;
+  margin-right: 0.4rem;
+  padding-right: 0.8rem;
+  border-right: 1px solid var(--borda);
+  font-size: 0.85rem;
   font-weight: 700;
-  border: 2px solid var(--on-primaria);
-  border-radius: 999px;
-  background: var(--primaria);
-  color: var(--on-primaria);
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 30%);
-}
-
-.rotulo {
+  color: var(--texto-suave);
   white-space: nowrap;
 }
 
-.painel-a11y {
-  position: absolute;
-  left: 0;
-  bottom: 3.75rem;
-  width: min(22rem, calc(100vw - 2rem));
-  max-height: calc(100vh - 6rem);
-  overflow-y: auto;
-  padding: 1rem 1.1rem;
-  background: var(--superficie);
-  color: var(--texto);
-  border: 1px solid var(--borda);
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgb(0 0 0 / 25%);
-  animation: entrar 0.15s ease-out;
-
-  header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 0.75rem;
-  }
-
-  h2 {
-    margin: 0;
-    font-size: 1.1rem;
-  }
-}
-
-@keyframes entrar {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-}
-
-.fechar {
-  display: grid;
-  place-items: center;
-  padding: 0.3rem;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--texto);
-  cursor: pointer;
-}
-
 .grupo {
-  margin-bottom: 0.9rem;
+  display: inline-flex;
 
-  .titulo {
-    display: block;
-    margin-bottom: 0.35rem;
-    font-size: 0.9rem;
-    font-weight: 600;
+  button:first-child {
+    border-radius: 8px 0 0 8px;
+  }
+
+  button:last-child {
+    border-radius: 0 8px 8px 0;
+    border-left: none;
   }
 }
 
-.segmentos {
-  display: flex;
-
-  button {
-    flex: 1;
-    padding: 0.5rem 0.4rem;
-    border: 1px solid var(--borda);
-    background: var(--fundo);
-    color: var(--texto);
-    font: inherit;
-    cursor: pointer;
-
-    &:first-child {
-      border-radius: 8px 0 0 8px;
-    }
-
-    &:last-child {
-      border-radius: 0 8px 8px 0;
-    }
-
-    &:disabled {
-      opacity: 0.45;
-      cursor: not-allowed;
-    }
-
-    &[aria-pressed='true'] {
-      background: var(--primaria);
-      border-color: var(--primaria);
-      color: var(--on-primaria);
-      font-weight: 700;
-    }
-  }
-}
-
-.chave {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.6rem;
-  padding: 0.5rem 0;
-  border-top: 1px solid var(--borda);
+button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 2.1rem;
+  padding: 0 0.7rem;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  background: var(--fundo);
+  color: var(--texto);
+  font: inherit;
+  font-size: 0.85rem;
+  white-space: nowrap;
   cursor: pointer;
+  transition: background-color 0.15s ease;
 
-  input {
-    flex: none; // não encolhe quando o texto ao lado quebra em duas linhas
-    width: 1.15rem;
-    height: 1.15rem;
-    margin-top: 0.15rem;
-    accent-color: var(--primaria);
+  &:hover:not(:disabled) {
+    background: var(--borda);
   }
 
-  small {
-    display: block;
-    color: var(--texto-suave);
-    font-size: 0.78rem;
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
   }
+
+  // Ligado
+  &[aria-pressed='true'] {
+    background: var(--primaria);
+    border-color: var(--primaria);
+    color: var(--on-primaria);
+    font-weight: 700;
+  }
+}
+
+.letras {
+  font-weight: 700;
 }
 
 .restaurar {
-  width: 100%;
-  margin-top: 0.5rem;
+  padding: 0 0.55rem;
+}
+
+// Telas médias: só os ícones (o texto continua disponível como título e para leitores de tela)
+@media (max-width: 72rem) {
+  .rotulo {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .titulo {
+    font-size: 0;
+    gap: 0;
+    padding-right: 0.5rem;
+  }
 }
