@@ -6,17 +6,24 @@
 }
 
 .gatilho {
-  display: grid;
-  place-items: center;
-  width: 3rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   height: 3rem;
-  font-size: 1.4rem;
+  padding: 0 1rem 0 0.8rem;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
   border: 2px solid var(--on-primaria);
-  border-radius: 50%;
+  border-radius: 999px;
   background: var(--primaria);
   color: var(--on-primaria);
   cursor: pointer;
   box-shadow: 0 2px 8px rgb(0 0 0 / 30%);
+}
+
+.rotulo {
+  white-space: nowrap;
 }
 
 .painel-a11y {
@@ -119,6 +126,7 @@
   cursor: pointer;
 
   input {
+    flex: none; // não encolhe quando o texto ao lado quebra em duas linhas
     width: 1.15rem;
     height: 1.15rem;
     margin-top: 0.15rem;

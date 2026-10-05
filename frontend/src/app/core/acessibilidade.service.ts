@@ -40,6 +40,8 @@ declare global {
 @Injectable({ providedIn: 'root' })
 export class AcessibilidadeService {
   readonly prefs = signal<Preferencias>(this.carregar());
+  /** Painel de opções aberto? Compartilhado: o botão flutuante e o item do menu lateral abrem o mesmo painel. */
+  readonly painelAberto = signal(false);
   private vlibrasIniciado = false;
 
   constructor() {

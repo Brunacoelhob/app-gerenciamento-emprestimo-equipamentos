@@ -1,4 +1,4 @@
-import { Component, HostListener, inject, signal } from '@angular/core';
+import { Component, HostListener, inject } from '@angular/core';
 import { AcessibilidadeService, Tema, ZOOM_MAX, ZOOM_MIN } from '../core/acessibilidade.service';
 import { Icone } from './icone';
 
@@ -10,7 +10,7 @@ import { Icone } from './icone';
 })
 export class Acessibilidade {
   protected readonly servico = inject(AcessibilidadeService);
-  protected readonly aberto = signal(false);
+  protected readonly aberto = this.servico.painelAberto;
   protected readonly ZOOM_MIN = ZOOM_MIN;
   protected readonly ZOOM_MAX = ZOOM_MAX;
 

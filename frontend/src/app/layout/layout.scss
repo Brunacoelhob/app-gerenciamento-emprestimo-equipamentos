@@ -20,6 +20,7 @@ $largura-menu: 16.5rem;
   border-right: 1px solid var(--borda);
 
   a,
+  .item-menu,
   .sair {
     display: flex;
     align-items: center;
@@ -36,6 +37,13 @@ $largura-menu: 16.5rem;
       background: var(--fundo);
       color: var(--texto);
     }
+  }
+
+  .item-menu {
+    width: 100%;
+    border: none;
+    background: transparent;
+    text-align: left;
   }
 
   nav a.ativo {
