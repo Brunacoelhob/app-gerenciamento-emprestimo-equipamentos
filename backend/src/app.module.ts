@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { lerConfiguracao } from './config/variaveis';
+import { DashboardModule } from './dashboard/dashboard.module';
 import { EmprestimosModule } from './emprestimos/emprestimos.module';
 import { EquipamentosModule } from './equipamentos/equipamentos.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -25,6 +26,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     AuthModule,
     EquipamentosModule,
     EmprestimosModule,
+    DashboardModule,
     SaudeModule,
   ],
   providers: [

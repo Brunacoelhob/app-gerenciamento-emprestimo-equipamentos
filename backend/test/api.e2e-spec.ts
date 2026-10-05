@@ -420,6 +420,105 @@ describe('API de empréstimo de equipamentos (integração)', () => {
   });
 
   // =====================================================================================================
+  describe('painel (dashboard)', () => {
+    const DIA = 86_400_000;
+
+    // Outros testes limpam a tabela de equipamentos: não deixa empréstimos pendurados neles
+    afterAll(async () => {
+      await prisma.emprestimo.deleteMany();
+    });
+
+    it('exige login e valida o período (7 a 90 dias)', async () => {
+      await http.get('/v1/dashboard/resumo').expect(401);
+      const admin = await criarUsuario('ADMIN');
+      for (const dias of ['3', '91', 'abc']) {
+        await http.get(`/v1/dashboard/resumo?dias=${dias}`).set(auth(admin.token)).expect(400);
+      }
+      await http.get('/v1/dashboard/resumo?dias=7').set(auth(admin.token)).expect(200);
+    });
+
+    it('usuário comum vê só os PRÓPRIOS empréstimos; o acervo é global', async () => {
+      const pessoa = await criarUsuario('USER');
+      const outra = await criarUsuario('USER');
+      const equipA = await criarEquipamento();
+      const equipB = await criarEquipamento();
+      const agora = Date.now();
+      // da pessoa: um em andamento e já ATRASADO, e um devolvido no prazo
+      await prisma.emprestimo.create({
+        data: {
+          usuarioId: pessoa.id,
+          equipamentoId: equipA.id,
+          dataRetirada: new Date(agora - 10 * DIA),
+          prazoDevolucao: new Date(agora - 3 * DIA),
+        },
+      });
+      await prisma.emprestimo.create({
+        data: {
+          usuarioId: pessoa.id,
+          equipamentoId: equipB.id,
+          status: 'DEVOLVIDO',
+          dataRetirada: new Date(agora - 6 * DIA),
+          prazoDevolucao: new Date(agora - 1 * DIA),
+          dataDevolucao: new Date(agora - 2 * DIA),
+        },
+      });
+      // de OUTRA pessoa: não pode aparecer no painel desta
+      await prisma.emprestimo.create({
+        data: {
+          usuarioId: outra.id,
+          equipamentoId: (await criarEquipamento()).id,
+          dataRetirada: new Date(agora - 2 * DIA),
+          prazoDevolucao: new Date(agora + 5 * DIA),
+        },
+      });
+
+      const r = await http.get('/v1/dashboard/resumo?dias=30').set(auth(pessoa.token)).expect(200);
+      expect(r.body.escopo).toBe('pessoal');
+      expect(r.body.kpis).toMatchObject({
+        emprestimosAtivos: 1,
+        atrasados: 1,
+        retiradasNoPeriodo: 2,
+        devolvidosNoPeriodo: 1,
+        pontualidade: 100,
+      });
+      expect(r.body.atrasados).toHaveLength(1);
+      expect(r.body.atrasados[0]).toMatchObject({ equipamento: equipA.nome, pessoa: pessoa.nome });
+      expect(r.body.atrasados[0].diasDeAtraso).toBeGreaterThanOrEqual(2);
+      expect(r.body.pessoasMaisAtivas).toEqual([]); // ranking de pessoas é só do ADMIN
+      expect(r.body.kpis.equipamentosAtivos).toBeGreaterThanOrEqual(3); // acervo global
+    });
+
+    it('ADMIN vê o sistema todo, e a série diária fecha com os totais do período', async () => {
+      const admin = await criarUsuario('ADMIN');
+      const pessoa = await criarUsuario('USER');
+      const equip = await criarEquipamento();
+      await prisma.emprestimo.create({
+        data: {
+          usuarioId: pessoa.id,
+          equipamentoId: equip.id,
+          dataRetirada: new Date(Date.now() - 1 * DIA),
+          prazoDevolucao: new Date(Date.now() + 6 * DIA),
+        },
+      });
+
+      const r = await http.get('/v1/dashboard/resumo?dias=14').set(auth(admin.token)).expect(200);
+      expect(r.body.escopo).toBe('geral');
+      expect(r.body.serie).toHaveLength(14);
+      const dias = r.body.serie.map((p: { dia: string }) => p.dia);
+      expect([...dias].sort()).toEqual(dias); // do mais antigo ao mais recente
+      expect(new Set(dias).size).toBe(14); // um ponto por dia, sem repetir
+      const serie = r.body.serie as { retiradas: number; devolucoes: number }[];
+      const soma = (campo: 'retiradas' | 'devolucoes') => serie.reduce((total, ponto) => total + ponto[campo], 0);
+      expect(soma('retiradas')).toBe(r.body.kpis.retiradasNoPeriodo);
+      expect(soma('devolucoes')).toBe(r.body.kpis.devolvidosNoPeriodo);
+      expect(r.body.kpis.emprestimosAtivos).toBeGreaterThanOrEqual(1);
+      expect(r.body.kpis.disponiveis + r.body.kpis.emprestados).toBe(r.body.kpis.equipamentosAtivos);
+      expect(r.body.pessoasMaisAtivas.length).toBeGreaterThan(0);
+      expect(r.body.maisEmprestados.length).toBeGreaterThan(0);
+    });
+  });
+
+  // =====================================================================================================
   describe('limite de requisições', () => {
     it('mais de 5 logins por minuto devolvem 429', async () => {
       const pessoa = await criarUsuario('USER');

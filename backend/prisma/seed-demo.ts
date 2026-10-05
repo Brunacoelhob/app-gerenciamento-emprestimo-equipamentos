@@ -2,11 +2,12 @@ import 'dotenv/config';
 import { randomBytes } from 'node:crypto';
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as bcrypt from 'bcrypt';
-import { Equipamento, PrismaClient, Usuario } from '../generated/prisma/client';
+import { Equipamento, Prisma, PrismaClient, Usuario } from '../generated/prisma/client';
 import { Role, StatusEmprestimo } from '../generated/prisma/enums';
 
 // Dados FICTÍCIOS para demonstração e desenvolvimento: pessoas, equipamentos e um histórico de empréstimos
-// (devolvidos, em andamento e atrasados). Nunca roda em produção. Pode ser executado de novo sem duplicar nada.
+// (devolvidos, em andamento e atrasados). Nunca roda em produção. Pode ser executado de novo sem duplicar nada;
+// com --refazer apaga a demonstração anterior e gera tudo de novo (npm run seed:demo -- --refazer).
 //
 // Todas as contas de demonstração usam a MESMA senha: a de DEMO_SENHA, ou uma aleatória (impressa uma única vez).
 
@@ -14,15 +15,87 @@ const DOMINIO = 'demo.exemplo.com';
 const DIA = 86_400_000;
 
 const PESSOAS = [
-  { nome: 'Fernanda Gestora', role: Role.ADMIN, avatar: 'animal:coruja', cidade: 'São Paulo', uf: 'SP', cep: '01310100', rua: 'Avenida Paulista' },
-  { nome: 'Ana Souza', role: Role.USER, avatar: 'animal:gato', cidade: 'Campinas', uf: 'SP', cep: '13015904', rua: 'Rua Barão de Jaguara' },
-  { nome: 'Bruno Lima', role: Role.USER, avatar: 'animal:cachorro', cidade: 'Rio de Janeiro', uf: 'RJ', cep: '20040020', rua: 'Rua da Assembleia' },
-  { nome: 'Carla Mendes', role: Role.USER, avatar: 'animal:raposa', cidade: 'Belo Horizonte', uf: 'MG', cep: '30130010', rua: 'Avenida Afonso Pena' },
-  { nome: 'Diego Ferreira', role: Role.USER, avatar: 'animal:panda', cidade: 'Curitiba', uf: 'PR', cep: '80010000', rua: 'Rua XV de Novembro' },
-  { nome: 'Elisa Rocha', role: Role.USER, avatar: 'animal:coala', cidade: 'Porto Alegre', uf: 'RS', cep: '90010150', rua: 'Rua dos Andradas' },
-  { nome: 'Felipe Araújo', role: Role.USER, avatar: 'animal:leao', cidade: 'Salvador', uf: 'BA', cep: '40020000', rua: 'Rua Chile' },
-  { nome: 'Gabriela Nunes', role: Role.USER, avatar: 'animal:pinguim', cidade: 'Recife', uf: 'PE', cep: '50010000', rua: 'Rua do Bom Jesus' },
-  { nome: 'Henrique Dias', role: Role.USER, avatar: null, cidade: 'Florianópolis', uf: 'SC', cep: '88010000', rua: 'Rua Felipe Schmidt' },
+  {
+    nome: 'Fernanda Gestora',
+    role: Role.ADMIN,
+    avatar: 'animal:coruja',
+    cidade: 'São Paulo',
+    uf: 'SP',
+    cep: '01310100',
+    rua: 'Avenida Paulista',
+  },
+  {
+    nome: 'Ana Souza',
+    role: Role.USER,
+    avatar: 'animal:gato',
+    cidade: 'Campinas',
+    uf: 'SP',
+    cep: '13015904',
+    rua: 'Rua Barão de Jaguara',
+  },
+  {
+    nome: 'Bruno Lima',
+    role: Role.USER,
+    avatar: 'animal:cachorro',
+    cidade: 'Rio de Janeiro',
+    uf: 'RJ',
+    cep: '20040020',
+    rua: 'Rua da Assembleia',
+  },
+  {
+    nome: 'Carla Mendes',
+    role: Role.USER,
+    avatar: 'animal:raposa',
+    cidade: 'Belo Horizonte',
+    uf: 'MG',
+    cep: '30130010',
+    rua: 'Avenida Afonso Pena',
+  },
+  {
+    nome: 'Diego Ferreira',
+    role: Role.USER,
+    avatar: 'animal:panda',
+    cidade: 'Curitiba',
+    uf: 'PR',
+    cep: '80010000',
+    rua: 'Rua XV de Novembro',
+  },
+  {
+    nome: 'Elisa Rocha',
+    role: Role.USER,
+    avatar: 'animal:coala',
+    cidade: 'Porto Alegre',
+    uf: 'RS',
+    cep: '90010150',
+    rua: 'Rua dos Andradas',
+  },
+  {
+    nome: 'Felipe Araújo',
+    role: Role.USER,
+    avatar: 'animal:leao',
+    cidade: 'Salvador',
+    uf: 'BA',
+    cep: '40020000',
+    rua: 'Rua Chile',
+  },
+  {
+    nome: 'Gabriela Nunes',
+    role: Role.USER,
+    avatar: 'animal:pinguim',
+    cidade: 'Recife',
+    uf: 'PE',
+    cep: '50010000',
+    rua: 'Rua do Bom Jesus',
+  },
+  {
+    nome: 'Henrique Dias',
+    role: Role.USER,
+    avatar: null,
+    cidade: 'Florianópolis',
+    uf: 'SC',
+    cep: '88010000',
+    rua: 'Rua Felipe Schmidt',
+  },
 ];
 
 const EQUIPAMENTOS: [string, string][] = [
@@ -32,7 +105,7 @@ const EQUIPAMENTOS: [string, string][] = [
   ['Projetor Epson PowerLite', '3.600 lúmens, HDMI e VGA'],
   ['Projetor BenQ MW535', 'Portátil, 3.600 lúmens'],
   ['Câmera Canon EOS Rebel T7', 'Com lente 18-55mm e duas baterias'],
-  ['Câmera GoPro Hero 11', 'À prova d\'água, com suporte de capacete'],
+  ['Câmera GoPro Hero 11', "À prova d'água, com suporte de capacete"],
   ['Microfone Shure SM58', 'Dinâmico, com cabo XLR e pedestal'],
   ['Caixa de som JBL PartyBox', 'Bluetooth, bateria de 12 horas'],
   ['Tablet Samsung Galaxy Tab S8', 'Com caneta S Pen e capa'],
@@ -56,7 +129,9 @@ function gerador(semente: number) {
 }
 
 function cpfFicticio(n: number): string {
-  const base = String(100_000_000 + n * 7_919_011).slice(0, 9).padStart(9, '1');
+  const base = String(100_000_000 + n * 7_919_011)
+    .slice(0, 9)
+    .padStart(9, '1');
   const digito = (tamanho: number, digitos: string) => {
     let soma = 0;
     for (let i = 0; i < tamanho; i++) soma += Number(digitos[i]) * (tamanho + 1 - i);
@@ -75,6 +150,19 @@ async function main() {
 
   const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
   try {
+    if (process.argv.includes('--refazer')) {
+      // Apaga SÓ o que esta demonstração criou (contas @demo, seus empréstimos e os equipamentos da lista sem uso)
+      const ids = (
+        await prisma.usuario.findMany({ where: { email: { endsWith: `@${DOMINIO}` } }, select: { id: true } })
+      ).map((u) => u.id);
+      await prisma.emprestimo.deleteMany({ where: { usuarioId: { in: ids } } });
+      await prisma.usuario.deleteMany({ where: { id: { in: ids } } });
+      await prisma.equipamento.deleteMany({
+        where: { nome: { in: EQUIPAMENTOS.map(([nome]) => nome) }, emprestimos: { none: {} } },
+      });
+      console.log('Dados de demonstração anteriores removidos.');
+    }
+
     if (await prisma.usuario.findFirst({ where: { email: { endsWith: `@${DOMINIO}` } } })) {
       console.log('Os dados de demonstração já existem: nada a fazer.');
       return;
@@ -126,50 +214,66 @@ async function main() {
       );
     }
 
-    // Empréstimos: histórico devolvido + alguns em andamento (uns no prazo, uns atrasados)
-    let devolvidos = 0;
-    let andamento = 0;
-    let atrasados = 0;
+    // Empréstimos: uma linha do tempo por equipamento, de ~85 dias atrás até hoje, com volume suficiente para os
+    // gráficos do painel. Os primeiros equipamentos da lista são os mais populares (esperam menos entre um
+    // empréstimo e outro); ~20% das devoluções saem atrasadas; o último empréstimo de alguns ainda está em andamento.
+    const PRAZOS = [3, 5, 7, 7, 7, 10, 14];
+    const HORA = 3_600_000;
+    const emprestimos: Prisma.EmprestimoCreateManyInput[] = [];
     for (const [i, equipamento] of equipamentos.entries()) {
       if (!equipamento.ativo) continue;
-      let cursor = agora - 75 * DIA; // linha do tempo do equipamento: cada empréstimo começa depois do anterior
-
-      for (let h = 0; h < 1 + Math.floor(rnd() * 3); h++) {
-        const dias = 2 + Math.floor(rnd() * 8);
-        const retirada = cursor + Math.floor(rnd() * 5) * DIA;
-        const devolucao = retirada + Math.min(dias + Math.floor(rnd() * 4) - 1, 20) * DIA;
-        if (devolucao > agora - 3 * DIA) break;
-        await prisma.emprestimo.create({
-          data: {
+      const espera = 1 + i * 0.5; // dias médios de espera entre um empréstimo e o seguinte
+      // A cada três equipamentos, um é "designado" a terminar com um empréstimo atrasado: o histórico dele para
+      // 8 dias antes de hoje e então a pessoa o retira com prazo de 3 dias e não devolve (assim o painel tem
+      // atrasos para mostrar e nenhum empréstimo se sobrepõe a outro do mesmo equipamento).
+      const designado = i % 3 === 1;
+      const fim = designado ? agora - 8 * DIA : agora;
+      let cursor = agora - 85 * DIA + rnd() * 5 * DIA;
+      for (;;) {
+        const retirada = cursor + rnd() * espera * 2 * DIA;
+        if (retirada > fim - 2 * HORA) break; // o equipamento está livre agora
+        const prazoDias = PRAZOS[Math.floor(rnd() * PRAZOS.length)];
+        const atrasou = rnd() < 0.2;
+        const usoDias = atrasou ? prazoDias + 1 + rnd() * 5 : Math.max(0.5, prazoDias * (0.3 + rnd() * 0.7));
+        const devolucao = retirada + usoDias * DIA;
+        if (devolucao >= fim - HORA) {
+          if (designado) break; // o fim do histórico dele já foi decidido acima
+          emprestimos.push({
             usuarioId: pessoasComuns[Math.floor(rnd() * pessoasComuns.length)].id,
             equipamentoId: equipamento.id,
-            status: StatusEmprestimo.DEVOLVIDO,
+            status: StatusEmprestimo.ATIVO, // ainda com a pessoa
             dataRetirada: new Date(retirada),
-            prazoDevolucao: new Date(retirada + dias * DIA),
-            dataDevolucao: new Date(devolucao),
-          },
+            prazoDevolucao: new Date(retirada + prazoDias * DIA),
+          });
+          break;
+        }
+        emprestimos.push({
+          usuarioId: pessoasComuns[Math.floor(rnd() * pessoasComuns.length)].id,
+          equipamentoId: equipamento.id,
+          status: StatusEmprestimo.DEVOLVIDO,
+          dataRetirada: new Date(retirada),
+          prazoDevolucao: new Date(retirada + prazoDias * DIA),
+          dataDevolucao: new Date(devolucao),
         });
-        cursor = devolucao + DIA;
-        devolvidos++;
+        cursor = devolucao;
       }
 
-      // Em andamento: ~45% dos equipamentos. Destes, cerca de um terço está atrasado.
-      if (rnd() < 0.45) {
-        const atrasado = i % 3 === 0;
-        const retirada = agora - (atrasado ? 9 + Math.floor(rnd() * 10) : 1 + Math.floor(rnd() * 4)) * DIA;
-        await prisma.emprestimo.create({
-          data: {
-            usuarioId: pessoasComuns[Math.floor(rnd() * pessoasComuns.length)].id,
-            equipamentoId: equipamento.id,
-            status: StatusEmprestimo.ATIVO,
-            dataRetirada: new Date(retirada),
-            prazoDevolucao: new Date(retirada + 7 * DIA),
-          },
+      if (designado) {
+        const retirada = agora - (4 + rnd() * 4) * DIA; // entre 4 e 8 dias atrás: o prazo de 3 dias já venceu
+        emprestimos.push({
+          usuarioId: pessoasComuns[Math.floor(rnd() * pessoasComuns.length)].id,
+          equipamentoId: equipamento.id,
+          status: StatusEmprestimo.ATIVO,
+          dataRetirada: new Date(retirada),
+          prazoDevolucao: new Date(retirada + 3 * DIA),
         });
-        andamento++;
-        if (atrasado) atrasados++;
       }
     }
+    await prisma.emprestimo.createMany({ data: emprestimos });
+    const devolvidos = emprestimos.filter((e) => e.status === StatusEmprestimo.DEVOLVIDO).length;
+    const ativos = emprestimos.filter((e) => e.status === StatusEmprestimo.ATIVO);
+    const andamento = ativos.length;
+    const atrasados = ativos.filter((e) => new Date(e.prazoDevolucao).getTime() < agora).length;
 
     console.log(
       `Demonstração criada: ${usuarios.length} pessoas, ${equipamentos.length} equipamentos, ` +
