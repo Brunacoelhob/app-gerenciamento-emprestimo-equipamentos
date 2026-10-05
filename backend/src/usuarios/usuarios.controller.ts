@@ -20,6 +20,7 @@ import { AtualizarUsuarioDto } from './dto/atualizar-usuario.dto';
 import { CriarUsuarioDto } from './dto/criar-usuario.dto';
 import { ListarUsuariosDto } from './dto/listar-usuarios.dto';
 import { UsuarioRespostaDto } from './dto/usuario-resposta.dto';
+import { minimizarParaAdmin } from './mascara.util';
 import { UsuariosService } from './usuarios.service';
 
 // Todas as rotas daqui são exclusivas de ADMIN (única forma de criar outro administrador).
@@ -35,8 +36,9 @@ export class UsuariosController {
   @ApiOperation({ summary: 'Lista os usuários (paginado, com filtros por papel e situação)' })
   @ApiOkResponse({ description: 'Página de usuários.' })
   @Get()
-  listar(@Query() dto: ListarUsuariosDto) {
-    return this.usuarios.listar(dto);
+  async listar(@Query() dto: ListarUsuariosDto) {
+    const pagina = await this.usuarios.listar(dto);
+    return { ...pagina, itens: pagina.itens.map(minimizarParaAdmin) };
   }
 
   @ApiOperation({ summary: 'Cria um usuário, inclusive outro ADMIN' })
@@ -49,16 +51,16 @@ export class UsuariosController {
     detalhes: (_c, r) => ({ email: r?.email, role: r?.role }),
   })
   @Post()
-  criar(@Body() dto: CriarUsuarioDto) {
-    return this.usuarios.criar(dto);
+  async criar(@Body() dto: CriarUsuarioDto) {
+    return minimizarParaAdmin(await this.usuarios.criar(dto));
   }
 
   @ApiOperation({ summary: 'Detalha um usuário' })
   @ApiOkResponse({ type: UsuarioRespostaDto })
   @ApiNotFoundResponse({ description: 'Usuário não encontrado.' })
   @Get(':id')
-  obter(@Param('id', ParseIntPipe) id: number) {
-    return this.usuarios.obter(id);
+  async obter(@Param('id', ParseIntPipe) id: number) {
+    return minimizarParaAdmin(await this.usuarios.obter(id));
   }
 
   @ApiOperation({
@@ -79,11 +81,11 @@ export class UsuariosController {
     detalhes: (c) => ({ role: c.role, ativo: c.ativo }),
   })
   @Patch(':id')
-  atualizar(
+  async atualizar(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: AtualizarUsuarioDto,
     @CurrentUser() admin: UsuarioAutenticado,
   ) {
-    return this.usuarios.atualizar(id, dto, admin.id);
+    return minimizarParaAdmin(await this.usuarios.atualizar(id, dto, admin.id));
   }
 }

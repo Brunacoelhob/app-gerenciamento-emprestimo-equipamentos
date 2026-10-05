@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { ANIMAIS, Avatar, rotuloAnimal } from '../../compartilhado/avatar';
+import { Modal } from '../../compartilhado/modal';
 import { prepararAvatar } from '../../compartilhado/imagem';
 import { cpfValido, mascaraCep, mascaraCpf, mascaraTelefone, soDigitos } from '../../compartilhado/mascaras';
 import { AuthService } from '../../core/auth.service';
@@ -27,7 +28,7 @@ interface RespostaViaCep {
 
 @Component({
   selector: 'app-perfil',
-  imports: [ReactiveFormsModule, Avatar, AlterarSenha],
+  imports: [ReactiveFormsModule, Avatar, AlterarSenha, Modal],
   templateUrl: './perfil.html',
   styleUrl: './perfil.scss',
 })
@@ -44,6 +45,13 @@ export class Perfil implements OnInit {
   protected readonly erroFoto = signal<string | null>(null);
   protected readonly aviso = signal<string | null>(null);
   protected readonly avisoCep = signal<string | null>(null);
+
+  // Privacidade (LGPD)
+  protected readonly modalExcluir = signal(false);
+  protected readonly senhaExclusao = signal('');
+  protected readonly excluindo = signal(false);
+  protected readonly erroExclusao = signal<string | null>(null);
+  protected readonly baixando = signal(false);
 
   protected readonly form = inject(FormBuilder).nonNullable.group({
     nome: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
@@ -165,6 +173,52 @@ export class Perfil implements OnInit {
       error: (e: unknown) => {
         this.erroFoto.set(mensagemDeErro(e));
         this.salvandoFoto.set(false);
+      },
+    });
+  }
+
+  // Baixa uma cópia dos dados da pessoa (JSON)
+  protected baixarDados() {
+    this.baixando.set(true);
+    this.erro.set(null);
+    this.auth.baixarMeusDados().subscribe({
+      next: (arquivo) => {
+        const url = URL.createObjectURL(arquivo);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'meus-dados.json';
+        link.click();
+        URL.revokeObjectURL(url);
+        this.baixando.set(false);
+      },
+      error: (e: unknown) => {
+        this.erro.set(mensagemDeErro(e));
+        this.baixando.set(false);
+      },
+    });
+  }
+
+  protected abrirExclusao() {
+    this.senhaExclusao.set('');
+    this.erroExclusao.set(null);
+    this.modalExcluir.set(true);
+  }
+
+  protected confirmarExclusao() {
+    if (!this.senhaExclusao()) {
+      this.erroExclusao.set('Informe a sua senha para confirmar.');
+      return;
+    }
+    this.excluindo.set(true);
+    this.erroExclusao.set(null);
+    this.auth.excluirConta(this.senhaExclusao()).subscribe({
+      // A conta deixou de existir: limpa a sessão local e volta ao login
+      next: () => {
+        this.auth.encerrarLocalmente('conta-excluida');
+      },
+      error: (e: unknown) => {
+        this.erroExclusao.set(mensagemDeErro(e));
+        this.excluindo.set(false);
       },
     });
   }

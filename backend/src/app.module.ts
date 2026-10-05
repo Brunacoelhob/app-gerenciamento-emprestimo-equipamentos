@@ -13,6 +13,7 @@ import { EmprestimosModule } from './emprestimos/emprestimos.module';
 import { EquipamentosModule } from './equipamentos/equipamentos.module';
 import { RecuperacaoSenhaModule } from './recuperacao-senha/recuperacao-senha.module';
 import { NotificacoesModule } from './notificacoes/notificacoes.module';
+import { PrivacidadeModule } from './privacidade/privacidade.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SaudeModule } from './saude/saude.module';
 import { SessoesModule } from './sessoes/sessoes.module';
@@ -35,6 +36,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     EmprestimosModule,
     DashboardModule,
     NotificacoesModule,
+    PrivacidadeModule,
     SaudeModule,
   ],
   providers: [

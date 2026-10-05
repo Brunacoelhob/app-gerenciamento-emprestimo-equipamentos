@@ -903,6 +903,184 @@ describe('API de empréstimo de equipamentos (integração)', () => {
   });
 
   // =====================================================================================================
+  describe('privacidade (LGPD)', () => {
+    const aguardar = (ms = 200) => new Promise((r) => setTimeout(r, ms));
+
+    // Outros testes limpam a tabela de equipamentos: não deixa empréstimos pendurados neles
+    afterAll(async () => {
+      await prisma.emprestimo.deleteMany();
+    });
+
+    // CPF é único por conta: cada pessoa de teste recebe um CPF válido diferente
+    const gerarCpf = (n: number) => {
+      const base = String(100_000_000 + n * 7_919_011).slice(0, 9);
+      const digito = (digitos: string) => {
+        let soma = 0;
+        for (let i = 0; i < digitos.length; i++) soma += Number(digitos[i]) * (digitos.length + 1 - i);
+        const resto = (soma * 10) % 11;
+        return resto === 10 ? 0 : resto;
+      };
+      const d1 = digito(base);
+      return `${base}${d1}${digito(base + d1)}`;
+    };
+
+    const comDados = async () => {
+      const pessoa = await criarUsuario('USER');
+      const cpf = gerarCpf(pessoa.id);
+      await http
+        .patch('/v1/auth/eu')
+        .set(auth(pessoa.token))
+        .send({
+          cpf,
+          telefone: '(21) 98888-7777',
+          cep: '20040-020',
+          logradouro: 'Rua da Assembleia',
+          numero: '10',
+          cidade: 'Rio de Janeiro',
+          uf: 'RJ',
+          avatar: 'animal:gato',
+        })
+        .expect(200);
+      return { ...pessoa, cpf };
+    };
+
+    it('o administrador vê CPF e telefone MASCARADOS e sem endereço de rua; a própria pessoa vê tudo', async () => {
+      const admin = await criarUsuario('ADMIN');
+      const pessoa = await comDados();
+
+      const porId = await http.get(`/v1/usuarios/${pessoa.id}`).set(auth(admin.token)).expect(200);
+      expect(porId.body).toMatchObject({
+        cpf: `***.***.***-${pessoa.cpf.slice(9)}`,
+        telefone: '(21) *****-7777',
+        cidade: 'Rio de Janeiro',
+        uf: 'RJ',
+      });
+      expect([porId.body.cep, porId.body.logradouro, porId.body.numero]).toEqual([null, null, null]);
+
+      const lista = await http.get('/v1/usuarios?limite=100').set(auth(admin.token)).expect(200);
+      const na_lista = lista.body.itens.find((u: { id: number }) => u.id === pessoa.id);
+      expect(na_lista.cpf).toBe(`***.***.***-${pessoa.cpf.slice(9)}`);
+      expect(JSON.stringify(lista.body)).not.toContain(pessoa.cpf); // o CPF inteiro não aparece em lugar nenhum
+
+      const propria = await http.get('/v1/auth/eu').set(auth(pessoa.token)).expect(200);
+      expect(propria.body).toMatchObject({
+        cpf: pessoa.cpf,
+        telefone: '21988887777',
+        logradouro: 'Rua da Assembleia',
+      });
+    });
+
+    it('"baixar meus dados": perfil, empréstimos e ações, sem a senha; exige login', async () => {
+      const pessoa = await comDados();
+      const equip = await criarEquipamento('Item Exportado');
+      await http.post('/v1/emprestimos').set(auth(pessoa.token)).send({ equipamentoId: equip.id }).expect(201);
+
+      await http.get('/v1/auth/eu/dados').expect(401);
+      const r = await http.get('/v1/auth/eu/dados').set(auth(pessoa.token)).expect(200);
+      expect(r.headers['content-disposition']).toContain('meus-dados.json');
+      expect(r.headers['cache-control']).toContain('no-store');
+      expect(r.body.perfil).toMatchObject({ id: pessoa.id, cpf: pessoa.cpf });
+      expect(r.body.emprestimos).toHaveLength(1);
+      expect(r.body.emprestimos[0]).toMatchObject({ equipamento: 'Item Exportado', status: 'ATIVO' });
+      expect(JSON.stringify(r.body)).not.toMatch(/senhaHash|\$2[aby]\$/); // nem o hash da senha
+    });
+
+    it('excluir a conta exige a senha, e é recusado enquanto houver equipamento emprestado', async () => {
+      const pessoa = await comDados();
+      const equip = await criarEquipamento();
+      const emprestimo = await http
+        .post('/v1/emprestimos')
+        .set(auth(pessoa.token))
+        .send({ equipamentoId: equip.id })
+        .expect(201);
+
+      await http.post('/v1/auth/eu/anonimizar').send({ senha: SENHA }).expect(401);
+      await http.post('/v1/auth/eu/anonimizar').set(auth(pessoa.token)).send({ senha: 'errada123' }).expect(422);
+      await http.post('/v1/auth/eu/anonimizar').set(auth(pessoa.token)).send({}).expect(400);
+      const bloqueada = await http
+        .post('/v1/auth/eu/anonimizar')
+        .set(auth(pessoa.token))
+        .send({ senha: SENHA })
+        .expect(409);
+      expect(bloqueada.body.mensagem).toContain('Devolva');
+
+      // nada foi apagado
+      expect((await prisma.usuario.findUniqueOrThrow({ where: { id: pessoa.id } })).cpf).toBe(pessoa.cpf);
+
+      // devolvendo, a exclusão passa
+      await http.patch(`/v1/emprestimos/${emprestimo.body.id}/devolucao`).set(auth(pessoa.token)).expect(200);
+      await http.post('/v1/auth/eu/anonimizar').set(auth(pessoa.token)).send({ senha: SENHA }).expect(204);
+    });
+
+    it('anonimização: some tudo que identifica, encerra o acesso e PRESERVA o histórico de empréstimos', async () => {
+      const admin = await criarUsuario('ADMIN');
+      const pessoa = await comDados();
+      const sessao = await http.post('/v1/auth/login').send({ email: pessoa.email, senha: SENHA }).expect(200);
+      const equip = await criarEquipamento('Equipamento do Histórico');
+      const emprestimo = await http
+        .post('/v1/emprestimos')
+        .set(auth(pessoa.token))
+        .send({ equipamentoId: equip.id })
+        .expect(201);
+      await http.patch(`/v1/emprestimos/${emprestimo.body.id}/devolucao`).set(auth(pessoa.token)).expect(200);
+      // uma ação da pessoa na trilha (trocar e-mail), que guarda o nome dela
+      await http
+        .patch('/v1/auth/eu')
+        .set(auth(pessoa.token))
+        .send({ email: `novo.${pessoa.id}@teste.com` })
+        .expect(200);
+      await aguardar();
+
+      await http.post('/v1/auth/eu/anonimizar').set(auth(pessoa.token)).send({ senha: SENHA }).expect(204);
+      await aguardar();
+
+      const conta = await prisma.usuario.findUniqueOrThrow({ where: { id: pessoa.id } });
+      expect(conta).toMatchObject({
+        nome: 'Usuário removido',
+        ativo: false,
+        cpf: null,
+        telefone: null,
+        cep: null,
+        logradouro: null,
+        cidade: null,
+        avatar: null,
+      });
+      expect(conta.email).toMatch(/^removido-\d+-[0-9a-f]+@anonimizado\.invalid$/);
+
+      // não entra mais: nem com a senha antiga, nem com o token que existia, nem renovando a sessão
+      await http
+        .post('/v1/auth/login')
+        .send({ email: `novo.${pessoa.id}@teste.com`, senha: SENHA })
+        .expect(401);
+      await http.get('/v1/auth/eu').set(auth(pessoa.token)).expect(401);
+      await http.post('/v1/auth/renovar').send({ refreshToken: sessao.body.refreshToken }).expect(401);
+
+      // o histórico do equipamento continua, sem identificar ninguém
+      const historico = await http.get(`/v1/emprestimos?equipamentoId=${equip.id}`).set(auth(admin.token)).expect(200);
+      expect(historico.body.itens).toHaveLength(1);
+      expect(historico.body.itens[0].usuario.nome).toBe('Usuário removido');
+      expect(JSON.stringify(historico.body)).not.toContain(pessoa.email);
+
+      // a trilha de auditoria também deixa de guardar o nome (e registra a exclusão)
+      const trilha = await prisma.registroAuditoria.findMany({ where: { atorId: pessoa.id } });
+      expect(trilha.map((t) => t.acao)).toEqual(expect.arrayContaining(['EMAIL_ALTERADO', 'CONTA_ANONIMIZADA']));
+      expect(trilha.every((t) => t.atorNome === 'Usuário removido')).toBe(true);
+    });
+
+    it('depois de excluir, o CPF e o e-mail podem ser usados de novo por outra conta', async () => {
+      const pessoa = await comDados();
+      await http.post('/v1/auth/eu/anonimizar').set(auth(pessoa.token)).send({ senha: SENHA }).expect(204);
+
+      const outra = await criarUsuario('USER');
+      await http.patch('/v1/auth/eu').set(auth(outra.token)).send({ cpf: pessoa.cpf }).expect(200);
+      await http
+        .post('/v1/auth/registro')
+        .send({ nome: 'Quem Voltou', email: pessoa.email, senha: 'SenhaForte123' })
+        .expect(201);
+    });
+  });
+
+  // =====================================================================================================
   describe('limite de requisições', () => {
     it('mais de 5 logins por minuto devolvem 429', async () => {
       const pessoa = await criarUsuario('USER');

@@ -3,6 +3,10 @@
     <h1>Empréstimo de Equipamentos</h1>
     <p class="subtitulo">Entre com seu e-mail e senha.</p>
 
+    @if (contaExcluida) {
+      <div class="alerta sucesso" role="status">Sua conta foi excluída e os seus dados pessoais foram apagados.</div>
+    }
+
     @if (erro(); as mensagem) {
       <div class="alerta erro" role="alert">{{ mensagem }}</div>
     }

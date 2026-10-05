@@ -54,6 +54,12 @@ As falhas críticas foram **reproduzidas rodando a API original** contra um banc
 - Erros inesperados devolvem mensagem genérica (o detalhe e a pilha vão só para o log). O log de requisições **nunca** registra corpo, cabeçalhos nem tokens.
 - Cabeçalhos de segurança com Helmet; `x-powered-by` removido.
 
+**Privacidade (LGPD)**
+- **Minimização:** nas rotas de administrador, CPF e telefone saem **mascarados** (`***.***.***-25`, `(11) *****-4321`) e o endereço de rua não é enviado (só cidade e UF). A pessoa vê tudo apenas no próprio perfil.
+- **Acesso e portabilidade:** `GET /v1/auth/eu/dados` entrega um JSON com perfil, empréstimos e ações registradas (sem a senha), e a tela de perfil tem o botão "Baixar meus dados".
+- **Exclusão:** `POST /v1/auth/eu/anonimizar` (exige a senha) apaga nome, e-mail, CPF, telefone, endereço e avatar, derruba todas as sessões, remove o nome da trilha de auditoria e libera o e-mail e o CPF para uso futuro. O histórico de empréstimos permanece como "Usuário removido". É recusada com equipamentos emprestados e para o último administrador ativo.
+- **Não coberto (precisa de decisão jurídica):** política de privacidade, registro de consentimento, prazos de retenção e relatório ao titular além do que está acima.
+
 **Auditoria**
 - **Trilha de auditoria** (`GET /v1/auditoria`, só ADMIN, e a tela "Auditoria"): registra quem criou conta, mudou papel, desativou ou reativou conta, cadastrou, editou ou desativou equipamento, devolveu o empréstimo de outra pessoa, trocou ou redefiniu senha, trocou e-mail e quando um refresh token já usado reapareceu (possível roubo de acesso). Guarda o nome de quem agiu junto, então o registro continua legível se a conta for anonimizada. **Senhas e tokens nunca entram na trilha**, e uma operação que falha (409, 403...) não gera registro.
 - A gravação é "melhor esforço": se falhar, a ação do usuário não é desfeita (o erro vai para o log). Não é uma trilha à prova de adulteração: quem tem acesso direto ao banco consegue alterá-la.

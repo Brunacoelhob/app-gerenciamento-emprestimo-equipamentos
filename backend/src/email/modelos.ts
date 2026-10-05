@@ -160,3 +160,25 @@ export function emailResumoAtrasos(dados: {
     ),
   };
 }
+
+export function emailContaRemovida(dados: { para: string; nome: string }): Mensagem {
+  const { para, nome } = dados;
+  return {
+    para,
+    assunto: 'Sua conta foi excluída',
+    texto: [
+      `Olá, ${nome}.`,
+      '',
+      'Conforme o seu pedido, a sua conta foi excluída: o seu nome, e-mail, CPF, telefone, endereço e foto foram apagados.',
+      'O histórico de empréstimos dos equipamentos continua, sem identificar você.',
+      'Se não foi você quem pediu, procure o administrador do sistema imediatamente.',
+    ].join('\n'),
+    html: moldura(
+      'Sua conta foi excluída',
+      `<p>Olá, ${escapar(nome)}.</p>
+<p>Conforme o seu pedido, a sua conta foi excluída: o seu nome, e-mail, CPF, telefone, endereço e foto foram apagados.</p>
+<p>O histórico de empréstimos dos equipamentos continua, sem identificar você.</p>
+<p><strong>Se não foi você</strong> quem pediu, procure o administrador do sistema imediatamente.</p>`,
+    ),
+  };
+}

@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { switchMap } from 'rxjs';
 import { AuthService } from '../../core/auth.service';
 import { mensagemDeErro } from '../../core/erro';
@@ -14,6 +14,8 @@ import { mensagemDeErro } from '../../core/erro';
 export class Login {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  protected readonly contaExcluida =
+    inject(ActivatedRoute).snapshot.queryParamMap.get('aviso') === 'conta-excluida';
 
   protected readonly form = inject(FormBuilder).nonNullable.group({
     email: ['', [Validators.required, Validators.email]],

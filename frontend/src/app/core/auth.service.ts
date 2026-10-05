@@ -43,6 +43,15 @@ export class AuthService {
     return this.http.patch<Usuario>(`${API}/auth/eu`, dados).pipe(tap((u) => this.usuario.set(u)));
   }
 
+  // LGPD: levar os próprios dados e excluir a conta (anonimização)
+  baixarMeusDados() {
+    return this.http.get(`${API}/auth/eu/dados`, { responseType: 'blob' });
+  }
+
+  excluirConta(senha: string) {
+    return this.http.post<void>(`${API}/auth/eu/anonimizar`, { senha });
+  }
+
   // Recuperação de senha: a resposta é sempre a mesma (204), exista a conta ou não
   esqueciSenha(email: string) {
     return this.http.post<void>(`${API}/auth/esqueci-senha`, { email });
@@ -84,9 +93,10 @@ export class AuthService {
   }
 
   // Sessão acabou (renovação falhou ou senha trocada): limpa tudo e volta ao login.
-  encerrarLocalmente() {
+  encerrarLocalmente(motivo?: 'conta-excluida') {
     this.limpar();
-    void this.router.navigate(['/login']);
+    if (motivo) void this.router.navigate(['/login'], { queryParams: { aviso: motivo } });
+    else void this.router.navigate(['/login']);
   }
 
   private guardar(t: Tokens) {

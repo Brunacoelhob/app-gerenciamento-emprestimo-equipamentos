@@ -144,3 +144,39 @@
   <h2 id="titulo-senha">Alterar senha</h2>
   <app-alterar-senha />
 </section>
+
+<section class="cartao bloco" aria-labelledby="titulo-privacidade">
+  <h2 id="titulo-privacidade">Privacidade e seus dados</h2>
+  <p class="texto-privacidade">
+    Você pode levar uma cópia de tudo o que o sistema guarda sobre você ou excluir a sua conta. Na exclusão, o seu nome,
+    e-mail, CPF, telefone, endereço e foto são apagados; o histórico de empréstimos dos equipamentos continua, sem
+    identificar você.
+  </p>
+  <div class="acoes-privacidade">
+    <button class="botao secundario" type="button" [disabled]="baixando()" (click)="baixarDados()">
+      {{ baixando() ? 'Preparando...' : 'Baixar meus dados' }}
+    </button>
+    <button class="botao perigo secundario" type="button" (click)="abrirExclusao()">Excluir minha conta</button>
+  </div>
+</section>
+
+<app-modal titulo="Excluir minha conta" rotuloFechar="Cancelar" [aberto]="modalExcluir()" (fechar)="modalExcluir.set(false)">
+  <p><strong>Esta ação não tem volta.</strong> Você perderá o acesso na hora e os seus dados pessoais serão apagados.</p>
+  <p>Não é possível excluir enquanto você estiver com equipamentos emprestados.</p>
+  @if (erroExclusao(); as mensagem) {
+    <div class="alerta erro" role="alert">{{ mensagem }}</div>
+  }
+  <div class="campo">
+    <label for="senha-exclusao">Digite a sua senha para confirmar</label>
+    <input
+      id="senha-exclusao"
+      type="password"
+      autocomplete="current-password"
+      [value]="senhaExclusao()"
+      (input)="senhaExclusao.set($any($event.target).value)"
+    />
+  </div>
+  <button acoes class="botao perigo" type="button" [disabled]="excluindo()" (click)="confirmarExclusao()">
+    {{ excluindo() ? 'Excluindo...' : 'Excluir definitivamente' }}
+  </button>
+</app-modal>

@@ -20,7 +20,7 @@ let proximoId = 0;
         <div class="conteudo"><ng-content /></div>
         <footer>
           <ng-content select="[acoes]" />
-          <button class="botao" type="button" (click)="janela.close()">Entendi</button>
+          <button class="botao" type="button" (click)="janela.close()">{{ rotuloFechar() }}</button>
         </footer>
       </div>
     </dialog>
@@ -30,6 +30,8 @@ let proximoId = 0;
 export class Modal {
   readonly titulo = input.required<string>();
   readonly aberto = input(false);
+  /** Texto do botão que só fecha a janela (Entendi para avisos, Cancelar para confirmações). */
+  readonly rotuloFechar = input('Entendi');
   readonly fechar = output<void>();
 
   protected readonly idTitulo = `modal-titulo-${++proximoId}`;

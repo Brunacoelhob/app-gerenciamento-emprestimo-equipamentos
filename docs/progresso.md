@@ -7,7 +7,7 @@ Legenda: `[x]` feito e verificado · `[~]` feito, mas com parte **não verificad
 
 | Parte | Situação |
 |---|---|
-| API (NestJS + PostgreSQL) | 56 testes unitários e 73 de integração passando; lint e tipos limpos |
+| API (NestJS + PostgreSQL) | 59 testes unitários e 78 de integração passando; lint e tipos limpos |
 | Interface (Angular) | 19 testes passando; build de produção sem erros |
 | Docker | `docker compose` sobe banco, migrações, API e interface (nginx); o CI constrói e confere a saúde |
 | CI (GitHub Actions) | Backend, frontend e Docker |
@@ -58,6 +58,12 @@ Legenda: `[x]` feito e verificado · `[~]` feito, mas com parte **não verificad
 - [x] `POST /v1/notificacoes/executar` (administrador) roda na hora
 - [~] *Verificado com os dados de demonstração e o Mailpit; o agendador no horário real (8h) só foi conferido pelo log, não esperei o relógio.*
 
+### Privacidade (LGPD)
+- [x] CPF e telefone **mascarados** para administradores; endereço de rua não é enviado a eles
+- [x] **Baixar meus dados** (JSON: perfil, empréstimos, ações) no perfil
+- [x] **Excluir minha conta** (anonimização com confirmação por senha): apaga os dados pessoais, derruba as sessões, limpa o nome da trilha e **preserva o histórico** de empréstimos
+- [~] *Falta o que depende de decisão jurídica: política de privacidade, registro de consentimento e prazos de retenção. O CPF continua guardado em texto puro (sem criptografia em repouso).*
+
 ### Auditoria
 - [x] Trilha de quem fez o quê e quando: contas, papéis, acervo, devolução por administrador, senhas, e-mail e sessões suspeitas
 - [x] Tela "Auditoria" (administrador), com filtro por ação e paginação
@@ -82,7 +88,7 @@ Legenda: `[x]` feito e verificado · `[~]` feito, mas com parte **não verificad
 - [ ] **Testes de interface (Playwright):** login, pegar emprestado, devolver, recuperar senha, trocar perfil. Hoje esses fluxos só foram conferidos manualmente
 - [ ] **Refresh token em cookie `HttpOnly`** (hoje fica no `localStorage`: um XSS o rouba)
 - [ ] **CSP em modo bloqueio:** hoje está em "somente relatório" no nginx, porque o VLibras precisa de permissões ainda não mapeadas
-- [ ] **LGPD:** mascarar o CPF nas listagens, permitir apagar/anonimizar a conta, registrar o consentimento
+- [ ] **LGPD (o que sobrou):** política de privacidade, registro de consentimento, prazos de retenção e criptografia do CPF em repouso. Dependem de revisão jurídica
 
 ### Prioridade média
 - [ ] Reserva de equipamento e fila de espera; renovação de prazo

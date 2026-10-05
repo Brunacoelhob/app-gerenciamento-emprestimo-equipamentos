@@ -97,3 +97,14 @@
     grid-column: auto;
   }
 }
+
+.texto-privacidade {
+  margin: 0 0 1rem;
+  color: var(--texto-suave);
+}
+
+.acoes-privacidade {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}

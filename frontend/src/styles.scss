@@ -310,6 +310,22 @@ a {
     }
   }
 
+  &.perigo {
+    background: var(--erro);
+    border-color: var(--erro);
+    color: var(--superficie);
+
+    &:hover:not(:disabled) {
+      background: var(--erro);
+      filter: brightness(0.9);
+    }
+
+    &.secundario {
+      background: transparent;
+      color: var(--erro);
+    }
+  }
+
   &.pequeno {
     padding: 0.35rem 0.7rem;
     font-size: 0.85rem;
