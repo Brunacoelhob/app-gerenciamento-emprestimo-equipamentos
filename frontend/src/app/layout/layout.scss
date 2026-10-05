@@ -119,6 +119,26 @@ nav {
   }
 }
 
+.voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 1rem;
+  padding: 0.45rem 0.85rem 0.45rem 0.65rem;
+  border: 1px solid var(--borda);
+  border-radius: 999px;
+  background: var(--superficie);
+  color: var(--texto);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background: var(--borda);
+  }
+}
+
 .barra-mobile,
 .fundo-menu {
   display: none;

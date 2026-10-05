@@ -1,58 +1,173 @@
-<h1>Olá, {{ auth.usuario()?.nome }}!</h1>
-<p class="subtitulo">Resumo do que está acontecendo agora.</p>
+<div class="cabecalho">
+  <div>
+    <h1>Dashboard</h1>
+    <p class="subtitulo">{{ escopoTexto() }}. Toque em um card para entender o número.</p>
+  </div>
+  <label class="periodo">
+    <span>Período</span>
+    <select name="periodo" [(ngModel)]="periodo" (ngModelChange)="carregar()">
+      @for (p of periodos; track p) {
+        <option [ngValue]="p">Últimos {{ p }} dias</option>
+      }
+    </select>
+  </label>
+</div>
 
 @if (erro(); as mensagem) {
   <div class="alerta erro" role="alert">{{ mensagem }}</div>
 }
 
-@if (indicadores(); as i) {
-  <section class="indicadores" aria-label="Indicadores">
-    <a class="cartao" routerLink="/equipamentos">
-      <span class="numero">{{ i.disponiveis }}</span>
-      <span>Equipamentos disponíveis</span>
-    </a>
-    <a class="cartao" routerLink="/equipamentos">
-      <span class="numero">{{ i.emprestados }}</span>
-      <span>Equipamentos emprestados</span>
-    </a>
-    <a class="cartao" routerLink="/meus-emprestimos">
-      <span class="numero">{{ i.meusAtivos }}</span>
-      <span>Meus empréstimos ativos</span>
-    </a>
-    <a class="cartao" [class.alerta-card]="i.meusAtrasados > 0" routerLink="/meus-emprestimos">
-      <span class="numero">{{ i.meusAtrasados }}</span>
-      <span>Meus atrasados</span>
-    </a>
-    @if (i.todosAtivos !== null && i.todosAtrasados !== null) {
-      <a class="cartao" routerLink="/emprestimos">
-        <span class="numero">{{ i.todosAtivos }}</span>
-        <span>Empréstimos ativos (todos)</span>
-      </a>
-      <a class="cartao" [class.alerta-card]="i.todosAtrasados > 0" routerLink="/emprestimos">
-        <span class="numero">{{ i.todosAtrasados }}</span>
-        <span>Atrasados (todos)</span>
-      </a>
+@if (dados(); as d) {
+  <section class="kpis" aria-label="Indicadores" [class.carregando]="carregando()">
+    @for (c of cards(); track c.id) {
+      <button type="button" class="kpi" [attr.data-tom]="c.tom" (click)="abrir(c.info)" [attr.aria-label]="c.rotulo + ': ' + c.valor + '. Abrir explicação'">
+        <span class="kpi-rotulo">{{ c.rotulo }}</span>
+        <span class="kpi-valor">{{ c.valor }}</span>
+        <span class="kpi-saiba"><app-icone nome="info" /> Saiba mais</span>
+      </button>
     }
   </section>
 
-  <section class="cartao pendentes">
-    <h2>Com você agora</h2>
-    @if (pendentes().length === 0) {
-      <p class="vazio">Você não está com nenhum equipamento. <a routerLink="/equipamentos">Ver equipamentos</a></p>
-    } @else {
-      <ul>
-        @for (e of pendentes(); track e.id) {
-          <li>
-            <span>{{ e.equipamento.nome }}</span>
-            <span [class.atrasado]="e.atrasado">
-              {{ e.atrasado ? 'Atrasado desde' : 'Devolver até' }} {{ e.prazoDevolucao | date: 'dd/MM/yyyy' }}
-            </span>
-          </li>
-        }
-      </ul>
-      <a routerLink="/meus-emprestimos">Ver todos e devolver</a>
+  <div class="graficos" [class.carregando]="carregando()">
+    <section class="cartao largo" aria-labelledby="t-serie">
+      <header class="cartao-topo">
+        <h2 id="t-serie">Movimentação diária</h2>
+        <button type="button" class="info" (click)="abrir(infoSerie())" aria-label="Como ler o gráfico Movimentação diária">
+          <app-icone nome="info" />
+        </button>
+      </header>
+      <app-grafico-linhas
+        [pontos]="pontosSerie()"
+        nomeA="Retiradas"
+        nomeB="Devoluções"
+        [descricao]="'Retiradas e devoluções por dia nos últimos ' + d.dias + ' dias.'"
+      />
+    </section>
+
+    <section class="cartao" aria-labelledby="t-acervo">
+      <header class="cartao-topo">
+        <h2 id="t-acervo">Situação do acervo</h2>
+        <button type="button" class="info" (click)="abrir(infoAcervo)" aria-label="Como ler o gráfico Situação do acervo">
+          <app-icone nome="info" />
+        </button>
+      </header>
+      <app-grafico-rosca [fatias]="fatiasAcervo()" rotuloCentro="equipamentos" />
+    </section>
+
+    <section class="cartao" aria-labelledby="t-equip">
+      <header class="cartao-topo">
+        <h2 id="t-equip">Equipamentos mais emprestados</h2>
+        <button type="button" class="info" (click)="abrir(infoEquipamentos())" aria-label="Como ler o gráfico Equipamentos mais emprestados">
+          <app-icone nome="info" />
+        </button>
+      </header>
+      <app-grafico-barras [itens]="d.maisEmprestados" cor="var(--grafico-1)" vazio="Nenhum empréstimo no período." />
+    </section>
+
+    @if (d.escopo === 'geral') {
+      <section class="cartao" aria-labelledby="t-pessoas">
+        <header class="cartao-topo">
+          <h2 id="t-pessoas">Pessoas com mais empréstimos</h2>
+          <button type="button" class="info" (click)="abrir(infoPessoas())" aria-label="Como ler o gráfico Pessoas com mais empréstimos">
+            <app-icone nome="info" />
+          </button>
+        </header>
+        <app-grafico-barras [itens]="d.pessoasMaisAtivas" cor="var(--grafico-2)" vazio="Nenhum empréstimo no período." />
+      </section>
     }
-  </section>
+
+    <section class="cartao" aria-labelledby="t-atrasos">
+      <header class="cartao-topo">
+        <h2 id="t-atrasos">Maiores atrasos</h2>
+        <button type="button" class="info" (click)="abrir(infoAtrasos)" aria-label="Como ler a lista Maiores atrasos">
+          <app-icone nome="info" />
+        </button>
+      </header>
+      @if (d.atrasados.length === 0) {
+        <p class="vazio">Nenhum empréstimo atrasado. 🎉</p>
+      } @else {
+        <ul class="lista-atrasos">
+          @for (a of d.atrasados; track a.id) {
+            <li>
+              <span class="quem">
+                <strong>{{ a.equipamento }}</strong>
+                @if (d.escopo === 'geral') {
+                  <small>{{ a.pessoa }}</small>
+                }
+              </span>
+              <span class="selo vermelho">{{ a.diasDeAtraso }} {{ a.diasDeAtraso === 1 ? 'dia' : 'dias' }}</span>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <section class="cartao" aria-labelledby="t-pendentes">
+      <header class="cartao-topo">
+        <h2 id="t-pendentes">Com você agora</h2>
+        <button type="button" class="info" (click)="abrir(infoPendentes)" aria-label="Como ler a lista Com você agora">
+          <app-icone nome="info" />
+        </button>
+      </header>
+      @if (pendentes().length === 0) {
+        <p class="vazio">Você não está com nenhum equipamento. <a routerLink="/equipamentos">Ver equipamentos</a></p>
+      } @else {
+        <ul class="lista-atrasos">
+          @for (e of pendentes(); track e.id) {
+            <li>
+              <span class="quem">
+                <strong>{{ e.equipamento.nome }}</strong>
+                <small>{{ e.atrasado ? 'Atrasado desde' : 'Devolver até' }} {{ e.prazoDevolucao | date: 'dd/MM/yyyy' }}</small>
+              </span>
+              <span class="selo" [class.vermelho]="e.atrasado" [class.amarelo]="!e.atrasado">{{ e.atrasado ? 'Atrasado' : 'No prazo' }}</span>
+            </li>
+          }
+        </ul>
+        <a class="mais" routerLink="/meus-emprestimos">Ver todos e devolver</a>
+      }
+    </section>
+  </div>
+
+  <p class="rodape">Atualizado em {{ d.geradoEm | date: 'dd/MM/yyyy HH:mm' }}</p>
 } @else if (!erro()) {
-  <p class="vazio">Carregando...</p>
+  <p class="vazio">Carregando o dashboard...</p>
 }
+
+<app-modal [titulo]="info()?.titulo ?? ''" [aberto]="infoAberta()" (fechar)="infoAberta.set(false)">
+  @if (info(); as i) {
+    @if (i.destaque) {
+      <p class="destaque">{{ i.destaque }}</p>
+    }
+    @for (b of i.blocos; track b.titulo) {
+      <section class="bloco-info">
+        <h3>{{ b.titulo }}</h3>
+        <p>{{ b.texto }}</p>
+      </section>
+    }
+    @if (i.atrasados && dados(); as d) {
+      <section class="bloco-info">
+        <h3>Agora</h3>
+        @if (d.atrasados.length === 0) {
+          <p>Nenhum empréstimo atrasado.</p>
+        } @else {
+          <ul class="lista-atrasos">
+            @for (a of d.atrasados; track a.id) {
+              <li>
+                <span class="quem">
+                  <strong>{{ a.equipamento }}</strong>
+                  @if (d.escopo === 'geral') {
+                    <small>{{ a.pessoa }}</small>
+                  }
+                </span>
+                <span class="selo vermelho">{{ a.diasDeAtraso }} {{ a.diasDeAtraso === 1 ? 'dia' : 'dias' }}</span>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    }
+    @if (i.link; as l) {
+      <a acoes class="botao secundario" [routerLink]="l.rota" (click)="infoAberta.set(false)">{{ l.rotulo }}</a>
+    }
+  }
+</app-modal>

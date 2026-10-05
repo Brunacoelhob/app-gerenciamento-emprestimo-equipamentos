@@ -1,0 +1,146 @@
+figure {
+  margin: 0;
+}
+
+svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.grade {
+  stroke: var(--borda);
+  stroke-width: 1;
+}
+
+.eixo {
+  fill: var(--texto-suave);
+  font-size: 11px;
+}
+
+.area-a {
+  fill: var(--grafico-1);
+  opacity: 0.14;
+}
+
+.linha-a,
+.linha-b {
+  fill: none;
+  stroke-width: 2.6;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.linha-a {
+  stroke: var(--grafico-1);
+}
+
+// Tracejada: distingue a série B mesmo sem enxergar cores
+.linha-b {
+  stroke: var(--grafico-2);
+  stroke-dasharray: 7 5;
+}
+
+.guia {
+  stroke: var(--texto-suave);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.ponto-a,
+.ponto-b {
+  stroke: var(--superficie);
+  stroke-width: 2;
+}
+
+.ponto-a {
+  fill: var(--grafico-1);
+}
+
+.ponto-b {
+  fill: var(--grafico-2);
+}
+
+.caixa {
+  fill: var(--superficie);
+  stroke: var(--borda);
+}
+
+.caixa-titulo {
+  fill: var(--texto);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.caixa-texto {
+  fill: var(--texto-suave);
+  font-size: 12px;
+}
+
+figcaption {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--texto-suave);
+}
+
+.legenda {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.marca {
+  display: inline-block;
+  width: 1.5rem;
+  height: 0;
+  border-top: 3px solid;
+}
+
+.marca-a {
+  border-color: var(--grafico-1);
+}
+
+.marca-b {
+  border-color: var(--grafico-2);
+  border-top-style: dashed;
+}
+
+details {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+
+  summary {
+    cursor: pointer;
+    color: var(--primaria);
+  }
+}
+
+.tabela-rolavel {
+  max-height: 14rem;
+  margin-top: 0.5rem;
+  overflow: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    padding: 0.3rem 0.5rem;
+    text-align: left;
+    border-bottom: 1px solid var(--borda);
+    font-weight: 400;
+  }
+
+  thead th {
+    position: sticky;
+    top: 0;
+    background: var(--superficie);
+    font-weight: 700;
+  }
+}

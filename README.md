@@ -106,7 +106,7 @@ npm start                       # http://localhost:4200
 
 O servidor de desenvolvimento encaminha `/api/*` para a API (veja `frontend/proxy.conf.json`), então **não é preciso configurar CORS** localmente.
 
-A interface tem: login e sessão (renovação automática do token), painel com indicadores, equipamentos, empréstimos, **perfil** (foto do acervo de bichinhos ou enviada, dados pessoais com CPF, telefone e CEP com preenchimento do endereço, troca de senha), **gestão de usuários** para administradores (criar contas e perfis) e uma **barra de acessibilidade fixa no topo** de todas as telas, com um botão ao lado do outro: tamanho do texto (A− e A+), alto contraste, modo escuro/claro, fonte para dislexia, cores para daltonismo, redução de animações e [VLibras](https://vlibras.gov.br/) (tradução para Libras, carregada só quando você aperta o botão). As escolhas ficam salvas no navegador.
+A interface tem: login e sessão (renovação automática do token), **dashboard** com oito indicadores e gráficos (movimentação diária, situação do acervo, rankings e atrasos; o administrador vê o sistema todo e cada pessoa vê os próprios empréstimos), cada card com uma janela explicando o que o número significa e como é calculado, botão **Voltar** nas páginas, equipamentos, empréstimos, **perfil** (foto do acervo de bichinhos ou enviada, dados pessoais com CPF, telefone e CEP com preenchimento do endereço, troca de senha), **gestão de usuários** para administradores (criar contas e perfis) e uma **barra de acessibilidade fixa no topo** de todas as telas, com um botão ao lado do outro: tamanho do texto (A− e A+), alto contraste, modo escuro/claro, fonte para dislexia, cores para daltonismo, redução de animações e [VLibras](https://vlibras.gov.br/) (tradução para Libras, carregada só quando você aperta o botão). As escolhas ficam salvas no navegador.
 
 As imagens do acervo de avatares são do [Twemoji](https://github.com/jdecked/twemoji) (CC-BY 4.0), em `frontend/public/avatares/`.
 
@@ -119,7 +119,7 @@ cd backend
 npm run seed:demo   # contas @demo.exemplo.com; a senha aleatória aparece uma única vez (ou defina DEMO_SENHA)
 ```
 
-Pode rodar de novo sem duplicar nada, e se recusa a rodar em produção.
+Pode rodar de novo sem duplicar nada, e se recusa a rodar em produção. Para apagar a demonstração anterior e gerar tudo de novo (≈85 dias de histórico, com atrasos), use `npm run seed:demo -- --refazer`.
 
 > **Não existe senha de administrador padrão.** O `seed` se recusa a rodar sem `ADMIN_EMAIL` e `ADMIN_SENHA` (12+ caracteres, com letras e números) e nunca imprime a senha.
 

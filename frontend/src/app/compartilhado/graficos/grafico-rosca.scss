@@ -1,0 +1,69 @@
+.rosca {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.25rem 1.75rem;
+}
+
+svg {
+  flex: none;
+  width: 11rem;
+  height: 11rem;
+}
+
+.fundo {
+  fill: none;
+  stroke: var(--borda);
+  stroke-width: 5;
+}
+
+.fatia {
+  fill: none;
+  stroke-width: 5;
+  transition: stroke-dasharray 0.4s ease;
+}
+
+.numero {
+  fill: var(--texto);
+  font-size: 7px;
+  font-weight: 700;
+}
+
+.rotulo {
+  fill: var(--texto-suave);
+  font-size: 2.6px;
+}
+
+.legenda {
+  flex: 1;
+  min-width: 11rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid var(--borda);
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+}
+
+.cor {
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 3px;
+}
+
+.pct {
+  min-width: 2.6rem;
+  text-align: right;
+  color: var(--texto-suave);
+  font-size: 0.85rem;
+}

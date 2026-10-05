@@ -1,0 +1,62 @@
+<figure>
+  <svg
+    [attr.viewBox]="'0 0 ' + L + ' ' + A"
+    role="img"
+    [attr.aria-label]="resumo()"
+    (mousemove)="mover($event)"
+    (mouseleave)="foco.set(null)"
+  >
+    @for (g of grade(); track g.valor) {
+      <line class="grade" [attr.x1]="M.e" [attr.x2]="L - M.d" [attr.y1]="g.y" [attr.y2]="g.y" />
+      <text class="eixo" text-anchor="end" [attr.x]="M.e - 6" [attr.y]="g.y + 4">{{ g.valor }}</text>
+    }
+    @for (r of rotulosX(); track r.i) {
+      <text class="eixo" text-anchor="middle" [attr.x]="r.x" [attr.y]="A - 8">{{ r.texto }}</text>
+    }
+
+    <path class="area-a" [attr.d]="areaA()" />
+    <path class="linha-a" [attr.d]="linhaA()" />
+    <path class="linha-b" [attr.d]="linhaB()" />
+
+    @if (tooltip(); as t) {
+      <line class="guia" [attr.x1]="t.x" [attr.x2]="t.x" [attr.y1]="M.t" [attr.y2]="A - M.b" />
+      <circle class="ponto-a" r="4.5" [attr.cx]="t.x" [attr.cy]="t.yA" />
+      <circle class="ponto-b" r="4.5" [attr.cx]="t.x" [attr.cy]="t.yB" />
+      <g [attr.transform]="'translate(' + t.caixaX + ' ' + (M.t + 4) + ')'">
+        <rect class="caixa" [attr.width]="t.largura" height="58" rx="6" />
+        <text class="caixa-titulo" x="10" y="18">{{ t.ponto.rotulo }}</text>
+        <text class="caixa-texto" x="10" y="34">{{ nomeA() }}: {{ t.ponto.a }}</text>
+        <text class="caixa-texto" x="10" y="50">{{ nomeB() }}: {{ t.ponto.b }}</text>
+      </g>
+    }
+  </svg>
+
+  <figcaption>
+    <span class="legenda"><i class="marca marca-a"></i> {{ nomeA() }}</span>
+    <span class="legenda"><i class="marca marca-b"></i> {{ nomeB() }}</span>
+  </figcaption>
+
+  <details>
+    <summary>Ver os dados em tabela</summary>
+    <div class="tabela-rolavel">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Dia</th>
+            <th scope="col">{{ nomeA() }}</th>
+            <th scope="col">{{ nomeB() }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (p of pontos(); track $index) {
+            <tr>
+              <th scope="row">{{ p.rotulo }}</th>
+              <td>{{ p.a }}</td>
+              <td>{{ p.b }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </details>
+</figure>

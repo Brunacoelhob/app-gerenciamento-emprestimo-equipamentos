@@ -26,6 +26,12 @@
   --aviso-fundo: #fff4d6;
   --foco: #2457c5;
   --sombra: 0 1px 2px rgb(16 24 40 / 6%);
+  // Gráficos: duas séries, e as três situações do acervo
+  --grafico-1: #2457c5;
+  --grafico-2: #d97706;
+  --cor-disponivel: #2e9e5b;
+  --cor-emprestado: #e0a000;
+  --cor-desativado: #8a94a6;
 }
 
 @mixin tema-escuro {
@@ -45,6 +51,11 @@
   --aviso-fundo: #3a3017;
   --foco: #8fb2ff;
   --sombra: none;
+  --grafico-1: #6c9cff;
+  --grafico-2: #f59e0b;
+  --cor-disponivel: #4cc27f;
+  --cor-emprestado: #f0c040;
+  --cor-desativado: #8a94a6;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -66,6 +77,12 @@
   --erro-fundo: #fbe5d6;
   --aviso: #5c4a00;
   --aviso-fundo: #f7ec9a;
+  // Okabe-Ito: azul e laranja
+  --grafico-1: #0072b2;
+  --grafico-2: #e69f00;
+  --cor-disponivel: #0072b2;
+  --cor-emprestado: #e69f00;
+  --cor-desativado: #999999;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -76,6 +93,11 @@
     --erro-fundo: #4a2a10;
     --aviso: #f0e442;
     --aviso-fundo: #3d3a10;
+    --grafico-1: #56b4e9;
+    --grafico-2: #e69f00;
+    --cor-disponivel: #56b4e9;
+    --cor-emprestado: #e69f00;
+    --cor-desativado: #b3b3b3;
   }
 }
 
@@ -86,6 +108,11 @@
   --erro-fundo: #4a2a10;
   --aviso: #f0e442;
   --aviso-fundo: #3d3a10;
+  --grafico-1: #56b4e9;
+  --grafico-2: #e69f00;
+  --cor-disponivel: #56b4e9;
+  --cor-emprestado: #e69f00;
+  --cor-desativado: #b3b3b3;
 }
 
 // Contraste alto: sempre preto e branco com destaque amarelo, qualquer que seja o tema.
@@ -106,6 +133,11 @@
   --aviso-fundo: #000000;
   --foco: #ffe600;
   --sombra: none;
+  --grafico-1: #ffe600;
+  --grafico-2: #00e5ff;
+  --cor-disponivel: #8dffaf;
+  --cor-emprestado: #ffe600;
+  --cor-desativado: #ffffff;
 
   a {
     text-decoration: underline;

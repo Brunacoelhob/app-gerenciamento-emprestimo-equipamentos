@@ -72,3 +72,33 @@ export interface Emprestimo {
   equipamento: { id: number; nome: string };
   usuario: { id: number; nome: string; email: string };
 }
+
+export interface DashboardKpis {
+  equipamentosAtivos: number;
+  disponiveis: number;
+  emprestados: number;
+  desativados: number;
+  emprestimosAtivos: number;
+  atrasados: number;
+  retiradasNoPeriodo: number;
+  devolvidosNoPeriodo: number;
+  pontualidade: number | null;
+  tempoMedioDias: number | null;
+}
+
+export interface ItemRanking {
+  id: number;
+  nome: string;
+  total: number;
+}
+
+export interface Dashboard {
+  escopo: 'geral' | 'pessoal';
+  dias: number;
+  kpis: DashboardKpis;
+  serie: { dia: string; retiradas: number; devolucoes: number }[];
+  maisEmprestados: ItemRanking[];
+  pessoasMaisAtivas: ItemRanking[];
+  atrasados: { id: number; equipamento: string; pessoa: string; prazoDevolucao: string; diasDeAtraso: number }[];
+  geradoEm: string;
+}
