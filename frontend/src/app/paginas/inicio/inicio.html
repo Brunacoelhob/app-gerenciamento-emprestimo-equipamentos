@@ -1,0 +1,58 @@
+<h1>Olá, {{ auth.usuario()?.nome }}!</h1>
+<p class="subtitulo">Resumo do que está acontecendo agora.</p>
+
+@if (erro(); as mensagem) {
+  <div class="alerta erro" role="alert">{{ mensagem }}</div>
+}
+
+@if (indicadores(); as i) {
+  <section class="indicadores" aria-label="Indicadores">
+    <a class="cartao" routerLink="/equipamentos">
+      <span class="numero">{{ i.disponiveis }}</span>
+      <span>Equipamentos disponíveis</span>
+    </a>
+    <a class="cartao" routerLink="/equipamentos">
+      <span class="numero">{{ i.emprestados }}</span>
+      <span>Equipamentos emprestados</span>
+    </a>
+    <a class="cartao" routerLink="/meus-emprestimos">
+      <span class="numero">{{ i.meusAtivos }}</span>
+      <span>Meus empréstimos ativos</span>
+    </a>
+    <a class="cartao" [class.alerta-card]="i.meusAtrasados > 0" routerLink="/meus-emprestimos">
+      <span class="numero">{{ i.meusAtrasados }}</span>
+      <span>Meus atrasados</span>
+    </a>
+    @if (i.todosAtivos !== null && i.todosAtrasados !== null) {
+      <a class="cartao" routerLink="/emprestimos">
+        <span class="numero">{{ i.todosAtivos }}</span>
+        <span>Empréstimos ativos (todos)</span>
+      </a>
+      <a class="cartao" [class.alerta-card]="i.todosAtrasados > 0" routerLink="/emprestimos">
+        <span class="numero">{{ i.todosAtrasados }}</span>
+        <span>Atrasados (todos)</span>
+      </a>
+    }
+  </section>
+
+  <section class="cartao pendentes">
+    <h2>Com você agora</h2>
+    @if (pendentes().length === 0) {
+      <p class="vazio">Você não está com nenhum equipamento. <a routerLink="/equipamentos">Ver equipamentos</a></p>
+    } @else {
+      <ul>
+        @for (e of pendentes(); track e.id) {
+          <li>
+            <span>{{ e.equipamento.nome }}</span>
+            <span [class.atrasado]="e.atrasado">
+              {{ e.atrasado ? 'Atrasado desde' : 'Devolver até' }} {{ e.prazoDevolucao | date: 'dd/MM/yyyy' }}
+            </span>
+          </li>
+        }
+      </ul>
+      <a routerLink="/meus-emprestimos">Ver todos e devolver</a>
+    }
+  </section>
+} @else if (!erro()) {
+  <p class="vazio">Carregando...</p>
+}

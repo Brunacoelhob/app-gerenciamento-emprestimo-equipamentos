@@ -1,0 +1,125 @@
+<div class="cabecalho">
+  <h1>Usuários</h1>
+  <button class="botao" type="button" (click)="abrirCriacao()">Novo usuário</button>
+</div>
+
+@if (aviso(); as mensagem) {
+  <div class="alerta sucesso" role="status">{{ mensagem }}</div>
+}
+@if (erro(); as mensagem) {
+  <div class="alerta erro" role="alert">{{ mensagem }}</div>
+}
+
+@if (criando()) {
+  <form class="cartao painel" [formGroup]="form" (ngSubmit)="criar()" novalidate>
+    <h2>Novo usuário</h2>
+
+    <div class="campo">
+      <label for="u-nome">Nome</label>
+      <input id="u-nome" formControlName="nome" [attr.aria-invalid]="form.controls.nome.touched && form.controls.nome.invalid" />
+      @if (form.controls.nome.touched && form.controls.nome.invalid) {
+        <span class="erro-campo">Informe o nome (2 a 100 caracteres).</span>
+      }
+    </div>
+
+    <div class="campo">
+      <label for="u-email">E-mail (será o login)</label>
+      <input id="u-email" type="email" formControlName="email" [attr.aria-invalid]="form.controls.email.touched && form.controls.email.invalid" />
+      @if (form.controls.email.touched && form.controls.email.invalid) {
+        <span class="erro-campo">Informe um e-mail válido.</span>
+      }
+    </div>
+
+    <div class="campo">
+      <label for="u-senha">Senha inicial</label>
+      <input id="u-senha" type="password" formControlName="senha" autocomplete="new-password" [attr.aria-invalid]="form.controls.senha.touched && form.controls.senha.invalid" />
+      <span class="ajuda">8 a 72 caracteres, com pelo menos uma letra e um número.</span>
+      @if (form.controls.senha.touched && form.controls.senha.invalid) {
+        <span class="erro-campo">A senha não atende aos requisitos.</span>
+      }
+    </div>
+
+    <div class="campo">
+      <label for="u-role">Perfil</label>
+      <select id="u-role" formControlName="role">
+        <option value="USER">Usuário (retira e devolve equipamentos)</option>
+        <option value="ADMIN">Administrador (gerencia tudo)</option>
+      </select>
+    </div>
+
+    <div class="acoes">
+      <button class="botao secundario" type="button" (click)="criando.set(false)">Cancelar</button>
+      <button class="botao" type="submit" [disabled]="salvando()">{{ salvando() ? 'Criando...' : 'Criar conta' }}</button>
+    </div>
+  </form>
+}
+
+<div class="filtros">
+  <select name="role" aria-label="Perfil" [(ngModel)]="role" (ngModelChange)="filtrar()">
+    <option value="">Todos os perfis</option>
+    <option value="ADMIN">Administradores</option>
+    <option value="USER">Usuários</option>
+  </select>
+  <select name="ativo" aria-label="Situação da conta" [(ngModel)]="ativo" (ngModelChange)="filtrar()">
+    <option value="">Todas as situações</option>
+    <option value="true">Ativas</option>
+    <option value="false">Desativadas</option>
+  </select>
+</div>
+
+<div class="cartao tabela-caixa">
+  @if (carregando() && !dados()) {
+    <p class="vazio">Carregando...</p>
+  } @else if (dados(); as d) {
+    @if (d.itens.length === 0) {
+      <p class="vazio">Nenhum usuário encontrado.</p>
+    } @else {
+      <table>
+        <thead>
+          <tr>
+            <th>Pessoa</th>
+            <th>Perfil</th>
+            <th>Situação</th>
+            <th class="acoes-col">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (u of d.itens; track u.id) {
+            <tr>
+              <td>
+                <div class="pessoa">
+                  <app-avatar [valor]="u.avatar" [nome]="u.nome" [tamanho]="36" />
+                  <div>
+                    <strong>{{ u.nome }}</strong>
+                    <div class="descricao">{{ u.email }}</div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="selo" [class.amarelo]="u.role === 'ADMIN'" [class.cinza]="u.role !== 'ADMIN'">
+                  {{ u.role === 'ADMIN' ? 'Administrador' : 'Usuário' }}
+                </span>
+              </td>
+              <td>
+                <span class="selo" [class.verde]="u.ativo" [class.cinza]="!u.ativo">{{ u.ativo ? 'Ativa' : 'Desativada' }}</span>
+              </td>
+              <td class="acoes-col">
+                @if (u.id === auth.usuario()?.id) {
+                  <span class="descricao">Você</span>
+                } @else {
+                  <button class="botao pequeno secundario" type="button" (click)="alternarRole(u)">
+                    {{ u.role === 'ADMIN' ? 'Tornar usuário' : 'Tornar admin' }}
+                  </button>
+                  <button class="botao pequeno secundario" type="button" (click)="alternarAtivo(u)">
+                    {{ u.ativo ? 'Desativar' : 'Reativar' }}
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      <app-paginacao [meta]="d.meta" (mudar)="carregar($event)" />
+    }
+  }
+</div>

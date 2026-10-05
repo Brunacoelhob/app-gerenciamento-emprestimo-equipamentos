@@ -1,0 +1,185 @@
+$largura-menu: 16.5rem;
+
+.app {
+  display: grid;
+  grid-template-columns: $largura-menu 1fr;
+  min-height: 100vh;
+}
+
+.lateral {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  // folga embaixo: o botão flutuante de acessibilidade fica ali e não pode cobrir o "Sair"
+  padding: 1rem 0.75rem 5rem;
+  overflow-y: auto;
+  background: var(--superficie);
+  border-right: 1px solid var(--borda);
+
+  a,
+  .sair {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.6rem 0.75rem;
+    border-radius: 8px;
+    color: var(--texto-suave);
+    font: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+
+    &:hover {
+      background: var(--fundo);
+      color: var(--texto);
+    }
+  }
+
+  nav a.ativo {
+    background: var(--primaria);
+    color: var(--on-primaria);
+    font-weight: 600;
+  }
+}
+
+.marca {
+  color: var(--texto) !important;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 0.25rem 0.5rem !important;
+
+  img {
+    border-radius: 8px;
+  }
+}
+
+.perfil {
+  border: 1px solid var(--borda);
+
+  .dados {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.25;
+
+    strong {
+      color: var(--texto);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    small {
+      color: var(--texto-suave);
+    }
+  }
+
+  &.ativo {
+    border-color: var(--primaria);
+  }
+}
+
+nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  flex: 1;
+
+  .secao {
+    margin: 0.9rem 0.75rem 0.25rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--texto-suave);
+  }
+}
+
+.sair {
+  width: 100%;
+  border: 1px solid var(--borda);
+  background: transparent;
+}
+
+.conteudo {
+  min-width: 0;
+  max-width: 62rem;
+  width: 100%;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  animation: aparecer 0.2s ease-out;
+}
+
+@keyframes aparecer {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.barra-mobile,
+.fundo-menu {
+  display: none;
+}
+
+// Telas estreitas: o menu vira uma gaveta que abre por cima do conteúdo
+@media (max-width: 56rem) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+
+  .barra-mobile {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--superficie);
+    border-bottom: 1px solid var(--borda);
+
+    .hamburguer {
+      display: grid;
+      place-items: center;
+      padding: 0.45rem;
+      font-size: 1.2rem;
+      border: 1px solid var(--borda);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--texto);
+      cursor: pointer;
+    }
+  }
+
+  .lateral {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 40;
+    width: min($largura-menu, 85vw);
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+  }
+
+  .menu-aberto {
+    .lateral {
+      transform: none;
+    }
+
+    .fundo-menu {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: block;
+      border: none;
+      background: rgb(0 0 0 / 50%);
+    }
+  }
+
+  .conteudo {
+    padding: 1.25rem 1rem;
+  }
+}

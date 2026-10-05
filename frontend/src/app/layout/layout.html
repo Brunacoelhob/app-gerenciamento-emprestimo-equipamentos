@@ -1,0 +1,51 @@
+<div class="app" [class.menu-aberto]="menuAberto()">
+  <header class="barra-mobile">
+    <button type="button" class="hamburguer" aria-controls="menu-lateral" [attr.aria-expanded]="menuAberto()" (click)="menuAberto.set(!menuAberto())">
+      <app-icone [nome]="menuAberto() ? 'fechar' : 'menu'" />
+      <span class="so-leitor">{{ menuAberto() ? 'Fechar menu' : 'Abrir menu' }}</span>
+    </button>
+    <strong>Empréstimo de Equipamentos</strong>
+  </header>
+
+  <aside id="menu-lateral" class="lateral">
+    <a class="marca" routerLink="/">
+      <img src="favicon.svg" alt="" width="32" height="32" />
+      <span>Empréstimo de<br />Equipamentos</span>
+    </a>
+
+    @if (auth.usuario(); as usuario) {
+      <a class="perfil" routerLink="/perfil" routerLinkActive="ativo" aria-label="Meu perfil">
+        <app-avatar [valor]="usuario.avatar" [nome]="usuario.nome" [tamanho]="44" />
+        <span class="dados">
+          <strong>{{ usuario.nome }}</strong>
+          <small>{{ auth.ehAdmin() ? 'Administrador' : 'Usuário' }}</small>
+        </span>
+      </a>
+    }
+
+    <nav aria-label="Principal">
+      <a routerLink="/" routerLinkActive="ativo" [routerLinkActiveOptions]="{ exact: true }">
+        <app-icone nome="casa" /> Início
+      </a>
+      <a routerLink="/equipamentos" routerLinkActive="ativo"><app-icone nome="notebook" /> Equipamentos</a>
+      <a routerLink="/meus-emprestimos" routerLinkActive="ativo"><app-icone nome="troca" /> Meus empréstimos</a>
+
+      @if (auth.ehAdmin()) {
+        <span class="secao">Administração</span>
+        <a routerLink="/emprestimos" routerLinkActive="ativo"><app-icone nome="lista" /> Todos os empréstimos</a>
+        <a routerLink="/usuarios" routerLinkActive="ativo"><app-icone nome="pessoas" /> Usuários</a>
+      }
+
+      <span class="secao">Conta</span>
+      <a routerLink="/perfil" routerLinkActive="ativo"><app-icone nome="pessoa" /> Meu perfil</a>
+    </nav>
+
+    <button class="sair" type="button" (click)="auth.sair()"><app-icone nome="sair" /> Sair</button>
+  </aside>
+
+  <button class="fundo-menu" type="button" tabindex="-1" aria-hidden="true" (click)="menuAberto.set(false)"></button>
+
+  <main class="conteudo">
+    <router-outlet />
+  </main>
+</div>

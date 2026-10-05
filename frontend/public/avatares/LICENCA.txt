@@ -1,0 +1,3 @@
+Imagens do acervo de avatares: Twemoji (https://github.com/jdecked/twemoji)
+Copyright 2019 Twitter, Inc e colaboradores. Gráficos licenciados sob CC-BY 4.0:
+https://creativecommons.org/licenses/by/4.0/

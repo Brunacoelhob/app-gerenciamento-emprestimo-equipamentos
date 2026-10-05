@@ -1,0 +1,115 @@
+<div class="cabecalho">
+  <h1>Equipamentos</h1>
+  @if (auth.ehAdmin()) {
+    <button class="botao" type="button" (click)="abrirNovo()">Novo equipamento</button>
+  }
+</div>
+
+@if (aviso(); as mensagem) {
+  <div class="alerta sucesso" role="status">{{ mensagem }}</div>
+}
+@if (erro(); as mensagem) {
+  <div class="alerta erro" role="alert">{{ mensagem }}</div>
+}
+
+@if (painel(); as p) {
+  <section class="cartao painel">
+    @if (p.tipo === 'emprestar') {
+      <h2>Pegar emprestado: {{ p.equipamento.nome }}</h2>
+      <div class="campo">
+        <label for="dias">Por quantos dias?</label>
+        <input id="dias" type="number" min="1" max="30" [(ngModel)]="dias" />
+        <span class="ajuda">De 1 a 30 dias. Passou do prazo sem devolver, o empréstimo fica atrasado.</span>
+      </div>
+      <div class="acoes">
+        <button class="botao secundario" type="button" (click)="fechar()">Cancelar</button>
+        <button class="botao" type="button" [disabled]="salvando()" (click)="confirmarEmprestimo()">Confirmar</button>
+      </div>
+    } @else {
+      <form [formGroup]="form" (ngSubmit)="salvar()" novalidate>
+        <h2>{{ p.tipo === 'novo' ? 'Novo equipamento' : 'Editar equipamento' }}</h2>
+        <div class="campo">
+          <label for="nome">Nome</label>
+          <input id="nome" formControlName="nome" maxlength="120" [attr.aria-invalid]="form.controls.nome.touched && form.controls.nome.invalid" />
+          @if (form.controls.nome.touched && form.controls.nome.invalid) {
+            <span class="erro-campo">Informe o nome (até 120 caracteres).</span>
+          }
+        </div>
+        <div class="campo">
+          <label for="descricao">Descrição (opcional)</label>
+          <input id="descricao" formControlName="descricao" maxlength="500" />
+        </div>
+        <div class="acoes">
+          <button class="botao secundario" type="button" (click)="fechar()">Cancelar</button>
+          <button class="botao" type="submit" [disabled]="salvando()">Salvar</button>
+        </div>
+      </form>
+    }
+  </section>
+}
+
+<form class="filtros" (ngSubmit)="filtrar()">
+  <input type="search" name="busca" placeholder="Buscar pelo nome" aria-label="Buscar pelo nome" [(ngModel)]="busca" />
+  <select name="situacao" aria-label="Situação" [(ngModel)]="situacao" (ngModelChange)="filtrar()">
+    <option value="todos">Todas as situações</option>
+    <option value="disponivel">Disponíveis</option>
+    <option value="emprestado">Emprestados</option>
+    @if (auth.ehAdmin()) {
+      <option value="inativo">Desativados</option>
+    }
+  </select>
+  <button class="botao secundario" type="submit">Buscar</button>
+</form>
+
+<div class="cartao tabela-caixa">
+  @if (carregando() && !dados()) {
+    <p class="vazio">Carregando...</p>
+  } @else if (dados(); as d) {
+    @if (d.itens.length === 0) {
+      <p class="vazio">Nenhum equipamento encontrado.</p>
+    } @else {
+      <table>
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Situação</th>
+            <th class="acoes-col">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (e of d.itens; track e.id) {
+            <tr>
+              <td>
+                <strong>{{ e.nome }}</strong>
+                @if (e.descricao) {
+                  <div class="descricao">{{ e.descricao }}</div>
+                }
+              </td>
+              <td>
+                @if (!e.ativo) {
+                  <span class="selo cinza">Desativado</span>
+                } @else if (e.emprestado) {
+                  <span class="selo amarelo">Emprestado</span>
+                } @else {
+                  <span class="selo verde">Disponível</span>
+                }
+              </td>
+              <td class="acoes-col">
+                @if (e.disponivel) {
+                  <button class="botao pequeno" type="button" (click)="abrirEmprestimo(e)">Pegar</button>
+                }
+                @if (auth.ehAdmin()) {
+                  <button class="botao pequeno secundario" type="button" (click)="abrirEdicao(e)">Editar</button>
+                  <button class="botao pequeno secundario" type="button" [disabled]="e.emprestado" (click)="alternarAtivo(e)">
+                    {{ e.ativo ? 'Desativar' : 'Reativar' }}
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      <app-paginacao [meta]="d.meta" (mudar)="carregar($event)" />
+    }
+  }
+</div>

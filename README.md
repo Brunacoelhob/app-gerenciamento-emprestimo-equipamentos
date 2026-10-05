@@ -48,6 +48,13 @@ flowchart LR
 Cada módulo (`auth`, `usuarios`, `equipamentos`, `emprestimos`) segue **controller → serviço → repositório**: o controller só trata HTTP e validação, o serviço decide as regras, o repositório é a única porta para o banco. Detalhes e decisões em [docs/arquitetura.md](docs/arquitetura.md).
 
 ```
+backend/             API (NestJS)
+frontend/            interface web (Angular)
+```
+
+Dentro de `backend/`:
+
+```
 src/
 ├── auth/            login, registro, refresh token, troca de senha
 ├── usuarios/        gestão de contas (ADMIN)
@@ -79,12 +86,40 @@ Sobem três serviços: o **banco** (não exposto fora do Docker), um serviço **
 Pré-requisitos: Node 22.12+ (para rodar os **testes**, Node 24.9+: o Jest só carrega os pacotes ESM do Nest 12 a partir dele) e um PostgreSQL acessível.
 
 ```bash
-cp .env.example .env            # preencha DATABASE_URL, JWT_SECRET, ADMIN_EMAIL e ADMIN_SENHA
+cd backend
+cp ../.env.example .env         # preencha DATABASE_URL, JWT_SECRET, ADMIN_EMAIL e ADMIN_SENHA
 npm install
 npx prisma migrate deploy       # cria as tabelas
 npm run seed                    # cria o primeiro administrador a partir do .env
 npm run start:dev               # http://localhost:3000  ·  Swagger em /docs
 ```
+
+### Frontend (Angular)
+
+Com a API rodando em `http://localhost:3000`:
+
+```bash
+cd frontend
+npm install
+npm start                       # http://localhost:4200
+```
+
+O servidor de desenvolvimento encaminha `/api/*` para a API (veja `frontend/proxy.conf.json`), então **não é preciso configurar CORS** localmente.
+
+A interface tem: login e sessão (renovação automática do token), painel com indicadores, equipamentos, empréstimos, **perfil** (foto do acervo de bichinhos ou enviada, dados pessoais com CPF, telefone e CEP com preenchimento do endereço, troca de senha), **gestão de usuários** para administradores (criar contas e perfis) e um painel de **acessibilidade** disponível em todas as telas: tema claro/escuro/automático, tamanho do texto, alto contraste, fonte para dislexia, cores para daltonismo, redução de animações e [VLibras](https://vlibras.gov.br/) (carregado só quando ligado).
+
+As imagens do acervo de avatares são do [Twemoji](https://github.com/jdecked/twemoji) (CC-BY 4.0), em `frontend/public/avatares/`.
+
+### Dados de demonstração
+
+Para ver o sistema "vivo" (pessoas, equipamentos, empréstimos devolvidos, em andamento e atrasados), com a API configurada:
+
+```bash
+cd backend
+npm run seed:demo   # contas @demo.exemplo.com; a senha aleatória aparece uma única vez (ou defina DEMO_SENHA)
+```
+
+Pode rodar de novo sem duplicar nada, e se recusa a rodar em produção.
 
 > **Não existe senha de administrador padrão.** O `seed` se recusa a rodar sem `ADMIN_EMAIL` e `ADMIN_SENHA` (12+ caracteres, com letras e números) e nunca imprime a senha.
 
@@ -145,13 +180,17 @@ Em erros de validação (`400`), `mensagem` é uma lista com um texto por campo 
 
 ## Testes
 
+No diretório `backend/`:
+
 ```bash
-npm test            # 39 testes unitários (regras de negócio, sem banco)
-npm run test:e2e    # 42 testes de integração: API inteira + PostgreSQL de teste
+npm test            # 44 testes unitários (regras de negócio, sem banco)
+npm run test:e2e    # 49 testes de integração: API inteira + PostgreSQL de teste
 npm run lint        # sem erros
 ```
 
 Os testes de integração sobem a aplicação com **a mesma configuração da produção** e cobrem permissões por papel, o fluxo completo de empréstimos, sessões (rotação e roubo de refresh token, troca de senha, desativação) e **concorrência**. Usam um banco exclusivo: defina `DATABASE_URL_TESTE` (o teste **recusa** qualquer nome de banco sem `test`, para nunca apagar o de desenvolvimento).
+
+No `frontend/`: `npm test` (Vitest) roda os testes do interceptor de autenticação.
 
 O **GitHub Actions** roda tudo a cada envio, com um PostgreSQL real, e ainda constrói as imagens Docker e sobe a stack conferindo `/saude`.
 

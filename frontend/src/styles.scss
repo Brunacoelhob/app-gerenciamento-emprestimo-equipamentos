@@ -1,0 +1,459 @@
+// ---------------------------------------------------------------------------
+// Tema e acessibilidade
+//
+// As preferências da pessoa viram atributos no <html> (veja AcessibilidadeService):
+//   data-tema="claro|escuro"   (sem o atributo = segue o sistema)
+//   data-contraste="alto"      data-dislexia="on"   data-daltonismo="on"   data-animacao="reduzida"
+// e a variável --zoom (tamanho do texto).
+// ---------------------------------------------------------------------------
+
+:root {
+  --zoom: 1;
+  --fundo: #f4f6f9;
+  --superficie: #ffffff;
+  --texto: #1c2430;
+  --texto-suave: #4d5868;
+  --borda: #d5dbe3;
+  --primaria: #2457c5;
+  --primaria-hover: #1b459f;
+  --on-primaria: #ffffff;
+  --erro: #b3261e;
+  --erro-fundo: #fdecea;
+  --sucesso: #1b6e3c;
+  --sucesso-fundo: #e6f4ea;
+  --aviso: #7a5600;
+  --aviso-fundo: #fff4d6;
+  --foco: #2457c5;
+  --sombra: 0 1px 2px rgb(16 24 40 / 6%);
+}
+
+@mixin tema-escuro {
+  --fundo: #12161c;
+  --superficie: #1b212b;
+  --texto: #e8ecf2;
+  --texto-suave: #a3aebf;
+  --borda: #343d4b;
+  --primaria: #6c9cff;
+  --primaria-hover: #8fb2ff;
+  --on-primaria: #0b1220;
+  --erro: #ffb4ab;
+  --erro-fundo: #3d1f1c;
+  --sucesso: #8fd9a8;
+  --sucesso-fundo: #1c3326;
+  --aviso: #f0cf75;
+  --aviso-fundo: #3a3017;
+  --foco: #8fb2ff;
+  --sombra: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema='claro']) {
+    @include tema-escuro;
+  }
+}
+
+:root[data-tema='escuro'] {
+  @include tema-escuro;
+}
+
+// Daltonismo: paleta de Okabe-Ito (distinguível nos tipos comuns de daltonismo), com azul e laranja no lugar de
+// verde e vermelho, e símbolos nos selos para que a cor nunca seja a única pista.
+:root[data-daltonismo='on'] {
+  --sucesso: #005a8c;
+  --sucesso-fundo: #dcecf7;
+  --erro: #a63f00;
+  --erro-fundo: #fbe5d6;
+  --aviso: #5c4a00;
+  --aviso-fundo: #f7ec9a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-daltonismo='on']:not([data-tema='claro']) {
+    --sucesso: #7cc4f0;
+    --sucesso-fundo: #12354d;
+    --erro: #ffb070;
+    --erro-fundo: #4a2a10;
+    --aviso: #f0e442;
+    --aviso-fundo: #3d3a10;
+  }
+}
+
+:root[data-daltonismo='on'][data-tema='escuro'] {
+  --sucesso: #7cc4f0;
+  --sucesso-fundo: #12354d;
+  --erro: #ffb070;
+  --erro-fundo: #4a2a10;
+  --aviso: #f0e442;
+  --aviso-fundo: #3d3a10;
+}
+
+// Contraste alto: sempre preto e branco com destaque amarelo, qualquer que seja o tema.
+:root[data-contraste='alto'] {
+  --fundo: #000000;
+  --superficie: #000000;
+  --texto: #ffffff;
+  --texto-suave: #f2f2f2;
+  --borda: #ffffff;
+  --primaria: #ffe600;
+  --primaria-hover: #fff27a;
+  --on-primaria: #000000;
+  --erro: #ff9e94;
+  --erro-fundo: #000000;
+  --sucesso: #8dffaf;
+  --sucesso-fundo: #000000;
+  --aviso: #ffe600;
+  --aviso-fundo: #000000;
+  --foco: #ffe600;
+  --sombra: none;
+
+  a {
+    text-decoration: underline;
+  }
+
+  .cartao,
+  .campo input,
+  .filtros input,
+  .filtros select,
+  .botao {
+    border-width: 2px;
+  }
+
+  .selo {
+    border: 2px solid currentColor;
+  }
+}
+
+html {
+  font-size: calc(100% * var(--zoom));
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  background: var(--fundo);
+  color: var(--texto);
+  line-height: 1.5;
+}
+
+// Fonte para dislexia: OpenDyslexic, mais espaço entre letras, palavras e linhas.
+:root[data-dislexia='on'] {
+  body,
+  button,
+  input,
+  select,
+  textarea {
+    font-family: 'OpenDyslexic', 'Comic Sans MS', system-ui, sans-serif;
+    letter-spacing: 0.04em;
+    word-spacing: 0.12em;
+  }
+
+  body {
+    line-height: 1.8;
+  }
+}
+
+// Animações reduzidas: por escolha da pessoa ou porque o sistema pede.
+:root[data-animacao='reduzida'] {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+:focus-visible {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
+}
+
+a {
+  color: var(--primaria);
+}
+
+.so-leitor {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+// ---------------------------------------------------------------------------
+// Componentes básicos
+// ---------------------------------------------------------------------------
+
+.cartao {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: var(--sombra);
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+
+  label {
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  input,
+  select {
+    padding: 0.65rem 0.75rem;
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    background: var(--fundo);
+    color: var(--texto);
+    font: inherit;
+
+    &[aria-invalid='true'] {
+      border-color: var(--erro);
+    }
+  }
+
+  .ajuda {
+    font-size: 0.8rem;
+    color: var(--texto-suave);
+  }
+
+  .erro-campo {
+    font-size: 0.8rem;
+    color: var(--erro);
+  }
+}
+
+.botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.7rem 1.1rem;
+  border: 1px solid var(--primaria);
+  border-radius: 8px;
+  background: var(--primaria);
+  color: var(--on-primaria);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: var(--primaria-hover);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &.secundario {
+    background: transparent;
+    color: var(--primaria);
+
+    &:hover:not(:disabled) {
+      background: var(--borda);
+    }
+  }
+
+  &.pequeno {
+    padding: 0.35rem 0.7rem;
+    font-size: 0.85rem;
+  }
+}
+
+.alerta {
+  padding: 0.7rem 0.9rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+
+  &.erro {
+    background: var(--erro-fundo);
+    color: var(--erro);
+    border: 1px solid var(--erro);
+  }
+
+  &.sucesso {
+    background: var(--sucesso-fundo);
+    color: var(--sucesso);
+    border: 1px solid var(--sucesso);
+  }
+}
+
+// Listagens
+.cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+
+  h1 {
+    margin: 0;
+    font-size: 1.5rem;
+  }
+}
+
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+
+  input,
+  select {
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    background: var(--superficie);
+    color: var(--texto);
+    font: inherit;
+  }
+
+  input {
+    flex: 1;
+    min-width: 200px;
+  }
+}
+
+.tabela-caixa {
+  padding: 0.5rem 1rem;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    padding: 0.75rem 0.5rem;
+    text-align: left;
+    border-bottom: 1px solid var(--borda);
+    vertical-align: middle;
+  }
+
+  th {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--texto-suave);
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .acoes-col {
+    text-align: right;
+    white-space: nowrap;
+
+    .botao + .botao {
+      margin-left: 0.4rem;
+    }
+  }
+
+  .descricao {
+    color: var(--texto-suave);
+    font-size: 0.85rem;
+  }
+
+  .pessoa {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+}
+
+.selo {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+
+  &.verde {
+    background: var(--sucesso-fundo);
+    color: var(--sucesso);
+  }
+
+  &.amarelo {
+    background: var(--aviso-fundo);
+    color: var(--aviso);
+  }
+
+  &.vermelho {
+    background: var(--erro-fundo);
+    color: var(--erro);
+  }
+
+  &.cinza {
+    background: var(--borda);
+    color: var(--texto-suave);
+  }
+}
+
+// No modo daltonismo cada selo ganha um símbolo: a cor deixa de ser a única pista
+:root[data-daltonismo='on'] {
+  .selo.verde::before {
+    content: '✓ ';
+  }
+
+  .selo.amarelo::before {
+    content: '● ';
+  }
+
+  .selo.vermelho::before {
+    content: '▲ ';
+  }
+
+  .selo.cinza::before {
+    content: '– ';
+  }
+}
+
+.vazio {
+  color: var(--texto-suave);
+  text-align: center;
+  padding: 1.5rem 0;
+}
+
+// Painel de formulário dentro das telas (novo/editar)
+.painel {
+  margin-bottom: 1rem;
+
+  h2 {
+    margin-top: 0;
+    font-size: 1.1rem;
+  }
+}
+
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}

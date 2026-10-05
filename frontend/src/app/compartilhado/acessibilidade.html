@@ -1,0 +1,75 @@
+<button
+  class="gatilho"
+  type="button"
+  aria-haspopup="dialog"
+  aria-controls="painel-acessibilidade"
+  [attr.aria-expanded]="aberto()"
+  (click)="aberto.set(!aberto())"
+>
+  <app-icone nome="acessibilidade" />
+  <span class="so-leitor">Opções de acessibilidade</span>
+</button>
+
+@if (aberto()) {
+  <section id="painel-acessibilidade" class="painel-a11y" role="dialog" aria-label="Opções de acessibilidade">
+    <header>
+      <h2>Acessibilidade</h2>
+      <button class="fechar" type="button" aria-label="Fechar" (click)="aberto.set(false)">
+        <app-icone nome="fechar" />
+      </button>
+    </header>
+
+    <div class="grupo" role="group" aria-labelledby="a11y-tema">
+      <span id="a11y-tema" class="titulo">Tema</span>
+      <div class="segmentos">
+        @for (t of temas; track t.valor) {
+          <button type="button" [attr.aria-pressed]="prefs.tema === t.valor" (click)="servico.alterar('tema', t.valor)">
+            {{ t.rotulo }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="grupo" role="group" aria-labelledby="a11y-tamanho">
+      <span id="a11y-tamanho" class="titulo">Tamanho do texto: {{ (prefs.zoom * 100).toFixed(0) }}%</span>
+      <div class="segmentos">
+        <button type="button" [disabled]="prefs.zoom <= ZOOM_MIN" (click)="servico.diminuir()" aria-label="Diminuir o texto">
+          A−
+        </button>
+        <button type="button" [disabled]="prefs.zoom === 1" (click)="servico.alterar('zoom', 1)">Normal</button>
+        <button type="button" [disabled]="prefs.zoom >= ZOOM_MAX" (click)="servico.aumentar()" aria-label="Aumentar o texto">
+          A+
+        </button>
+      </div>
+    </div>
+
+    <label class="chave">
+      <input type="checkbox" role="switch" [checked]="prefs.contraste" (change)="servico.alterar('contraste', !prefs.contraste)" />
+      <span>Alto contraste</span>
+    </label>
+    <label class="chave">
+      <input type="checkbox" role="switch" [checked]="prefs.dislexia" (change)="servico.alterar('dislexia', !prefs.dislexia)" />
+      <span>Fonte para dislexia</span>
+    </label>
+    <label class="chave">
+      <input type="checkbox" role="switch" [checked]="prefs.daltonismo" (change)="servico.alterar('daltonismo', !prefs.daltonismo)" />
+      <span>
+        Cores para daltonismo
+        <small>Azul e laranja no lugar de verde e vermelho, com símbolos nos status.</small>
+      </span>
+    </label>
+    <label class="chave">
+      <input type="checkbox" role="switch" [checked]="prefs.semAnimacao" (change)="servico.alterar('semAnimacao', !prefs.semAnimacao)" />
+      <span>Reduzir animações</span>
+    </label>
+    <label class="chave">
+      <input type="checkbox" role="switch" [checked]="prefs.vlibras" (change)="servico.alterar('vlibras', !prefs.vlibras)" />
+      <span>
+        VLibras (tradução para Libras)
+        <small>Carrega o recurso do governo federal e exige internet.</small>
+      </span>
+    </label>
+
+    <button class="botao secundario restaurar" type="button" (click)="servico.restaurar()">Restaurar padrões</button>
+  </section>
+}

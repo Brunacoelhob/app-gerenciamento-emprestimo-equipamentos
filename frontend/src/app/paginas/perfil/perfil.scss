@@ -1,0 +1,99 @@
+.bloco {
+  margin-bottom: 1.25rem;
+
+  h2 {
+    margin: 0 0 1rem;
+    font-size: 1.15rem;
+  }
+
+  h3 {
+    margin: 1.25rem 0 0.75rem;
+    font-size: 0.95rem;
+    color: var(--texto-suave);
+  }
+}
+
+.foto {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+}
+
+.foto-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+
+  .ajuda {
+    flex-basis: 100%;
+    font-size: 0.8rem;
+    color: var(--texto-suave);
+  }
+
+  label.botao {
+    position: relative;
+    cursor: pointer;
+
+    &:focus-within {
+      outline: 3px solid var(--foco);
+      outline-offset: 2px;
+    }
+
+    &.desabilitado {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.acervo {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(4rem, 1fr));
+  gap: 0.6rem;
+}
+
+.animal {
+  display: grid;
+  place-items: center;
+  padding: 0.5rem;
+  border: 2px solid var(--borda);
+  border-radius: 12px;
+  background: #fff7e6; // fundo neutro e claro para as imagens, em qualquer tema
+  cursor: pointer;
+  transition:
+    transform 0.12s ease,
+    border-color 0.12s ease;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    border-color: var(--primaria);
+  }
+
+  &[aria-pressed='true'] {
+    border-color: var(--primaria);
+    box-shadow: 0 0 0 3px var(--primaria);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0 1rem;
+
+  .largo {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 36rem) {
+  .grade .largo {
+    grid-column: auto;
+  }
+}

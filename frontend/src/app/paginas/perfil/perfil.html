@@ -1,0 +1,146 @@
+<div class="cabecalho">
+  <h1>Meu perfil</h1>
+</div>
+
+@if (aviso(); as mensagem) {
+  <div class="alerta sucesso" role="status">{{ mensagem }}</div>
+}
+
+<section class="cartao bloco" aria-labelledby="titulo-foto">
+  <h2 id="titulo-foto">Foto</h2>
+
+  <div class="foto">
+    <app-avatar [valor]="auth.usuario()?.avatar" [nome]="auth.usuario()?.nome" [tamanho]="96" />
+    <div class="foto-acoes">
+      <label class="botao secundario" [class.desabilitado]="salvandoFoto()">
+        Enviar uma foto
+        <input class="so-leitor" type="file" accept="image/png,image/jpeg,image/webp" [disabled]="salvandoFoto()" (change)="enviarFoto($event)" />
+      </label>
+      @if (auth.usuario()?.avatar) {
+        <button class="botao secundario" type="button" [disabled]="salvandoFoto()" (click)="removerFoto()">Remover foto</button>
+      }
+      <span class="ajuda">PNG, JPEG ou WEBP. A imagem é recortada em quadrado e reduzida.</span>
+    </div>
+  </div>
+
+  @if (erroFoto(); as mensagem) {
+    <div class="alerta erro" role="alert">{{ mensagem }}</div>
+  }
+
+  <h3>Ou escolha um bichinho</h3>
+  <div class="acervo" role="group" aria-label="Acervo de avatares">
+    @for (animal of animais; track animal) {
+      <button
+        type="button"
+        class="animal"
+        [attr.aria-pressed]="auth.usuario()?.avatar === 'animal:' + animal"
+        [attr.aria-label]="rotuloAnimal(animal)"
+        [title]="rotuloAnimal(animal)"
+        [disabled]="salvandoFoto()"
+        (click)="escolherAnimal(animal)"
+      >
+        <img [src]="'avatares/' + animal + '.svg'" alt="" width="48" height="48" />
+      </button>
+    }
+  </div>
+</section>
+
+<form class="cartao bloco" [formGroup]="form" (ngSubmit)="salvar()" novalidate aria-labelledby="titulo-dados">
+  <h2 id="titulo-dados">Dados pessoais</h2>
+
+  @if (erro(); as mensagem) {
+    <div class="alerta erro" role="alert">{{ mensagem }}</div>
+  }
+
+  <div class="grade">
+    <div class="campo largo">
+      <label for="nome">Nome</label>
+      <input id="nome" formControlName="nome" autocomplete="name" [attr.aria-invalid]="form.controls.nome.touched && form.controls.nome.invalid" />
+      @if (form.controls.nome.touched && form.controls.nome.invalid) {
+        <span class="erro-campo">Informe seu nome (2 a 100 caracteres).</span>
+      }
+    </div>
+
+    <div class="campo largo">
+      <label for="email">E-mail</label>
+      <input id="email" type="email" formControlName="email" autocomplete="email" [attr.aria-invalid]="form.controls.email.touched && form.controls.email.invalid" />
+      <span class="ajuda">É o seu login.</span>
+      @if (form.controls.email.touched && form.controls.email.invalid) {
+        <span class="erro-campo">Informe um e-mail válido.</span>
+      }
+    </div>
+
+    <div class="campo">
+      <label for="cpf">CPF</label>
+      <input id="cpf" formControlName="cpf" inputmode="numeric" placeholder="000.000.000-00" (input)="mascarar('cpf', $event)" [attr.aria-invalid]="form.controls.cpf.touched && form.controls.cpf.invalid" />
+      @if (form.controls.cpf.touched && form.controls.cpf.invalid) {
+        <span class="erro-campo">CPF inválido.</span>
+      }
+    </div>
+
+    <div class="campo">
+      <label for="telefone">Telefone</label>
+      <input id="telefone" type="tel" formControlName="telefone" autocomplete="tel" placeholder="(00) 00000-0000" (input)="mascarar('telefone', $event)" [attr.aria-invalid]="form.controls.telefone.touched && form.controls.telefone.invalid" />
+      @if (form.controls.telefone.touched && form.controls.telefone.invalid) {
+        <span class="erro-campo">Informe o telefone com DDD.</span>
+      }
+    </div>
+  </div>
+
+  <h3>Endereço</h3>
+  <div class="grade">
+    <div class="campo">
+      <label for="cep">CEP</label>
+      <input id="cep" formControlName="cep" inputmode="numeric" autocomplete="postal-code" placeholder="00000-000" (input)="mascarar('cep', $event)" [attr.aria-invalid]="form.controls.cep.touched && form.controls.cep.invalid" />
+      @if (avisoCep(); as mensagem) {
+        <span class="ajuda">{{ mensagem }}</span>
+      } @else if (form.controls.cep.touched && form.controls.cep.invalid) {
+        <span class="erro-campo">O CEP deve ter 8 dígitos.</span>
+      } @else {
+        <span class="ajuda">Ao digitar o CEP, o endereço é preenchido.</span>
+      }
+    </div>
+
+    <div class="campo largo">
+      <label for="logradouro">Rua</label>
+      <input id="logradouro" formControlName="logradouro" autocomplete="address-line1" />
+    </div>
+
+    <div class="campo">
+      <label for="numero">Número</label>
+      <input id="numero" formControlName="numero" />
+    </div>
+
+    <div class="campo">
+      <label for="complemento">Complemento</label>
+      <input id="complemento" formControlName="complemento" autocomplete="address-line2" />
+    </div>
+
+    <div class="campo">
+      <label for="bairro">Bairro</label>
+      <input id="bairro" formControlName="bairro" />
+    </div>
+
+    <div class="campo">
+      <label for="cidade">Cidade</label>
+      <input id="cidade" formControlName="cidade" autocomplete="address-level2" />
+    </div>
+
+    <div class="campo">
+      <label for="uf">UF</label>
+      <input id="uf" formControlName="uf" maxlength="2" autocomplete="address-level1" [attr.aria-invalid]="form.controls.uf.touched && form.controls.uf.invalid" />
+      @if (form.controls.uf.touched && form.controls.uf.invalid) {
+        <span class="erro-campo">Use 2 letras (ex.: SP).</span>
+      }
+    </div>
+  </div>
+
+  <div class="acoes">
+    <button class="botao" type="submit" [disabled]="salvando()">{{ salvando() ? 'Salvando...' : 'Salvar alterações' }}</button>
+  </div>
+</form>
+
+<section class="cartao bloco" aria-labelledby="titulo-senha">
+  <h2 id="titulo-senha">Alterar senha</h2>
+  <app-alterar-senha />
+</section>
