@@ -11,6 +11,8 @@
 .barra {
   display: flex;
   align-items: center;
+  justify-content: center; // botões no meio da barra
+  justify-content: safe center; // se não couberem, alinha à esquerda e rola (sem cortar os primeiros)
   gap: 0.4rem;
   height: 100%;
   padding: 0 0.75rem;
