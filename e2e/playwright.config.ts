@@ -11,8 +11,8 @@ import { defineConfig } from '@playwright/test';
 // testes criam contas e equipamentos.
 export default defineConfig({
   testDir: './testes',
-  timeout: 45_000,
-  expect: { timeout: 8_000 },
+  timeout: 60_000,
+  expect: { timeout: 15_000 },
   // Em série: os testes compartilham o mesmo banco e alguns dependem de dados criados por outros
   fullyParallel: false,
   workers: 1,

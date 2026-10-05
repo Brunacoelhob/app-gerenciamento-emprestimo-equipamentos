@@ -52,7 +52,7 @@ As falhas críticas foram **reproduzidas rodando a API original** contra um banc
 - Validação rígida: campos desconhecidos recusados, tipos convertidos, limites de tamanho, paginação máxima de 100.
 - SQL parametrizado (Prisma); o único SQL escrito à mão usa parâmetros do próprio Prisma.
 - Erros inesperados devolvem mensagem genérica (o detalhe e a pilha vão só para o log). O log de requisições **nunca** registra corpo, cabeçalhos nem tokens.
-- Cabeçalhos de segurança com Helmet; `x-powered-by` removido.
+- Cabeçalhos de segurança com Helmet na API; `x-powered-by` removido. Na interface (nginx): **CSP em bloqueio** (scripts só do próprio site e do VLibras, sem script inline), `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy` e `Permissions-Policy`.
 
 **Privacidade (LGPD)**
 - **Minimização:** nas rotas de administrador, CPF e telefone saem **mascarados** (`***.***.***-25`, `(11) *****-4321`) e o endereço de rua não é enviado (só cidade e UF). A pessoa vê tudo apenas no próprio perfil.

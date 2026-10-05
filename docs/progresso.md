@@ -47,9 +47,15 @@ Legenda: `[x]` feito e verificado · `[~]` feito, mas com parte **não verificad
 
 ### Acessibilidade
 - [x] Barra no topo de todas as telas, com os botões lado a lado: tamanho do texto, alto contraste, modo escuro/claro, fonte para dislexia, cores para daltonismo, reduzir animações
-- [~] **VLibras** (tradução para Libras) acionado pela barra. *O painel do plugin abre e fecha, mas o avatar 3D traduzindo não foi visto (o teste automatizado não tem aceleração gráfica).*
+- [x] **VLibras** (tradução para Libras) acionado pela barra: o painel abre e fecha e o avatar 3D aparece (visto em captura de tela). *A tradução de um texto em si não foi exercitada.*
 - [x] Gráficos que não dependem só da cor (linha tracejada, legenda com números, tabela alternativa)
 - [x] Preferências salvas no navegador
+
+### Segurança da interface
+- [x] **CSP em modo bloqueio** no nginx: scripts só do próprio site e do VLibras, **nenhum script inline**. As origens do VLibras foram medidas no navegador (e ele redireciona arquivos para `cdn.jsdelivr.net`)
+- [x] Build de produção sem CSS crítico inline (o Angular injetava um script inline para isso)
+- [x] Validado de verdade: zero violações usando o app inteiro, e a suíte de interface passa contra a versão em bloqueio (inclusive o VLibras, com o avatar 3D renderizando)
+- [~] *`style-src` ainda aceita `'unsafe-inline'`: o Angular injeta os estilos dos componentes em tempo de execução. Fechar isso exige um nonce por requisição (nginx + Angular).*
 
 ### Testes de interface (Playwright)
 - [x] 31 testes em navegador de verdade: login e sessão, fluxo completo de empréstimo, recuperação de senha por e-mail, cadastro, perfil (avatar, CPF, baixar e excluir dados), barra de acessibilidade e dashboard
@@ -97,7 +103,6 @@ Legenda: `[x]` feito e verificado · `[~]` feito, mas com parte **não verificad
 
 ### Prioridade alta
 - [ ] **Refresh token em cookie `HttpOnly`** (hoje fica no `localStorage`: um XSS o rouba)
-- [ ] **CSP em modo bloqueio:** hoje está em "somente relatório" no nginx, porque o VLibras precisa de permissões ainda não mapeadas
 - [ ] **LGPD (o que sobrou):** política de privacidade, registro de consentimento, prazos de retenção e criptografia do CPF em repouso. Dependem de revisão jurídica
 
 ### Prioridade média
