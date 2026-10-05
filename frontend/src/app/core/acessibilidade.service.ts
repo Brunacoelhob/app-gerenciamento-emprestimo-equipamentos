@@ -19,13 +19,15 @@ const PADRAO: Preferencias = {
   dislexia: false,
   daltonismo: false,
   semAnimacao: false,
-  vlibras: false,
+  vlibras: true, // padrão dos sites do governo: o botão do VLibras já aparece; quem não quer desliga no painel
 };
 
 export const ZOOM_MIN = 0.85;
 export const ZOOM_MAX = 1.6;
 const PASSO = 0.15;
 const CHAVE = 'emprestimos.acessibilidade';
+// Muda quando um padrão muda: preferências salvas numa versão antiga não carregam o valor antigo do que mudou
+const VERSAO = 2;
 const SCRIPT_VLIBRAS = 'https://vlibras.gov.br/app/vlibras-plugin.js';
 const APP_VLIBRAS = 'https://vlibras.gov.br/app';
 
@@ -95,7 +97,8 @@ export class AcessibilidadeService {
           dislexia: salvo.dislexia === true,
           daltonismo: salvo.daltonismo === true,
           semAnimacao: salvo.semAnimacao === true,
-          vlibras: salvo.vlibras === true,
+          // Na versão 1 o VLibras nascia desligado e o valor era salvo sem a pessoa ter escolhido: não vale como escolha
+          vlibras: (salvo as { versao?: number }).versao === VERSAO ? salvo.vlibras === true : PADRAO.vlibras,
         };
       }
     } catch {
@@ -106,7 +109,7 @@ export class AcessibilidadeService {
 
   private salvar(p: Preferencias) {
     try {
-      localStorage.setItem(CHAVE, JSON.stringify(p));
+      localStorage.setItem(CHAVE, JSON.stringify({ ...p, versao: VERSAO }));
     } catch {
       /* ignora */
     }
