@@ -9,7 +9,12 @@ let proximoId = 0;
   selector: 'app-modal',
   imports: [Icone],
   template: `
-    <dialog #janela [attr.aria-labelledby]="idTitulo" (close)="fechar.emit()" (click)="cliqueNoFundo($event)">
+    <dialog
+      #janela
+      [attr.aria-labelledby]="idTitulo"
+      (close)="fechar.emit()"
+      (click)="cliqueNoFundo($event)"
+    >
       <div class="corpo">
         <header>
           <h2 [id]="idTitulo">{{ titulo() }}</h2>

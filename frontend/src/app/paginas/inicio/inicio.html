@@ -20,7 +20,13 @@
 @if (dados(); as d) {
   <section class="kpis" aria-label="Indicadores" [class.carregando]="carregando()">
     @for (c of cards(); track c.id) {
-      <button type="button" class="kpi" [attr.data-tom]="c.tom" (click)="abrir(c.info)" [attr.aria-label]="c.rotulo + ': ' + c.valor + '. Abrir explicação'">
+      <button
+        type="button"
+        class="kpi"
+        [attr.data-tom]="c.tom"
+        (click)="abrir(c.info)"
+        [attr.aria-label]="c.rotulo + ': ' + c.valor + '. Abrir explicação'"
+      >
         <span class="kpi-rotulo">{{ c.rotulo }}</span>
         <span class="kpi-valor">{{ c.valor }}</span>
         <span class="kpi-saiba"><app-icone nome="info" /> Saiba mais</span>
@@ -32,7 +38,12 @@
     <section class="cartao largo" aria-labelledby="t-serie">
       <header class="cartao-topo">
         <h2 id="t-serie">Movimentação diária</h2>
-        <button type="button" class="info" (click)="abrir(infoSerie())" aria-label="Como ler o gráfico Movimentação diária">
+        <button
+          type="button"
+          class="info"
+          (click)="abrir(infoSerie())"
+          aria-label="Como ler o gráfico Movimentação diária"
+        >
           <app-icone nome="info" />
         </button>
       </header>
@@ -47,7 +58,12 @@
     <section class="cartao" aria-labelledby="t-acervo">
       <header class="cartao-topo">
         <h2 id="t-acervo">Situação do acervo</h2>
-        <button type="button" class="info" (click)="abrir(infoAcervo)" aria-label="Como ler o gráfico Situação do acervo">
+        <button
+          type="button"
+          class="info"
+          (click)="abrir(infoAcervo)"
+          aria-label="Como ler o gráfico Situação do acervo"
+        >
           <app-icone nome="info" />
         </button>
       </header>
@@ -57,29 +73,52 @@
     <section class="cartao" aria-labelledby="t-equip">
       <header class="cartao-topo">
         <h2 id="t-equip">Equipamentos mais emprestados</h2>
-        <button type="button" class="info" (click)="abrir(infoEquipamentos())" aria-label="Como ler o gráfico Equipamentos mais emprestados">
+        <button
+          type="button"
+          class="info"
+          (click)="abrir(infoEquipamentos())"
+          aria-label="Como ler o gráfico Equipamentos mais emprestados"
+        >
           <app-icone nome="info" />
         </button>
       </header>
-      <app-grafico-barras [itens]="d.maisEmprestados" cor="var(--grafico-1)" vazio="Nenhum empréstimo no período." />
+      <app-grafico-barras
+        [itens]="d.maisEmprestados"
+        cor="var(--grafico-1)"
+        vazio="Nenhum empréstimo no período."
+      />
     </section>
 
     @if (d.escopo === 'geral') {
       <section class="cartao" aria-labelledby="t-pessoas">
         <header class="cartao-topo">
           <h2 id="t-pessoas">Pessoas com mais empréstimos</h2>
-          <button type="button" class="info" (click)="abrir(infoPessoas())" aria-label="Como ler o gráfico Pessoas com mais empréstimos">
+          <button
+            type="button"
+            class="info"
+            (click)="abrir(infoPessoas())"
+            aria-label="Como ler o gráfico Pessoas com mais empréstimos"
+          >
             <app-icone nome="info" />
           </button>
         </header>
-        <app-grafico-barras [itens]="d.pessoasMaisAtivas" cor="var(--grafico-2)" vazio="Nenhum empréstimo no período." />
+        <app-grafico-barras
+          [itens]="d.pessoasMaisAtivas"
+          cor="var(--grafico-2)"
+          vazio="Nenhum empréstimo no período."
+        />
       </section>
     }
 
     <section class="cartao" aria-labelledby="t-atrasos">
       <header class="cartao-topo">
         <h2 id="t-atrasos">Maiores atrasos</h2>
-        <button type="button" class="info" (click)="abrir(infoAtrasos)" aria-label="Como ler a lista Maiores atrasos">
+        <button
+          type="button"
+          class="info"
+          (click)="abrir(infoAtrasos)"
+          aria-label="Como ler a lista Maiores atrasos"
+        >
           <app-icone nome="info" />
         </button>
       </header>
@@ -95,7 +134,9 @@
                   <small>{{ a.pessoa }}</small>
                 }
               </span>
-              <span class="selo vermelho">{{ a.diasDeAtraso }} {{ a.diasDeAtraso === 1 ? 'dia' : 'dias' }}</span>
+              <span class="selo vermelho"
+                >{{ a.diasDeAtraso }} {{ a.diasDeAtraso === 1 ? 'dia' : 'dias' }}</span
+              >
             </li>
           }
         </ul>
@@ -105,21 +146,33 @@
     <section class="cartao" aria-labelledby="t-pendentes">
       <header class="cartao-topo">
         <h2 id="t-pendentes">Com você agora</h2>
-        <button type="button" class="info" (click)="abrir(infoPendentes)" aria-label="Como ler a lista Com você agora">
+        <button
+          type="button"
+          class="info"
+          (click)="abrir(infoPendentes)"
+          aria-label="Como ler a lista Com você agora"
+        >
           <app-icone nome="info" />
         </button>
       </header>
       @if (pendentes().length === 0) {
-        <p class="vazio">Você não está com nenhum equipamento. <a routerLink="/equipamentos">Ver equipamentos</a></p>
+        <p class="vazio">
+          Você não está com nenhum equipamento. <a routerLink="/equipamentos">Ver equipamentos</a>
+        </p>
       } @else {
         <ul class="lista-atrasos">
           @for (e of pendentes(); track e.id) {
             <li>
               <span class="quem">
                 <strong>{{ e.equipamento.nome }}</strong>
-                <small>{{ e.atrasado ? 'Atrasado desde' : 'Devolver até' }} {{ e.prazoDevolucao | date: 'dd/MM/yyyy' }}</small>
+                <small
+                  >{{ e.atrasado ? 'Atrasado desde' : 'Devolver até' }}
+                  {{ e.prazoDevolucao | date: 'dd/MM/yyyy' }}</small
+                >
               </span>
-              <span class="selo" [class.vermelho]="e.atrasado" [class.amarelo]="!e.atrasado">{{ e.atrasado ? 'Atrasado' : 'No prazo' }}</span>
+              <span class="selo" [class.vermelho]="e.atrasado" [class.amarelo]="!e.atrasado">{{
+                e.atrasado ? 'Atrasado' : 'No prazo'
+              }}</span>
             </li>
           }
         </ul>
@@ -159,7 +212,9 @@
                     <small>{{ a.pessoa }}</small>
                   }
                 </span>
-                <span class="selo vermelho">{{ a.diasDeAtraso }} {{ a.diasDeAtraso === 1 ? 'dia' : 'dias' }}</span>
+                <span class="selo vermelho"
+                  >{{ a.diasDeAtraso }} {{ a.diasDeAtraso === 1 ? 'dia' : 'dias' }}</span
+                >
               </li>
             }
           </ul>
@@ -167,7 +222,9 @@
       </section>
     }
     @if (i.link; as l) {
-      <a acoes class="botao secundario" [routerLink]="l.rota" (click)="infoAberta.set(false)">{{ l.rotulo }}</a>
+      <a acoes class="botao secundario" [routerLink]="l.rota" (click)="infoAberta.set(false)">{{
+        l.rotulo
+      }}</a>
     }
   }
 </app-modal>

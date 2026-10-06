@@ -39,11 +39,17 @@ describe('GraficoRosca', () => {
 });
 
 describe('GraficoLinhas', () => {
-  const pontos = Array.from({ length: 30 }, (_, i) => ({ rotulo: `${String(i + 1).padStart(2, '0')}/09`, a: i % 6, b: (i + 2) % 5 }));
+  const pontos = Array.from({ length: 30 }, (_, i) => ({
+    rotulo: `${String(i + 1).padStart(2, '0')}/09`,
+    a: i % 6,
+    b: (i + 2) % 5,
+  }));
 
   it('arredonda o eixo para cima em 4 faixas inteiras e traça as duas séries', () => {
     const el = montar(GraficoLinhas, { pontos, nomeA: 'Retiradas', nomeB: 'Devoluções' });
-    const marcas = [...el.querySelectorAll('text.eixo[text-anchor="end"]')].map((t) => t.textContent);
+    const marcas = [...el.querySelectorAll('text.eixo[text-anchor="end"]')].map(
+      (t) => t.textContent,
+    );
     // maior valor = 5 -> eixo até 8, em 4 faixas inteiras
     expect(marcas).toEqual(['0', '2', '4', '6', '8']);
     expect(el.querySelector('.linha-a')?.getAttribute('d')).toMatch(/^M/);
@@ -52,7 +58,9 @@ describe('GraficoLinhas', () => {
 
   it('inclui o primeiro e o último dia no eixo e uma tabela com todos os pontos', () => {
     const el = montar(GraficoLinhas, { pontos, nomeA: 'Retiradas', nomeB: 'Devoluções' });
-    const rotulos = [...el.querySelectorAll('text.eixo[text-anchor="middle"]')].map((t) => t.textContent);
+    const rotulos = [...el.querySelectorAll('text.eixo[text-anchor="middle"]')].map(
+      (t) => t.textContent,
+    );
     expect(rotulos[0]).toBe('01/09');
     expect(rotulos[rotulos.length - 1]).toBe('30/09');
     expect(el.querySelectorAll('tbody tr')).toHaveLength(30);
@@ -67,7 +75,12 @@ describe('GraficoLinhas', () => {
 
 describe('GraficoBarras', () => {
   it('a maior barra ocupa 100% e as outras são proporcionais', () => {
-    const el = montar(GraficoBarras, { itens: [{ nome: 'A', total: 8 }, { nome: 'B', total: 2 }] });
+    const el = montar(GraficoBarras, {
+      itens: [
+        { nome: 'A', total: 8 },
+        { nome: 'B', total: 2 },
+      ],
+    });
     const larguras = [...el.querySelectorAll<HTMLElement>('.barra')].map((b) => b.style.width);
     expect(larguras).toEqual(['100%', '25%']);
   });

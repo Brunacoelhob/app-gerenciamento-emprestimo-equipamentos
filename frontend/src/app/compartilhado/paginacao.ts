@@ -6,10 +6,17 @@ import { MetaPagina } from '../core/modelos';
   template: `
     @if (meta().totalPaginas > 1) {
       <nav class="paginacao" aria-label="Paginação">
-        <button class="botao secundario" type="button" [disabled]="meta().pagina <= 1" (click)="mudar.emit(meta().pagina - 1)">
+        <button
+          class="botao secundario"
+          type="button"
+          [disabled]="meta().pagina <= 1"
+          (click)="mudar.emit(meta().pagina - 1)"
+        >
           Anterior
         </button>
-        <span>Página {{ meta().pagina }} de {{ meta().totalPaginas }} · {{ meta().total }} itens</span>
+        <span
+          >Página {{ meta().pagina }} de {{ meta().totalPaginas }} · {{ meta().total }} itens</span
+        >
         <button
           class="botao secundario"
           type="button"

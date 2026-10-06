@@ -15,22 +15,29 @@ export const routes: Routes = [
   {
     path: 'esqueci-senha',
     canActivate: [visitanteGuard],
-    loadComponent: () => import('./paginas/esqueci-senha/esqueci-senha').then((m) => m.EsqueciSenha),
+    loadComponent: () =>
+      import('./paginas/esqueci-senha/esqueci-senha').then((m) => m.EsqueciSenha),
   },
   {
     path: 'redefinir-senha',
     canActivate: [visitanteGuard],
-    loadComponent: () => import('./paginas/redefinir-senha/redefinir-senha').then((m) => m.RedefinirSenha),
+    loadComponent: () =>
+      import('./paginas/redefinir-senha/redefinir-senha').then((m) => m.RedefinirSenha),
   },
   {
     path: '',
     canActivate: [autenticadoGuard],
     loadComponent: () => import('./layout/layout').then((m) => m.Layout),
     children: [
-      { path: '', pathMatch: 'full', loadComponent: () => import('./paginas/inicio/inicio').then((m) => m.Inicio) },
+      {
+        path: '',
+        pathMatch: 'full',
+        loadComponent: () => import('./paginas/inicio/inicio').then((m) => m.Inicio),
+      },
       {
         path: 'equipamentos',
-        loadComponent: () => import('./paginas/equipamentos/equipamentos').then((m) => m.Equipamentos),
+        loadComponent: () =>
+          import('./paginas/equipamentos/equipamentos').then((m) => m.Equipamentos),
       },
       {
         path: 'meus-emprestimos',
@@ -53,7 +60,10 @@ export const routes: Routes = [
         canActivate: [adminGuard],
         loadComponent: () => import('./paginas/auditoria/auditoria').then((m) => m.Auditoria),
       },
-      { path: 'perfil', loadComponent: () => import('./paginas/perfil/perfil').then((m) => m.Perfil) },
+      {
+        path: 'perfil',
+        loadComponent: () => import('./paginas/perfil/perfil').then((m) => m.Perfil),
+      },
       { path: 'senha', redirectTo: 'perfil' },
     ],
   },

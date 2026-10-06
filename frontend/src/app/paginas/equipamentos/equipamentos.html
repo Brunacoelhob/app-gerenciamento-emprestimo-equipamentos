@@ -1,13 +1,18 @@
 <div class="cabecalho">
   <h1>Equipamentos</h1>
   @if (auth.ehAdmin()) {
-    <button class="botao" type="button" (click)="abrirNovo()">Novo equipamento</button>
+    <div class="acoes-cabecalho">
+      <app-menu-exportar
+        rotulo="Exportar relatório"
+        [itens]="formatos"
+        [desabilitado]="exportando() || !dados()"
+        (escolhido)="exportar($event)"
+      />
+      <button class="botao" type="button" (click)="abrirNovo()">Novo equipamento</button>
+    </div>
   }
 </div>
 
-@if (aviso(); as mensagem) {
-  <div class="alerta sucesso" role="status">{{ mensagem }}</div>
-}
 @if (erro(); as mensagem) {
   <div class="alerta erro" role="alert">{{ mensagem }}</div>
 }
@@ -19,25 +24,37 @@
       <div class="campo">
         <label for="dias">Por quantos dias?</label>
         <input id="dias" type="number" min="1" max="30" [(ngModel)]="dias" />
-        <span class="ajuda">De 1 a 30 dias. Passou do prazo sem devolver, o empréstimo fica atrasado.</span>
+        <span class="ajuda"
+          >De 1 a 30 dias. Passou do prazo sem devolver, o empréstimo fica atrasado.</span
+        >
       </div>
       <div class="acoes">
         <button class="botao secundario" type="button" (click)="fechar()">Cancelar</button>
-        <button class="botao" type="button" [disabled]="salvando()" (click)="confirmarEmprestimo()">Confirmar</button>
+        <button class="botao" type="button" [disabled]="salvando()" (click)="confirmarEmprestimo()">
+          Confirmar
+        </button>
       </div>
     } @else {
       <form [formGroup]="form" (ngSubmit)="salvar()" novalidate>
         <h2>{{ p.tipo === 'novo' ? 'Novo equipamento' : 'Editar equipamento' }}</h2>
         <div class="campo">
           <label for="nome">Nome</label>
-          <input id="nome" formControlName="nome" maxlength="120" [attr.aria-invalid]="form.controls.nome.touched && form.controls.nome.invalid" />
-          @if (form.controls.nome.touched && form.controls.nome.invalid) {
-            <span class="erro-campo">Informe o nome (até 120 caracteres).</span>
-          }
+          <input
+            id="nome"
+            formControlName="nome"
+            maxlength="120"
+            [attr.aria-invalid]="form.controls.nome.touched && form.controls.nome.invalid"
+          />
+          <app-erro-campo
+            [controle]="form.controls.nome"
+            rotulo="nome"
+            [mensagens]="{ required: 'Informe o nome do equipamento.' }"
+          />
         </div>
         <div class="campo">
           <label for="descricao">Descrição (opcional)</label>
           <input id="descricao" formControlName="descricao" maxlength="500" />
+          <app-erro-campo [controle]="form.controls.descricao" rotulo="descrição" />
         </div>
         <div class="acoes">
           <button class="botao secundario" type="button" (click)="fechar()">Cancelar</button>
@@ -48,8 +65,31 @@
   </section>
 }
 
+@if (minhasFilas().length > 0) {
+  <section class="cartao filas" aria-labelledby="titulo-filas">
+    <h2 id="titulo-filas">Minhas filas de espera</h2>
+    <ul>
+      @for (r of minhasFilas(); track r.id) {
+        <li>
+          <span class="fila-posicao" title="Posição na fila">{{ r.posicao }}º</span>
+          <span class="fila-nome">{{ r.equipamento.nome }}</span>
+          <button class="botao pequeno secundario" type="button" (click)="sairDaFila(r)">Sair da fila</button>
+        </li>
+      }
+    </ul>
+    <p class="ajuda">Quando o equipamento for devolvido, o primeiro da fila recebe um e-mail.</p>
+  </section>
+}
+
 <form class="filtros" (ngSubmit)="filtrar()">
-  <input type="search" name="busca" placeholder="Buscar pelo nome" aria-label="Buscar pelo nome" [(ngModel)]="busca" />
+  <input
+    type="search"
+    name="busca"
+    placeholder="Buscar pelo nome ou descrição"
+    aria-label="Buscar pelo nome ou descrição"
+    [(ngModel)]="busca"
+    (ngModelChange)="agendarBusca()"
+  />
   <select name="situacao" aria-label="Situação" [(ngModel)]="situacao" (ngModelChange)="filtrar()">
     <option value="todos">Todas as situações</option>
     <option value="disponivel">Disponíveis</option>
@@ -71,7 +111,8 @@
       <table>
         <thead>
           <tr>
-            <th>Nome</th>
+            <th class="col-id">ID</th>
+            <th>Equipamento</th>
             <th>Situação</th>
             <th class="acoes-col">Ações</th>
           </tr>
@@ -79,6 +120,7 @@
         <tbody>
           @for (e of d.itens; track e.id) {
             <tr>
+              <td class="col-id"><app-id-curto [valor]="e.codigo" /></td>
               <td>
                 <strong>{{ e.nome }}</strong>
                 @if (e.descricao) {
@@ -90,17 +132,37 @@
                   <span class="selo cinza">Desativado</span>
                 } @else if (e.emprestado) {
                   <span class="selo amarelo">Emprestado</span>
+                  @if (e.fila > 0) {
+                    <small class="renovado">{{ e.fila }} na fila</small>
+                  }
                 } @else {
                   <span class="selo verde">Disponível</span>
                 }
               </td>
               <td class="acoes-col">
                 @if (e.disponivel) {
-                  <button class="botao pequeno" type="button" (click)="abrirEmprestimo(e)">Pegar</button>
+                  <button class="botao pequeno" type="button" (click)="abrirEmprestimo(e)">
+                    Pegar
+                  </button>
+                }
+                @if (e.ativo && e.emprestado) {
+                  @if (naFila(e.id)) {
+                    <span class="selo azul">Na fila</span>
+                  } @else {
+                    <button class="botao pequeno" type="button" (click)="entrarNaFila(e)">Entrar na fila</button>
+                  }
                 }
                 @if (auth.ehAdmin()) {
-                  <button class="botao pequeno secundario" type="button" (click)="abrirEdicao(e)">Editar</button>
-                  <button class="botao pequeno secundario" type="button" [disabled]="e.emprestado" (click)="alternarAtivo(e)">
+                  <button class="botao pequeno secundario" type="button" (click)="qrDe.set(e)">QR</button>
+                  <button class="botao pequeno secundario" type="button" (click)="abrirEdicao(e)">
+                    Editar
+                  </button>
+                  <button
+                    class="botao pequeno secundario"
+                    type="button"
+                    [disabled]="e.emprestado"
+                    (click)="alternarAtivo(e)"
+                  >
                     {{ e.ativo ? 'Desativar' : 'Reativar' }}
                   </button>
                 }
@@ -113,3 +175,11 @@
     }
   }
 </div>
+
+@if (qrDe(); as q) {
+  <app-modal titulo="Etiqueta com QR code" [aberto]="true" rotuloFechar="Fechar" (fechar)="qrDe.set(null)">
+    <app-qr-equipamento [nome]="q.nome" [codigo]="q.codigo" />
+    <p class="ajuda">Cole no equipamento. Ao escanear com o celular, a pessoa chega direto nele (precisa estar logada).</p>
+    <button acoes class="botao secundario" type="button" (click)="imprimirEtiqueta()">Imprimir etiqueta</button>
+  </app-modal>
+}

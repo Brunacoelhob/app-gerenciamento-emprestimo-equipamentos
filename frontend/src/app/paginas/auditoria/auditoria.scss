@@ -1,0 +1,158 @@
+.cabecalho {
+  align-items: flex-start;
+}
+
+.subtitulo {
+  margin: 0.25rem 0 0;
+  color: var(--texto-suave);
+}
+
+// Data e hora em colunas próprias: estreitas, sem quebrar, alinhadas e fáceis de comparar de cima para baixo
+.col-data,
+.col-hora {
+  width: 1%;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.col-hora {
+  color: var(--texto-suave);
+}
+
+.seg {
+  opacity: 0.55;
+}
+
+// Responsável: bolinha com a inicial e o nome, sem etiquetas pesadas
+.quem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-weight: 500;
+}
+
+.inicial {
+  display: inline-grid;
+  place-items: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  flex: none;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--primaria) 14%, transparent);
+  color: var(--primaria);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+// Ação: ícone numa bolinha colorida e, ao lado, o texto em duas linhas. A cor nunca é a única pista (ícone + texto)
+.acao {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  --cor: var(--texto-suave);
+  --fundo-cor: var(--borda);
+
+  &[data-categoria='conta'] {
+    --cor: var(--primaria);
+    --fundo-cor: color-mix(in srgb, var(--primaria) 14%, transparent);
+  }
+
+  &[data-categoria='acervo'] {
+    --cor: var(--sucesso);
+    --fundo-cor: var(--sucesso-fundo);
+  }
+
+  &[data-categoria='emprestimo'] {
+    --cor: var(--aviso);
+    --fundo-cor: var(--aviso-fundo);
+  }
+
+  &.critica {
+    --cor: var(--erro);
+    --fundo-cor: var(--erro-fundo);
+  }
+}
+
+.icone-acao {
+  display: inline-grid;
+  place-items: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  flex: none;
+  border-radius: 10px;
+  background: var(--fundo-cor);
+  color: var(--cor);
+}
+
+.acao-texto {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+
+  strong {
+    font-size: 0.92rem;
+  }
+
+  small {
+    color: var(--texto-suave);
+    font-size: 0.78rem;
+  }
+}
+
+// Detalhes: um quadro discreto com rótulo e valor alinhados em duas colunas, com margens iguais
+.col-detalhes {
+  min-width: 18rem;
+  width: 32%;
+}
+
+.detalhes {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0.6rem 0.85rem;
+  list-style: none;
+  border-radius: 10px;
+  background: var(--fundo);
+  border: 1px solid var(--borda);
+  font-size: 0.8rem;
+  line-height: 1.35;
+
+  li {
+    display: grid;
+    grid-template-columns: 4.5rem 1fr;
+    column-gap: 0.75rem;
+    align-items: baseline;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-weight: 500;
+  }
+}
+
+.d-rotulo {
+  color: var(--texto-suave);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.sem-detalhes {
+  color: var(--texto-suave);
+  font-size: 0.82rem;
+}
+
+table.auditoria tbody tr {
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background: color-mix(in srgb, var(--primaria) 5%, transparent);
+  }
+
+  td {
+    padding-block: 0.8rem;
+  }
+}
+
+tr.critica {
+  background: color-mix(in srgb, var(--erro) 5%, transparent);
+}

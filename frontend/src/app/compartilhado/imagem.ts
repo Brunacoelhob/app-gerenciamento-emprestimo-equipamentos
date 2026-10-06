@@ -25,7 +25,17 @@ export async function prepararAvatar(arquivo: File, lado = 192): Promise<string>
   const menor = Math.min(imagem.width, imagem.height);
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, lado, lado);
-  ctx.drawImage(imagem, (imagem.width - menor) / 2, (imagem.height - menor) / 2, menor, menor, 0, 0, lado, lado);
+  ctx.drawImage(
+    imagem,
+    (imagem.width - menor) / 2,
+    (imagem.height - menor) / 2,
+    menor,
+    menor,
+    0,
+    0,
+    lado,
+    lado,
+  );
   imagem.close();
 
   for (const [tipo, qualidade] of [

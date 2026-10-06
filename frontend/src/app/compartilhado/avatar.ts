@@ -13,9 +13,38 @@ export const ANIMAIS = [
   'coruja',
   'tartaruga',
   'polvo',
+  'girafa',
+  'elefante',
+  'onca',
+  'tucano',
+  'jacare',
+  'dinossauro',
+  'dragao',
+  'peixe',
+  'tubarao',
+  'baleia',
+  'arraia',
+  'estrela-do-mar',
+  'urso-polar',
+  'urso-da-floresta',
+  'cobra',
+  'coelho',
+  'hamster',
 ] as const;
 
-export const rotuloAnimal = (nome: string) => nome.charAt(0).toUpperCase() + nome.slice(1).replace('leao', 'leão');
+const ROTULOS: Record<string, string> = {
+  leao: 'Leão',
+  onca: 'Onça',
+  jacare: 'Jacaré',
+  dragao: 'Dragão',
+  tubarao: 'Tubarão',
+  'estrela-do-mar': 'Estrela-do-mar',
+  'urso-polar': 'Urso polar',
+  'urso-da-floresta': 'Urso da floresta',
+};
+
+export const rotuloAnimal = (nome: string) =>
+  ROTULOS[nome] ?? nome.charAt(0).toUpperCase() + nome.slice(1);
 
 // Avatar da pessoa: item do acervo ("animal:gato"), foto enviada (data URL) ou, sem nada, as iniciais do nome.
 @Component({

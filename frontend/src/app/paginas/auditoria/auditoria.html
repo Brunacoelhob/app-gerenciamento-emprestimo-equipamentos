@@ -1,22 +1,48 @@
 <div class="cabecalho">
   <div>
     <h1>Auditoria</h1>
-    <p class="subtitulo">Quem fez o quê e quando: contas, permissões, acervo e sessões suspeitas.</p>
+    <p class="subtitulo">
+      Quem fez o quê e quando: contas, permissões, acervo e sessões suspeitas.
+    </p>
   </div>
+  <app-menu-exportar
+    rotulo="Exportar relatório"
+    [itens]="formatos"
+    [desabilitado]="exportando() || !dados()"
+    (escolhido)="exportar($event)"
+  />
 </div>
 
 @if (erro(); as mensagem) {
   <div class="alerta erro" role="alert">{{ mensagem }}</div>
 }
 
-<div class="filtros">
-  <select name="acao" aria-label="Filtrar por ação" [(ngModel)]="acao" (ngModelChange)="carregar(1)">
+<form class="filtros" (ngSubmit)="carregar(1)">
+  <input
+    type="search"
+    name="busca"
+    placeholder="Buscar por pessoa ou número"
+    aria-label="Buscar por pessoa ou número"
+    [(ngModel)]="busca"
+    (ngModelChange)="agendarBusca()"
+  />
+  <select
+    name="acao"
+    aria-label="Filtrar por ação"
+    [(ngModel)]="acao"
+    (ngModelChange)="carregar(1)"
+  >
     <option value="">Todas as ações</option>
-    @for (a of acoes; track a.valor) {
-      <option [value]="a.valor">{{ a.rotulo }}</option>
+    @for (g of grupos(); track g.rotulo) {
+      <optgroup [label]="g.rotulo">
+        @for (a of g.itens; track a.valor) {
+          <option [value]="a.valor">{{ a.rotulo }}</option>
+        }
+      </optgroup>
     }
   </select>
-</div>
+  <button class="botao secundario" type="submit">Buscar</button>
+</form>
 
 <div class="cartao tabela-caixa">
   @if (carregando() && !dados()) {
@@ -25,27 +51,56 @@
     @if (d.itens.length === 0) {
       <p class="vazio">Nenhum registro encontrado.</p>
     } @else {
-      <table>
+      <table class="auditoria">
         <thead>
           <tr>
-            <th>Quando</th>
-            <th>Quem</th>
+            <th class="col-data">Data</th>
+            <th class="col-hora">Hora</th>
+            <th>Responsável</th>
             <th>Ação</th>
             <th>Detalhes</th>
           </tr>
         </thead>
         <tbody>
           @for (r of d.itens; track r.id) {
-            <tr>
-              <td class="nowrap">{{ r.criadoEm | date: 'dd/MM/yyyy HH:mm' }}</td>
-              <td>{{ r.atorNome ?? 'Sistema' }}</td>
+            <tr [class.critica]="r.critica">
+              <td class="col-data">{{ r.criadoEm | date: 'dd/MM/yyyy' }}</td>
+              <td class="col-hora">
+                {{ r.criadoEm | date: 'HH:mm'
+                }}<span class="seg">:{{ r.criadoEm | date: 'ss' }}</span>
+              </td>
               <td>
-                <span class="selo" [class.vermelho]="suspeita(r.acao)" [class.cinza]="!suspeita(r.acao)">{{ rotulo(r.acao) }}</span>
-                @if (r.entidadeId) {
-                  <div class="descricao">{{ r.entidade }} nº {{ r.entidadeId }}</div>
+                <span class="quem">
+                  <span class="inicial" aria-hidden="true">{{ inicial(r.atorNome) }}</span>
+                  {{ r.atorNome ?? 'Sistema' }}
+                </span>
+              </td>
+              <td>
+                <span class="acao" [attr.data-categoria]="r.categoria" [class.critica]="r.critica">
+                  <span class="icone-acao"
+                    ><app-icone [nome]="r.critica ? 'alerta' : icone(r.categoria)"
+                  /></span>
+                  <span class="acao-texto">
+                    <strong>{{ r.acaoRotulo }}</strong>
+                    @if (r.entidadeId) {
+                      <small>{{ r.entidadeRotulo }} · nº {{ r.entidadeId }}</small>
+                    }
+                  </span>
+                </span>
+              </td>
+              <td class="col-detalhes">
+                @if (r.descricao.length === 0) {
+                  <span class="sem-detalhes">Sem detalhes</span>
+                } @else {
+                  <ul class="detalhes">
+                    @for (item of r.descricao; track item.rotulo) {
+                      <li>
+                        <span class="d-rotulo">{{ item.rotulo }}</span> {{ item.valor }}
+                      </li>
+                    }
+                  </ul>
                 }
               </td>
-              <td class="descricao">{{ detalhes(r) }}</td>
             </tr>
           }
         </tbody>

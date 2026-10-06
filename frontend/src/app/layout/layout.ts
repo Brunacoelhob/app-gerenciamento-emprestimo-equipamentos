@@ -2,13 +2,14 @@ import { Location } from '@angular/common';
 import { Component, computed, HostListener, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
+import { Logo } from '../compartilhado/logo';
 import { Avatar } from '../compartilhado/avatar';
 import { Icone } from '../compartilhado/icone';
 import { AuthService } from '../core/auth.service';
 
 @Component({
   selector: 'app-layout',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, Icone, Avatar],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, Icone, Avatar, Logo],
   templateUrl: './layout.html',
   styleUrl: './layout.scss',
 })

@@ -8,6 +8,7 @@
   >
     @for (g of grade(); track g.valor) {
       <line class="grade" [attr.x1]="M.e" [attr.x2]="L - M.d" [attr.y1]="g.y" [attr.y2]="g.y" />
+      <!-- prettier-ignore -->
       <text class="eixo" text-anchor="end" [attr.x]="M.e - 6" [attr.y]="g.y + 4">{{ g.valor }}</text>
     }
     @for (r of rotulosX(); track r.i) {

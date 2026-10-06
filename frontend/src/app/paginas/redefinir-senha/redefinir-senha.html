@@ -2,13 +2,19 @@
   @if (concluido()) {
     <section class="cartao sucesso-tela" role="status">
       <h1>Senha alterada</h1>
-      <p>Tudo certo! Entre com a sua nova senha. Por segurança, as outras sessões abertas foram encerradas.</p>
+      <p>
+        Tudo certo! Entre com a sua nova senha. Por segurança, as outras sessões abertas foram
+        encerradas.
+      </p>
       <a class="botao" routerLink="/login">Ir para o login</a>
     </section>
   } @else if (semToken() || linkInvalido()) {
     <section class="cartao sucesso-tela" role="alert">
       <h1>Link inválido ou vencido</h1>
-      <p>Este link não pode mais ser usado: ele vale por 30 minutos, uma única vez, e um pedido mais novo substitui o anterior.</p>
+      <p>
+        Este link não pode mais ser usado: ele vale por 30 minutos, uma única vez, e um pedido mais
+        novo substitui o anterior.
+      </p>
       <a class="botao" routerLink="/esqueci-senha">Pedir um novo link</a>
     </section>
   } @else {
@@ -29,10 +35,13 @@
           autocomplete="new-password"
           [attr.aria-invalid]="form.controls.novaSenha.touched && form.controls.novaSenha.invalid"
         />
-        <span class="ajuda">8 a 72 caracteres, com pelo menos uma letra e um número.</span>
-        @if (form.controls.novaSenha.touched && form.controls.novaSenha.invalid) {
-          <span class="erro-campo">A senha não atende aos requisitos.</span>
-        }
+        <app-erro-campo
+          [controle]="form.controls.novaSenha"
+          rotulo="nova senha"
+          [mensagens]="{ required: 'Escolha a nova senha.' }"
+          [ignorar]="['minlength', 'maxlength', 'pattern']"
+        />
+        <app-regras-senha [controle]="form.controls.novaSenha" />
       </div>
 
       <div class="campo">
@@ -42,9 +51,21 @@
           type="password"
           formControlName="confirmacao"
           autocomplete="new-password"
-          [attr.aria-invalid]="form.controls.confirmacao.touched && form.hasError('diferentes')"
+          [attr.aria-invalid]="
+            form.controls.confirmacao.touched &&
+            (form.controls.confirmacao.invalid || form.hasError('diferentes'))
+          "
         />
-        @if (form.controls.confirmacao.touched && form.hasError('diferentes')) {
+        <app-erro-campo
+          [controle]="form.controls.confirmacao"
+          rotulo="confirmação"
+          [mensagens]="{ required: 'Repita a nova senha.' }"
+        />
+        @if (
+          form.controls.confirmacao.touched &&
+          !form.controls.confirmacao.hasError('required') &&
+          form.hasError('diferentes')
+        ) {
           <span class="erro-campo">As senhas não são iguais.</span>
         }
       </div>

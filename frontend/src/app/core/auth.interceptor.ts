@@ -7,10 +7,16 @@ const comToken = (req: HttpRequest<unknown>, token: string | null) =>
   token ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }) : req;
 
 // Rotas de autenticação que nunca recebem token nem disparam renovação
-const ROTAS_PUBLICAS = [`${API}/auth/login`, `${API}/auth/renovar`, `${API}/auth/sair`, `${API}/auth/registro`];
+const ROTAS_PUBLICAS = [
+  `${API}/auth/login`,
+  `${API}/auth/renovar`,
+  `${API}/auth/sair`,
+  `${API}/auth/registro`,
+];
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  if (!req.url.startsWith(API) || ROTAS_PUBLICAS.some((r) => req.url.startsWith(r))) return next(req);
+  if (!req.url.startsWith(API) || ROTAS_PUBLICAS.some((r) => req.url.startsWith(r)))
+    return next(req);
 
   const auth = inject(AuthService);
 

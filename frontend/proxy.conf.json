@@ -2,6 +2,7 @@
   "/api": {
     "target": "http://localhost:3000",
     "secure": false,
-    "pathRewrite": { "^/api": "" }
+    "pathRewrite": { "^/api": "" },
+    "cookiePathRewrite": { "/v1/auth": "/api/v1/auth" }
   }
 }

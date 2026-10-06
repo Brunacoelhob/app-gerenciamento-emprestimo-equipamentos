@@ -57,7 +57,10 @@ export class GraficoLinhas {
     return pts
       .map((p, i) => ({ texto: p.rotulo, x: this.x(i), i }))
       .filter((r) => r.i % passo === 0 || r.i === pts.length - 1)
-      .filter((r, k, todos) => k === todos.length - 1 || r.i === 0 || todos[todos.length - 1].i - r.i >= passo * 0.6);
+      .filter(
+        (r, k, todos) =>
+          k === todos.length - 1 || r.i === 0 || todos[todos.length - 1].i - r.i >= passo * 0.6,
+      );
   });
 
   private caminho(campo: 'a' | 'b') {

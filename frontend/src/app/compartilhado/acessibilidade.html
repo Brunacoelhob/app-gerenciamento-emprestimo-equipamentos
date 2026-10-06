@@ -2,39 +2,111 @@
   <span class="titulo"><app-icone nome="acessibilidade" /> Acessibilidade</span>
 
   <div class="grupo" role="group" aria-label="Tamanho do texto">
-    <button type="button" [disabled]="prefs.zoom <= ZOOM_MIN" (click)="servico.diminuir()" title="Diminuir o texto" aria-label="Diminuir o texto">
+    <button
+      type="button"
+      [disabled]="prefs.zoom <= ZOOM_MIN"
+      (click)="servico.diminuir()"
+      title="Diminuir o texto"
+      aria-label="Diminuir o texto"
+    >
       <span class="letras">A−</span>
     </button>
-    <button type="button" [disabled]="prefs.zoom >= ZOOM_MAX" (click)="servico.aumentar()" title="Aumentar o texto" aria-label="Aumentar o texto">
+    <button
+      type="button"
+      [disabled]="prefs.zoom >= ZOOM_MAX"
+      (click)="servico.aumentar()"
+      title="Aumentar o texto"
+      aria-label="Aumentar o texto"
+    >
       <span class="letras">A+</span>
     </button>
   </div>
 
-  <button type="button" [attr.aria-pressed]="prefs.contraste" (click)="servico.alterar('contraste', !prefs.contraste)" title="Alto contraste">
+  <button
+    type="button"
+    [attr.aria-pressed]="prefs.contraste"
+    (click)="servico.alterar('contraste', !prefs.contraste)"
+    title="Alto contraste"
+  >
     <app-icone nome="contraste" /> <span class="rotulo">Contraste</span>
   </button>
 
-  <button type="button" [attr.aria-pressed]="servico.escuro()" (click)="servico.alternarTema()" title="Modo escuro (desligado: modo claro)">
+  <button
+    type="button"
+    [attr.aria-pressed]="servico.escuro()"
+    (click)="servico.alternarTema()"
+    title="Modo escuro (desligado: modo claro)"
+  >
     <app-icone [nome]="servico.escuro() ? 'lua' : 'sol'" /> <span class="rotulo">Modo escuro</span>
   </button>
 
-  <button type="button" [attr.aria-pressed]="prefs.dislexia" (click)="servico.alterar('dislexia', !prefs.dislexia)" title="Fonte para dislexia">
+  <button
+    type="button"
+    [attr.aria-pressed]="prefs.dislexia"
+    (click)="servico.alterar('dislexia', !prefs.dislexia)"
+    title="Fonte para dislexia"
+  >
     <span class="letras">Aa</span> <span class="rotulo">Dislexia</span>
   </button>
 
-  <button type="button" [attr.aria-pressed]="prefs.daltonismo" (click)="servico.alterar('daltonismo', !prefs.daltonismo)" title="Cores para daltonismo: azul e laranja no lugar de verde e vermelho, com símbolos nos status">
-    <app-icone nome="olho" /> <span class="rotulo">Daltonismo</span>
-  </button>
+  <div class="menu-daltonismo">
+    <button
+      #gatilho
+      type="button"
+      class="gatilho-menu"
+      [class.ativo]="prefs.daltonismo !== 'nenhum'"
+      aria-haspopup="menu"
+      [attr.aria-expanded]="menuAberto()"
+      [attr.aria-label]="'Daltonismo: ' + rotuloAtual()"
+      title="Cores para daltonismo: a paleta e os símbolos dos status se adaptam ao tipo escolhido"
+      (click)="alternarMenu(gatilho)"
+    >
+      <app-icone nome="olho" />
+      <span class="rotulo">Daltonismo</span>
+      <span class="seta" aria-hidden="true">▾</span>
+    </button>
 
-  <button type="button" [attr.aria-pressed]="prefs.semAnimacao" (click)="servico.alterar('semAnimacao', !prefs.semAnimacao)" title="Reduzir animações">
+    @if (menuAberto()) {
+      <div
+        class="menu"
+        role="menu"
+        aria-label="Tipo de daltonismo"
+        [style.left.px]="esquerdaDoMenu()"
+        (keydown)="teclasDoMenu($event, gatilho)"
+      >
+        @for (t of tiposDaltonismo; track t.valor) {
+          <button
+            type="button"
+            role="menuitemradio"
+            [attr.aria-checked]="prefs.daltonismo === t.valor"
+            (click)="escolher(t.valor, gatilho)"
+          >
+            <span class="marca-escolha" aria-hidden="true">{{
+              prefs.daltonismo === t.valor ? '✓' : ''
+            }}</span>
+            {{ t.rotulo }}
+          </button>
+        }
+      </div>
+    }
+  </div>
+
+  <button
+    type="button"
+    [attr.aria-pressed]="prefs.semAnimacao"
+    (click)="servico.alterar('semAnimacao', !prefs.semAnimacao)"
+    title="Reduzir animações"
+  >
     <app-icone nome="movimento" /> <span class="rotulo">Sem animação</span>
   </button>
 
-  <button type="button" [attr.aria-pressed]="prefs.vlibras" (click)="servico.alternarLibras()" title="VLibras: tradução para Libras (recurso do governo federal, exige internet)">
-    <app-icone nome="maos" /> <span class="rotulo">Libras</span>
-  </button>
-
-  <button type="button" class="restaurar" (click)="servico.restaurar()" title="Restaurar padrões" aria-label="Restaurar padrões de acessibilidade">
+  <button
+    type="button"
+    class="restaurar"
+    (click)="servico.restaurar()"
+    title="Restaurar padrões"
+    aria-label="Restaurar padrões de acessibilidade"
+  >
     <app-icone nome="restaurar" />
   </button>
 </div>

@@ -1,10 +1,23 @@
 import { HttpClient } from '@angular/common/http';
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormBuilder,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
+import { ErroCampo } from '../../compartilhado/erro-campo';
 import { ANIMAIS, Avatar, rotuloAnimal } from '../../compartilhado/avatar';
-import { Modal } from '../../compartilhado/modal';
+import { Alertas } from '../../compartilhado/alertas';
 import { prepararAvatar } from '../../compartilhado/imagem';
-import { cpfValido, mascaraCep, mascaraCpf, mascaraTelefone, soDigitos } from '../../compartilhado/mascaras';
+import {
+  cpfValido,
+  mascaraCep,
+  mascaraCpf,
+  mascaraTelefone,
+  soDigitos,
+} from '../../compartilhado/mascaras';
 import { AuthService } from '../../core/auth.service';
 import { mensagemDeErro } from '../../core/erro';
 import { DadosPerfil, Usuario } from '../../core/modelos';
@@ -28,13 +41,14 @@ interface RespostaViaCep {
 
 @Component({
   selector: 'app-perfil',
-  imports: [ReactiveFormsModule, Avatar, AlterarSenha, Modal],
+  imports: [ErroCampo, ReactiveFormsModule, Avatar, AlterarSenha],
   templateUrl: './perfil.html',
   styleUrl: './perfil.scss',
 })
 export class Perfil implements OnInit {
   protected readonly auth = inject(AuthService);
   private readonly http = inject(HttpClient);
+  private readonly alertas = inject(Alertas);
 
   protected readonly animais = ANIMAIS;
   protected readonly rotuloAnimal = rotuloAnimal;
@@ -42,15 +56,9 @@ export class Perfil implements OnInit {
   protected readonly salvando = signal(false);
   protected readonly salvandoFoto = signal(false);
   protected readonly erro = signal<string | null>(null);
-  protected readonly erroFoto = signal<string | null>(null);
-  protected readonly aviso = signal<string | null>(null);
   protected readonly avisoCep = signal<string | null>(null);
 
   // Privacidade (LGPD)
-  protected readonly modalExcluir = signal(false);
-  protected readonly senhaExclusao = signal('');
-  protected readonly excluindo = signal(false);
-  protected readonly erroExclusao = signal<string | null>(null);
   protected readonly baixando = signal(false);
 
   protected readonly form = inject(FormBuilder).nonNullable.group({
@@ -107,9 +115,17 @@ export class Perfil implements OnInit {
           this.avisoCep.set('CEP não encontrado. Preencha o endereço manualmente.');
           return;
         }
-        this.form.patchValue({ logradouro: r.logradouro, bairro: r.bairro, cidade: r.localidade, uf: r.uf });
+        this.form.patchValue({
+          logradouro: r.logradouro,
+          bairro: r.bairro,
+          cidade: r.localidade,
+          uf: r.uf,
+        });
       },
-      error: () => this.avisoCep.set('Não foi possível consultar o CEP agora. Preencha o endereço manualmente.'),
+      error: () =>
+        this.avisoCep.set(
+          'Não foi possível consultar o CEP agora. Preencha o endereço manualmente.',
+        ),
     });
   }
 
@@ -121,15 +137,19 @@ export class Perfil implements OnInit {
     }
     this.salvando.set(true);
     this.erro.set(null);
-    this.aviso.set(null);
 
     const v = this.form.getRawValue();
-    const dados: DadosPerfil = { ...v, cpf: soDigitos(v.cpf), telefone: soDigitos(v.telefone), cep: soDigitos(v.cep) };
+    const dados: DadosPerfil = {
+      ...v,
+      cpf: soDigitos(v.cpf),
+      telefone: soDigitos(v.telefone),
+      cep: soDigitos(v.cep),
+    };
 
     this.auth.atualizarPerfil(dados).subscribe({
       next: (u) => {
         this.preencher(u);
-        this.aviso.set('Perfil atualizado.');
+        this.alertas.sucesso('Perfil atualizado.');
         this.salvando.set(false);
       },
       error: (e: unknown) => {
@@ -152,26 +172,25 @@ export class Perfil implements OnInit {
     const arquivo = entrada.files?.[0];
     entrada.value = ''; // permite escolher o mesmo arquivo de novo
     if (!arquivo) return;
-
-    this.erroFoto.set(null);
     try {
       this.trocarAvatar(await prepararAvatar(arquivo));
     } catch (e) {
-      this.erroFoto.set(e instanceof Error ? e.message : 'Não foi possível usar essa imagem.');
+      void this.alertas.erro(
+        e instanceof Error ? e.message : 'Não foi possível usar essa imagem.',
+        'Foto não aceita',
+      );
     }
   }
 
   private trocarAvatar(avatar: string | null) {
     this.salvandoFoto.set(true);
-    this.erroFoto.set(null);
-    this.aviso.set(null);
     this.auth.atualizarPerfil({ avatar }).subscribe({
       next: () => {
-        this.aviso.set(avatar ? 'Foto atualizada.' : 'Foto removida.');
+        this.alertas.sucesso(avatar ? 'Foto atualizada.' : 'Foto removida.');
         this.salvandoFoto.set(false);
       },
       error: (e: unknown) => {
-        this.erroFoto.set(mensagemDeErro(e));
+        void this.alertas.erro(mensagemDeErro(e), 'Não foi possível trocar a foto');
         this.salvandoFoto.set(false);
       },
     });
@@ -192,34 +211,28 @@ export class Perfil implements OnInit {
         this.baixando.set(false);
       },
       error: (e: unknown) => {
-        this.erro.set(mensagemDeErro(e));
+        void this.alertas.erro(mensagemDeErro(e), 'Não foi possível baixar os dados');
         this.baixando.set(false);
       },
     });
   }
 
-  protected abrirExclusao() {
-    this.senhaExclusao.set('');
-    this.erroExclusao.set(null);
-    this.modalExcluir.set(true);
-  }
+  // Pede a senha numa janela do SweetAlert e, se a pessoa confirmar, anonimiza a conta
+  protected async excluirConta() {
+    const senha = await this.alertas.pedirSenha({
+      titulo: 'Excluir a sua conta?',
+      texto:
+        'Esta ação não tem volta: você perde o acesso na hora e os seus dados pessoais são apagados. Não é possível excluir enquanto você estiver com equipamentos emprestados.',
+      confirmar: 'Excluir definitivamente',
+      perigo: true,
+    });
+    if (senha === null) return;
 
-  protected confirmarExclusao() {
-    if (!this.senhaExclusao()) {
-      this.erroExclusao.set('Informe a sua senha para confirmar.');
-      return;
-    }
-    this.excluindo.set(true);
-    this.erroExclusao.set(null);
-    this.auth.excluirConta(this.senhaExclusao()).subscribe({
+    this.auth.excluirConta(senha).subscribe({
       // A conta deixou de existir: limpa a sessão local e volta ao login
-      next: () => {
-        this.auth.encerrarLocalmente('conta-excluida');
-      },
-      error: (e: unknown) => {
-        this.erroExclusao.set(mensagemDeErro(e));
-        this.excluindo.set(false);
-      },
+      next: () => this.auth.encerrarLocalmente('conta-excluida'),
+      error: (e: unknown) =>
+        void this.alertas.erro(mensagemDeErro(e), 'Não foi possível excluir a conta'),
     });
   }
 }

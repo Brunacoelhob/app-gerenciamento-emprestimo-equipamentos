@@ -1,16 +1,22 @@
 <div class="app" [class.menu-aberto]="menuAberto()">
   <header class="barra-mobile">
-    <button type="button" class="hamburguer" aria-controls="menu-lateral" [attr.aria-expanded]="menuAberto()" (click)="menuAberto.set(!menuAberto())">
+    <button
+      type="button"
+      class="hamburguer"
+      aria-controls="menu-lateral"
+      [attr.aria-expanded]="menuAberto()"
+      (click)="menuAberto.set(!menuAberto())"
+    >
       <app-icone [nome]="menuAberto() ? 'fechar' : 'menu'" />
       <span class="so-leitor">{{ menuAberto() ? 'Fechar menu' : 'Abrir menu' }}</span>
     </button>
-    <strong>Empréstimo de Equipamentos</strong>
+    <strong>Equipment loan</strong>
   </header>
 
   <aside id="menu-lateral" class="lateral">
     <a class="marca" routerLink="/">
-      <img src="favicon.svg" alt="" width="32" height="32" />
-      <span>Empréstimo de<br />Equipamentos</span>
+      <app-logo [tamanho]="32" />
+      <span>Equipment<br />loan</span>
     </a>
 
     @if (auth.usuario(); as usuario) {
@@ -27,14 +33,22 @@
       <a routerLink="/" routerLinkActive="ativo" [routerLinkActiveOptions]="{ exact: true }">
         <app-icone nome="grafico" /> Dashboard
       </a>
-      <a routerLink="/equipamentos" routerLinkActive="ativo"><app-icone nome="notebook" /> Equipamentos</a>
-      <a routerLink="/meus-emprestimos" routerLinkActive="ativo"><app-icone nome="troca" /> Meus empréstimos</a>
+      <a routerLink="/equipamentos" routerLinkActive="ativo"
+        ><app-icone nome="notebook" /> Equipamentos</a
+      >
+      <a routerLink="/meus-emprestimos" routerLinkActive="ativo"
+        ><app-icone nome="troca" /> Meus empréstimos</a
+      >
 
       @if (auth.ehAdmin()) {
         <span class="secao">Administração</span>
-        <a routerLink="/emprestimos" routerLinkActive="ativo"><app-icone nome="lista" /> Todos os empréstimos</a>
+        <a routerLink="/emprestimos" routerLinkActive="ativo"
+          ><app-icone nome="lista" /> Todos os empréstimos</a
+        >
         <a routerLink="/usuarios" routerLinkActive="ativo"><app-icone nome="pessoas" /> Usuários</a>
-        <a routerLink="/auditoria" routerLinkActive="ativo"><app-icone nome="escudo" /> Auditoria</a>
+        <a routerLink="/auditoria" routerLinkActive="ativo"
+          ><app-icone nome="escudo" /> Auditoria</a
+        >
       }
 
       <span class="secao">Conta</span>
@@ -44,11 +58,19 @@
     <button class="sair" type="button" (click)="auth.sair()"><app-icone nome="sair" /> Sair</button>
   </aside>
 
-  <button class="fundo-menu" type="button" tabindex="-1" aria-hidden="true" (click)="menuAberto.set(false)"></button>
+  <button
+    class="fundo-menu"
+    type="button"
+    tabindex="-1"
+    aria-hidden="true"
+    (click)="menuAberto.set(false)"
+  ></button>
 
   <main class="conteudo">
     @if (mostrarVoltar()) {
-      <button class="voltar" type="button" (click)="voltar()"><app-icone nome="voltar" /> Voltar</button>
+      <button class="voltar" type="button" (click)="voltar()">
+        <app-icone nome="voltar" /> Voltar
+      </button>
     }
     <router-outlet />
   </main>

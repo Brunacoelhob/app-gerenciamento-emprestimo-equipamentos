@@ -1,6 +1,14 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormBuilder,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ErroCampo } from '../../compartilhado/erro-campo';
+import { RegrasSenha } from '../../compartilhado/regras-senha';
 import { AuthService } from '../../core/auth.service';
 import { mensagemDeErro } from '../../core/erro';
 
@@ -9,7 +17,7 @@ const senhasIguais = (grupo: AbstractControl): ValidationErrors | null =>
 
 @Component({
   selector: 'app-redefinir-senha',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ErroCampo, RegrasSenha, ReactiveFormsModule, RouterLink],
   templateUrl: './redefinir-senha.html',
   styleUrl: '../login/login.scss',
 })
@@ -31,7 +39,12 @@ export class RedefinirSenha implements OnInit {
       // Mesma política da API: 8 a 72 caracteres, com letra e número
       novaSenha: [
         '',
-        [Validators.required, Validators.minLength(8), Validators.maxLength(72), Validators.pattern(/(?=.*[A-Za-z])(?=.*\d)/)],
+        [
+          Validators.required,
+          Validators.minLength(8),
+          Validators.maxLength(72),
+          Validators.pattern(/(?=.*[A-Za-z])(?=.*\d)/),
+        ],
       ],
       confirmacao: ['', [Validators.required]],
     },

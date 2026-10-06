@@ -1,5 +1,7 @@
 <form [formGroup]="form" (ngSubmit)="salvar()" novalidate>
-  <p class="aviso-sessao">Ao confirmar, todas as suas sessões serão encerradas e você entrará de novo.</p>
+  <p class="aviso-sessao">
+    Ao confirmar, todas as suas sessões serão encerradas e você entrará de novo.
+  </p>
 
   @if (erro(); as mensagem) {
     <div class="alerta erro" role="alert">{{ mensagem }}</div>
@@ -14,9 +16,11 @@
       autocomplete="current-password"
       [attr.aria-invalid]="form.controls.senhaAtual.touched && form.controls.senhaAtual.invalid"
     />
-    @if (form.controls.senhaAtual.touched && form.controls.senhaAtual.invalid) {
-      <span class="erro-campo">Informe a senha atual.</span>
-    }
+    <app-erro-campo
+      [controle]="form.controls.senhaAtual"
+      rotulo="senha atual"
+      [mensagens]="{ required: 'Informe a senha atual.' }"
+    />
   </div>
 
   <div class="campo">
@@ -28,9 +32,15 @@
       autocomplete="new-password"
       [attr.aria-invalid]="form.controls.novaSenha.touched && form.controls.novaSenha.invalid"
     />
-    <span class="ajuda">8 a 72 caracteres, com pelo menos uma letra e um número.</span>
-    @if (form.controls.novaSenha.touched && form.controls.novaSenha.invalid) {
-      <span class="erro-campo">A nova senha não atende aos requisitos.</span>
+    <app-erro-campo
+      [controle]="form.controls.novaSenha"
+      rotulo="nova senha"
+      [mensagens]="{ required: 'Escolha a nova senha.' }"
+      [ignorar]="['minlength', 'maxlength', 'pattern']"
+    />
+    <app-regras-senha [controle]="form.controls.novaSenha" />
+    @if (form.controls.novaSenha.touched && form.hasError('igualAtual')) {
+      <span class="erro-campo">A nova senha precisa ser diferente da atual.</span>
     }
   </div>
 

@@ -1,8 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <rect width="64" height="64" rx="14" fill="#2457c5"/>
   <!-- notebook -->
-  <rect x="14" y="17" width="36" height="23" rx="3" fill="none" stroke="#fff" stroke-width="3.5"/>
-  <path d="M9 45h46" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/>
-  <!-- seta de empréstimo/devolução -->
-  <path d="M25 28h14m0 0-4.5-4.5M39 28l-4.5 4.5" fill="none" stroke="#ffd23f" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="17" y="19" width="30" height="19" rx="2.5" fill="none" stroke="#fff" stroke-width="3"/>
+  <path d="M12 43h40" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+  <!-- ciclo de empréstimo e devolução -->
+  <path d="M20 12.5a15 15 0 0 1 24 0m0 0-.5-5m.5 5-5 .5" fill="none" stroke="#ffd23f" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M44 51.5a15 15 0 0 1-24 0m0 0 .5 5m-.5-5 5-.5" fill="none" stroke="#ffd23f" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

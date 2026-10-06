@@ -1,11 +1,8 @@
 <main class="pagina">
   <form class="cartao" [formGroup]="form" (ngSubmit)="entrar()" novalidate>
-    <h1>Empréstimo de Equipamentos</h1>
+    <app-logo class="logo-login" [tamanho]="56" />
+    <h1>Equipment loan</h1>
     <p class="subtitulo">Entre com seu e-mail e senha.</p>
-
-    @if (contaExcluida) {
-      <div class="alerta sucesso" role="status">Sua conta foi excluída e os seus dados pessoais foram apagados.</div>
-    }
 
     @if (erro(); as mensagem) {
       <div class="alerta erro" role="alert">{{ mensagem }}</div>
@@ -20,9 +17,11 @@
         autocomplete="username"
         [attr.aria-invalid]="form.controls.email.touched && form.controls.email.invalid"
       />
-      @if (form.controls.email.touched && form.controls.email.invalid) {
-        <span class="erro-campo">Informe um e-mail válido.</span>
-      }
+      <app-erro-campo
+        [controle]="form.controls.email"
+        rotulo="e-mail"
+        [mensagens]="{ required: 'Informe o e-mail.' }"
+      />
     </div>
 
     <div class="campo">
@@ -34,9 +33,11 @@
         autocomplete="current-password"
         [attr.aria-invalid]="form.controls.senha.touched && form.controls.senha.invalid"
       />
-      @if (form.controls.senha.touched && form.controls.senha.invalid) {
-        <span class="erro-campo">Informe a senha.</span>
-      }
+      <app-erro-campo
+        [controle]="form.controls.senha"
+        rotulo="senha"
+        [mensagens]="{ required: 'Informe a senha.' }"
+      />
     </div>
 
     <button class="botao" type="submit" [disabled]="enviando()">

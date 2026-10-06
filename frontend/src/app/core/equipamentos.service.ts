@@ -19,7 +19,8 @@ export class EquipamentosService {
   listar(filtro: FiltroEquipamentos, limite = 10) {
     let params = new HttpParams().set('pagina', filtro.pagina).set('limite', limite);
     if (filtro.busca.trim()) params = params.set('busca', filtro.busca.trim());
-    if (filtro.situacao === 'disponivel') params = params.set('ativo', true).set('emprestado', false);
+    if (filtro.situacao === 'disponivel')
+      params = params.set('ativo', true).set('emprestado', false);
     if (filtro.situacao === 'emprestado') params = params.set('emprestado', true);
     if (filtro.situacao === 'inativo') params = params.set('ativo', false);
     return this.http.get<Pagina<Equipamento>>(`${API}/equipamentos`, { params });

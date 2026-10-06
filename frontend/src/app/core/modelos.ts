@@ -21,12 +21,25 @@ export interface Usuario {
 
 // Campos editáveis do próprio perfil ("" ou null apaga os opcionais)
 export type DadosPerfil = Partial<
-  Pick<Usuario, 'nome' | 'email' | 'cpf' | 'telefone' | 'cep' | 'logradouro' | 'numero' | 'complemento' | 'bairro' | 'cidade' | 'uf' | 'avatar'>
+  Pick<
+    Usuario,
+    | 'nome'
+    | 'email'
+    | 'cpf'
+    | 'telefone'
+    | 'cep'
+    | 'logradouro'
+    | 'numero'
+    | 'complemento'
+    | 'bairro'
+    | 'cidade'
+    | 'uf'
+    | 'avatar'
+  >
 >;
 
 export interface Tokens {
   accessToken: string;
-  refreshToken: string;
   tipo: 'Bearer';
   accessTokenExpiraEm: string;
 }
@@ -52,25 +65,37 @@ export interface Pagina<T> {
 
 export interface Equipamento {
   id: number;
+  codigo: string;
   nome: string;
   descricao: string | null;
   ativo: boolean;
   emprestado: boolean;
   disponivel: boolean;
+  fila: number;
   criadoEm: string;
+}
+
+export interface Reserva {
+  id: number;
+  criadoEm: string;
+  posicao: number;
+  equipamento: { id: number; codigo: string; nome: string };
 }
 
 export type StatusEmprestimo = 'ATIVO' | 'DEVOLVIDO';
 
 export interface Emprestimo {
   id: number;
+  codigo: string;
   status: StatusEmprestimo;
   dataRetirada: string;
   prazoDevolucao: string;
   dataDevolucao: string | null;
   atrasado: boolean;
-  equipamento: { id: number; nome: string };
-  usuario: { id: number; nome: string; email: string };
+  renovacoes: number;
+  podeRenovar: boolean;
+  equipamento: { id: number; codigo: string; nome: string };
+  usuario: { id: number; codigo: string; nome: string; email: string; telefone: string | null };
 }
 
 export interface DashboardKpis {
@@ -99,6 +124,12 @@ export interface Dashboard {
   serie: { dia: string; retiradas: number; devolucoes: number }[];
   maisEmprestados: ItemRanking[];
   pessoasMaisAtivas: ItemRanking[];
-  atrasados: { id: number; equipamento: string; pessoa: string; prazoDevolucao: string; diasDeAtraso: number }[];
+  atrasados: {
+    id: number;
+    equipamento: string;
+    pessoa: string;
+    prazoDevolucao: string;
+    diasDeAtraso: number;
+  }[];
   geradoEm: string;
 }

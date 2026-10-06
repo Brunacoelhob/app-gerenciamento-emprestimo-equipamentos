@@ -2,18 +2,22 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { switchMap } from 'rxjs';
+import { Logo } from '../../compartilhado/logo';
+import { Alertas } from '../../compartilhado/alertas';
+import { ErroCampo } from '../../compartilhado/erro-campo';
 import { AuthService } from '../../core/auth.service';
 import { mensagemDeErro } from '../../core/erro';
 
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [Logo, ErroCampo, ReactiveFormsModule, RouterLink],
   templateUrl: './login.html',
   styleUrl: './login.scss',
 })
 export class Login implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly alertas = inject(Alertas);
   protected readonly contaExcluida =
     inject(ActivatedRoute).snapshot.queryParamMap.get('aviso') === 'conta-excluida';
 
@@ -47,6 +51,8 @@ export class Login implements OnInit {
   }
 
   ngOnInit() {
+    if (this.contaExcluida)
+      this.alertas.sucesso('Sua conta foi excluída e os seus dados pessoais foram apagados.');
     // Se a configuração não vier (API fora do ar), o link simplesmente não aparece
     this.auth.configuracaoPublica().subscribe({
       next: (c) => this.cadastroAberto.set(c.cadastroPublico),

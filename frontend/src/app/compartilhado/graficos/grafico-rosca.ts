@@ -26,13 +26,21 @@ export class GraficoRosca {
       const pct = total > 0 ? (f.valor / total) * 100 : 0;
       const folga = this.fatias().filter((x) => x.valor > 0).length > 1 ? 0.8 : 0; // respiro entre fatias
       const visivel = Math.max(0, pct - folga);
-      const segmento = { ...f, pct, dasharray: `${visivel} ${100 - visivel}`, deslocamento: 25 - acumulado };
+      const segmento = {
+        ...f,
+        pct,
+        dasharray: `${visivel} ${100 - visivel}`,
+        deslocamento: 25 - acumulado,
+      };
       acumulado += pct;
       return segmento;
     });
   });
 
   protected readonly resumo = computed(
-    () => this.fatias().map((f) => `${f.valor} ${f.rotulo.toLowerCase()}`).join(', ') + `. Total: ${this.total()}.`,
+    () =>
+      this.fatias()
+        .map((f) => `${f.valor} ${f.rotulo.toLowerCase()}`)
+        .join(', ') + `. Total: ${this.total()}.`,
   );
 }

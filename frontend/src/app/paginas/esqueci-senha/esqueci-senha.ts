@@ -1,12 +1,13 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { ErroCampo } from '../../compartilhado/erro-campo';
 import { AuthService } from '../../core/auth.service';
 import { mensagemDeErro } from '../../core/erro';
 
 @Component({
   selector: 'app-esqueci-senha',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ErroCampo, ReactiveFormsModule, RouterLink],
   templateUrl: './esqueci-senha.html',
   styleUrl: '../login/login.scss',
 })

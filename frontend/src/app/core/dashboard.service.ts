@@ -8,6 +8,8 @@ export class DashboardService {
   private readonly http = inject(HttpClient);
 
   resumo(dias: number) {
-    return this.http.get<Dashboard>(`${API}/dashboard/resumo`, { params: new HttpParams().set('dias', dias) });
+    return this.http.get<Dashboard>(`${API}/dashboard/resumo`, {
+      params: new HttpParams().set('dias', dias),
+    });
   }
 }

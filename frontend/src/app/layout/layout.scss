@@ -3,13 +3,13 @@ $largura-menu: 16.5rem;
 .app {
   display: grid;
   grid-template-columns: $largura-menu 1fr;
-  min-height: calc(100vh - var(--altura-barra));
+  min-height: calc(100vh - var(--altura-barra) - var(--altura-rodape));
 }
 
 .lateral {
   position: sticky;
   top: var(--altura-barra); // abaixo da barra de acessibilidade
-  height: calc(100vh - var(--altura-barra));
+  height: calc(100vh - var(--altura-barra) - var(--altura-rodape));
   display: flex;
   flex-direction: column;
   gap: 1rem;

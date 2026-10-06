@@ -1,14 +1,18 @@
 import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { AvisoCookies } from './compartilhado/aviso-cookies';
+import { Rodape } from './compartilhado/rodape';
 import { Acessibilidade } from './compartilhado/acessibilidade';
 import { AcessibilidadeService } from './core/acessibilidade.service';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, Acessibilidade],
+  imports: [RouterOutlet, Acessibilidade, Rodape, AvisoCookies],
   template: `
     <app-acessibilidade />
     <router-outlet />
+    <app-rodape />
+    <app-aviso-cookies />
   `,
 })
 export class App {

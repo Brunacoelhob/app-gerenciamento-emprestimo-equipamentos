@@ -4,7 +4,11 @@ import { Router } from '@angular/router';
 import { catchError, finalize, map, Observable, shareReplay, tap, throwError } from 'rxjs';
 import { DadosPerfil, Tokens, Usuario } from './modelos';
 
-const CHAVE_REFRESH = 'emprestimos.refreshToken';
+// O token de renovação vive num cookie HttpOnly que o JavaScript NÃO consegue ler (um XSS não o rouba). Aqui fica só um
+// indicador ("já houve login neste navegador") para saber se vale tentar restaurar a sessão ao abrir o app.
+const CHAVE_SESSAO = 'emprestimos.sessao';
+// O cookie só é aceito pela API junto com este cabeçalho: um formulário de outro site não consegue enviá-lo (anti-CSRF)
+const CABECALHO_SESSAO = { 'X-Requested-With': 'emprestimos' };
 export const API = '/api/v1'; // o proxy de desenvolvimento remove o "/api"; a API versiona suas rotas em /v1
 
 @Injectable({ providedIn: 'root' })
@@ -25,7 +29,7 @@ export class AuthService {
   }
 
   get temSessaoSalva(): boolean {
-    return this.lerRefresh() !== null;
+    return this.indicadorDeSessao();
   }
 
   login(email: string, senha: string) {
@@ -74,19 +78,20 @@ export class AuthService {
   // o refresh token é de uso único e reapresentá-lo derrubaria todas as sessões da pessoa.
   renovar(): Observable<string> {
     if (this.renovacao$) return this.renovacao$;
-    const refreshToken = this.lerRefresh();
-    if (!refreshToken) return throwError(() => new Error('Sem sessão salva'));
+    if (!this.indicadorDeSessao()) return throwError(() => new Error('Sem sessão salva'));
 
-    this.renovacao$ = this.http.post<Tokens>(`${API}/auth/renovar`, { refreshToken }).pipe(
-      tap((t) => this.guardar(t)),
-      map((t) => t.accessToken),
-      catchError((erro) => {
-        this.limpar();
-        return throwError(() => erro);
-      }),
-      finalize(() => (this.renovacao$ = null)),
-      shareReplay({ bufferSize: 1, refCount: false }),
-    );
+    this.renovacao$ = this.http
+      .post<Tokens>(`${API}/auth/renovar`, {}, { headers: CABECALHO_SESSAO })
+      .pipe(
+        tap((t) => this.guardar(t)),
+        map((t) => t.accessToken),
+        catchError((erro) => {
+          this.limpar();
+          return throwError(() => erro);
+        }),
+        finalize(() => (this.renovacao$ = null)),
+        shareReplay({ bufferSize: 1, refCount: false }),
+      );
     return this.renovacao$;
   }
 
@@ -96,9 +101,13 @@ export class AuthService {
 
   // Encerra a sessão no servidor (idempotente) e localmente.
   sair() {
-    const refreshToken = this.lerRefresh();
+    const havia = this.indicadorDeSessao();
     this.encerrarLocalmente();
-    if (refreshToken) this.http.post<void>(`${API}/auth/sair`, { refreshToken }).subscribe({ error: () => undefined });
+    // O servidor invalida o token e apaga o cookie; se falhar, a sessão local já foi encerrada de qualquer forma
+    if (havia)
+      this.http
+        .post<void>(`${API}/auth/sair`, {}, { headers: CABECALHO_SESSAO })
+        .subscribe({ error: () => undefined });
   }
 
   // Sessão acabou (renovação falhou ou senha trocada): limpa tudo e volta ao login.
@@ -111,17 +120,17 @@ export class AuthService {
   private guardar(t: Tokens) {
     this.accessToken = t.accessToken;
     try {
-      localStorage.setItem(CHAVE_REFRESH, t.refreshToken);
+      localStorage.setItem(CHAVE_SESSAO, '1');
     } catch {
       /* armazenamento bloqueado: a sessão dura só até recarregar a página */
     }
   }
 
-  private lerRefresh(): string | null {
+  private indicadorDeSessao(): boolean {
     try {
-      return localStorage.getItem(CHAVE_REFRESH);
+      return localStorage.getItem(CHAVE_SESSAO) === '1';
     } catch {
-      return null;
+      return false;
     }
   }
 
@@ -129,7 +138,7 @@ export class AuthService {
     this.accessToken = null;
     this.usuario.set(null);
     try {
-      localStorage.removeItem(CHAVE_REFRESH);
+      localStorage.removeItem(CHAVE_SESSAO);
     } catch {
       /* ignora */
     }

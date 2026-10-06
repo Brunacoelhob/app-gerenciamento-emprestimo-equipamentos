@@ -3,12 +3,13 @@
 //
 // As preferências da pessoa viram atributos no <html> (veja AcessibilidadeService):
 //   data-tema="claro|escuro"   (sem o atributo = segue o sistema)
-//   data-contraste="alto"      data-dislexia="on"   data-daltonismo="on"   data-animacao="reduzida"
+//   data-contraste="alto"      data-dislexia="on"   data-daltonismo="protanopia|deuteranopia|tritanopia|acromatopsia"   data-animacao="reduzida"
 // e a variável --zoom (tamanho do texto).
 // ---------------------------------------------------------------------------
 
 :root {
   --zoom: 1;
+  --altura-rodape: 2.5rem; // rodapé fixo embaixo
   --altura-barra: 3rem; // barra de acessibilidade no topo
   --fundo: #f4f6f9;
   --superficie: #ffffff;
@@ -68,16 +69,18 @@
   @include tema-escuro;
 }
 
-// Daltonismo: paleta de Okabe-Ito (distinguível nos tipos comuns de daltonismo), com azul e laranja no lugar de
-// verde e vermelho, e símbolos nos selos para que a cor nunca seja a única pista.
-:root[data-daltonismo='on'] {
+// Daltonismo: uma paleta para cada tipo. Em todas, a cor NUNCA é a única pista (os status ganham símbolos e as
+// séries dos gráficos mudam o traço), mas as cores também são escolhidas para o tipo:
+//   protanopia e deuteranopia (vermelho-verde): azul e laranja, da paleta Okabe-Ito;
+//   tritanopia (azul-amarelo): vermelho/magenta e verde-azulado escuro, sem depender de azul contra amarelo;
+//   acromatopsia (sem cor): cinzas bem diferentes em claridade.
+@mixin daltonismo-vermelho-verde-claro {
   --sucesso: #005a8c;
   --sucesso-fundo: #dcecf7;
   --erro: #a63f00;
   --erro-fundo: #fbe5d6;
   --aviso: #5c4a00;
   --aviso-fundo: #f7ec9a;
-  // Okabe-Ito: azul e laranja
   --grafico-1: #0072b2;
   --grafico-2: #e69f00;
   --cor-disponivel: #0072b2;
@@ -85,23 +88,7 @@
   --cor-desativado: #999999;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root[data-daltonismo='on']:not([data-tema='claro']) {
-    --sucesso: #7cc4f0;
-    --sucesso-fundo: #12354d;
-    --erro: #ffb070;
-    --erro-fundo: #4a2a10;
-    --aviso: #f0e442;
-    --aviso-fundo: #3d3a10;
-    --grafico-1: #56b4e9;
-    --grafico-2: #e69f00;
-    --cor-disponivel: #56b4e9;
-    --cor-emprestado: #e69f00;
-    --cor-desativado: #b3b3b3;
-  }
-}
-
-:root[data-daltonismo='on'][data-tema='escuro'] {
+@mixin daltonismo-vermelho-verde-escuro {
   --sucesso: #7cc4f0;
   --sucesso-fundo: #12354d;
   --erro: #ffb070;
@@ -113,6 +100,109 @@
   --cor-disponivel: #56b4e9;
   --cor-emprestado: #e69f00;
   --cor-desativado: #b3b3b3;
+}
+
+@mixin daltonismo-azul-amarelo-claro {
+  --sucesso: #00695c;
+  --sucesso-fundo: #d6efea;
+  --erro: #b0004f;
+  --erro-fundo: #fbdce8;
+  --aviso: #7a3b00;
+  --aviso-fundo: #ffe6cf;
+  --grafico-1: #b0004f;
+  --grafico-2: #00796b;
+  --cor-disponivel: #00796b;
+  --cor-emprestado: #e65100;
+  --cor-desativado: #8d8d8d;
+}
+
+@mixin daltonismo-azul-amarelo-escuro {
+  --sucesso: #5fd3c2;
+  --sucesso-fundo: #0f3a35;
+  --erro: #ff8ab3;
+  --erro-fundo: #4a1428;
+  --aviso: #ffb77a;
+  --aviso-fundo: #45260a;
+  --grafico-1: #ff6fa3;
+  --grafico-2: #4dd0c0;
+  --cor-disponivel: #4dd0c0;
+  --cor-emprestado: #ff9a4d;
+  --cor-desativado: #b0b0b0;
+}
+
+@mixin daltonismo-sem-cor-claro {
+  --sucesso: #2a2a2a;
+  --sucesso-fundo: #e6e6e6;
+  --erro: #000000;
+  --erro-fundo: #cfcfcf;
+  --aviso: #4a4a4a;
+  --aviso-fundo: #f0f0f0;
+  --primaria: #1f1f1f;
+  --primaria-hover: #000000;
+  --grafico-1: #111111;
+  --grafico-2: #8a8a8a;
+  --cor-disponivel: #9a9a9a;
+  --cor-emprestado: #2e2e2e;
+  --cor-desativado: #dcdcdc;
+}
+
+@mixin daltonismo-sem-cor-escuro {
+  --sucesso: #e6e6e6;
+  --sucesso-fundo: #333333;
+  --erro: #ffffff;
+  --erro-fundo: #4d4d4d;
+  --aviso: #c8c8c8;
+  --aviso-fundo: #262626;
+  --primaria: #e6e6e6;
+  --primaria-hover: #ffffff;
+  --on-primaria: #111111;
+  --grafico-1: #f2f2f2;
+  --grafico-2: #8c8c8c;
+  --cor-disponivel: #d9d9d9;
+  --cor-emprestado: #7a7a7a;
+  --cor-desativado: #454545;
+}
+
+// claro (e escuro explícito escolhido pela pessoa)
+:root[data-daltonismo='protanopia'],
+:root[data-daltonismo='deuteranopia'] {
+  @include daltonismo-vermelho-verde-claro;
+}
+
+:root[data-daltonismo='tritanopia'] {
+  @include daltonismo-azul-amarelo-claro;
+}
+
+:root[data-daltonismo='acromatopsia'] {
+  @include daltonismo-sem-cor-claro;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-daltonismo='protanopia']:not([data-tema='claro']),
+  :root[data-daltonismo='deuteranopia']:not([data-tema='claro']) {
+    @include daltonismo-vermelho-verde-escuro;
+  }
+
+  :root[data-daltonismo='tritanopia']:not([data-tema='claro']) {
+    @include daltonismo-azul-amarelo-escuro;
+  }
+
+  :root[data-daltonismo='acromatopsia']:not([data-tema='claro']) {
+    @include daltonismo-sem-cor-escuro;
+  }
+}
+
+:root[data-daltonismo='protanopia'][data-tema='escuro'],
+:root[data-daltonismo='deuteranopia'][data-tema='escuro'] {
+  @include daltonismo-vermelho-verde-escuro;
+}
+
+:root[data-daltonismo='tritanopia'][data-tema='escuro'] {
+  @include daltonismo-azul-amarelo-escuro;
+}
+
+:root[data-daltonismo='acromatopsia'][data-tema='escuro'] {
+  @include daltonismo-sem-cor-escuro;
 }
 
 // Contraste alto: sempre preto e branco com destaque amarelo, qualquer que seja o tema.
@@ -166,6 +256,8 @@ html {
 
 body {
   margin: 0;
+  padding-bottom: var(--altura-rodape);
+  padding-top: var(--altura-barra); // a barra de acessibilidade é fixa no topo e não cobre o conteúdo
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   background: var(--fundo);
   color: var(--texto);
@@ -393,6 +485,23 @@ a {
   overflow-x: auto;
 }
 
+// Coluna do ID: estreita, sem quebrar, com o ID curto
+.col-id {
+  width: 1%;
+  white-space: nowrap;
+}
+
+// Data de devolução prevista (ainda em andamento): fica mais discreta, e vermelha se já passou
+.prevista {
+  color: var(--texto-suave);
+  font-size: 0.9rem;
+
+  &.atrasada {
+    color: var(--erro);
+    font-weight: 600;
+  }
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
@@ -463,10 +572,15 @@ table {
     background: var(--borda);
     color: var(--texto-suave);
   }
+
+  &.azul {
+    background: color-mix(in srgb, var(--primaria) 14%, transparent);
+    color: var(--primaria);
+  }
 }
 
-// No modo daltonismo cada selo ganha um símbolo: a cor deixa de ser a única pista
-:root[data-daltonismo='on'] {
+// Com qualquer tipo de daltonismo escolhido, cada selo ganha um símbolo: a cor deixa de ser a única pista
+:root[data-daltonismo] {
   .selo.verde::before {
     content: '✓ ';
   }
@@ -505,4 +619,186 @@ table {
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 0.75rem;
+}
+
+// ---------------------------------------------------------------------------
+// SweetAlert2: avisos, erros e confirmações com o visual do sistema (tema, contraste e daltonismo).
+// Os seletores têm duas classes (.swal2-popup.popup-sistema) para vencer o CSS que a biblioteca injeta depois.
+// ---------------------------------------------------------------------------
+.swal2-container {
+  // Os avisos no canto não podem ficar por baixo da barra de acessibilidade fixa no topo
+  &.swal2-top-end,
+  &.swal2-top-start,
+  &.swal2-top {
+    padding-top: calc(var(--altura-barra) + 0.5rem);
+  }
+}
+
+.swal2-popup.popup-sistema {
+  background: var(--superficie);
+  color: var(--texto);
+  border: 1px solid var(--borda);
+  border-radius: 14px;
+  font-family: inherit;
+
+  .swal2-html-container,
+  .swal2-input-label {
+    color: var(--texto-suave);
+  }
+
+  .titulo-sistema {
+    color: var(--texto);
+    font-size: 1.25rem;
+  }
+
+  .swal2-actions {
+    gap: 0.6rem;
+  }
+
+  .campo-sistema {
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    background: var(--fundo);
+    color: var(--texto);
+    font: inherit;
+
+    &:focus {
+      border-color: var(--primaria);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--primaria) 30%, transparent);
+    }
+  }
+
+  .swal2-validation-message {
+    background: var(--erro-fundo);
+    color: var(--erro);
+  }
+
+  .swal2-timer-progress-bar {
+    background: var(--primaria);
+  }
+
+  &.swal2-toast {
+    box-shadow: 0 6px 20px rgb(0 0 0 / 22%);
+
+    .titulo-sistema {
+      font-size: 0.95rem;
+    }
+  }
+}
+
+// Tabelas: só o título do equipamento, numa linha (o nome completo aparece ao passar o mouse)
+td.equip {
+  max-width: 14rem;
+
+  strong {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.pessoa-nome {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.logo-login {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+}
+
+.acoes-cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.renovado {
+  display: block;
+  color: var(--texto-suave);
+  font-size: 0.75rem;
+}
+
+td.acoes-col {
+  white-space: nowrap;
+
+  .botao + .botao {
+    margin-left: 0.35rem;
+  }
+}
+
+.filas {
+  margin-bottom: 1rem;
+
+  h2 {
+    margin: 0 0 0.6rem;
+    font-size: 1rem;
+  }
+
+  ul {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0 0 0.6rem;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .fila-posicao {
+    display: inline-grid;
+    place-items: center;
+    min-width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--primaria) 14%, transparent);
+    color: var(--primaria);
+    font-weight: 700;
+    font-size: 0.85rem;
+  }
+
+  .fila-nome {
+    flex: 1;
+    font-weight: 600;
+  }
+}
+
+// Imprimir a etiqueta: só o quadro do QR code sai na folha
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  dialog[open],
+  dialog[open] .etiqueta,
+  dialog[open] .etiqueta * {
+    visibility: visible;
+  }
+
+  dialog[open] {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  dialog[open] header,
+  dialog[open] footer,
+  dialog[open] .ajuda {
+    display: none;
+  }
+
+  .rodape,
+  app-aviso-cookies,
+  app-acessibilidade {
+    display: none !important;
+  }
 }
