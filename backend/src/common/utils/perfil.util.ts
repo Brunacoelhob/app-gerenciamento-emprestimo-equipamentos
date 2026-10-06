@@ -12,6 +12,23 @@ export const AVATARES_ANIMAIS = [
   'coruja',
   'tartaruga',
   'polvo',
+  'girafa',
+  'elefante',
+  'onca',
+  'tucano',
+  'jacare',
+  'dinossauro',
+  'dragao',
+  'peixe',
+  'tubarao',
+  'baleia',
+  'arraia',
+  'estrela-do-mar',
+  'urso-polar',
+  'urso-da-floresta',
+  'cobra',
+  'coelho',
+  'hamster',
 ] as const;
 
 // Limite do avatar enviado (data URL em texto). O cliente reduz a imagem antes; o servidor não confia nisso.

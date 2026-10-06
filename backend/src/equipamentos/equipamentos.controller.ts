@@ -1,4 +1,6 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query, Res, StreamableFile } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+import type { Response } from 'express';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -17,7 +19,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { AtualizarEquipamentoDto } from './dto/atualizar-equipamento.dto';
 import { CriarEquipamentoDto } from './dto/criar-equipamento.dto';
 import { EquipamentoRespostaDto } from './dto/equipamento-resposta.dto';
-import { ListarEquipamentosDto } from './dto/listar-equipamentos.dto';
+import { ListarEquipamentosDto, RelatorioEquipamentosDto } from './dto/listar-equipamentos.dto';
 import { EquipamentosService } from './equipamentos.service';
 
 @ApiTags('Equipamentos')
@@ -51,6 +53,25 @@ export class EquipamentosController {
   @Get()
   listar(@Query() dto: ListarEquipamentosDto) {
     return this.equipamentos.listar(dto);
+  }
+
+  @ApiOperation({ summary: 'Baixa o relatório do acervo (pdf, xlsx ou csv; somente ADMIN)' })
+  @ApiOkResponse({ description: 'O arquivo, como anexo.' })
+  @ApiForbiddenResponse({ description: 'O usuário autenticado não é ADMIN.' })
+  @Roles(Role.ADMIN)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Get('relatorio')
+  async relatorio(@Query() dto: RelatorioEquipamentosDto, @Res({ passthrough: true }) res: Response) {
+    const { arquivo, total, cortado } = await this.equipamentos.exportar(dto, dto.formato);
+    const dia = new Date().toISOString().slice(0, 10);
+    res.set({
+      'Content-Type': arquivo.tipo,
+      'Content-Disposition': `attachment; filename="equipamentos-${dia}.${arquivo.extensao}"`,
+      'Cache-Control': 'no-store',
+      'X-Total-Registros': String(total),
+      'X-Relatorio-Cortado': String(cortado),
+    });
+    return new StreamableFile(arquivo.buffer);
   }
 
   @ApiOperation({ summary: 'Detalha um equipamento' })

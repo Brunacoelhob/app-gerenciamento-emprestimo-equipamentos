@@ -62,6 +62,7 @@ export class PrivacidadeRepository {
         },
       }),
       this.prisma.refreshToken.deleteMany({ where: { usuarioId: id } }),
+      this.prisma.reserva.updateMany({ where: { usuarioId: id, status: 'AGUARDANDO' }, data: { status: 'CANCELADA' } }),
       this.prisma.recuperacaoSenha.deleteMany({ where: { usuarioId: id } }),
       // A trilha de auditoria guardava o nome e o e-mail: troca pelo nome anonimizado e tira o e-mail dos detalhes
       this.prisma.registroAuditoria.updateMany({ where: { atorId: id }, data: { atorNome: NOME_ANONIMIZADO } }),

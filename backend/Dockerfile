@@ -17,7 +17,7 @@ RUN apt-get update -y \
 FROM base AS dependencias
 COPY package.json package-lock.json ./
 COPY prisma ./prisma
-COPY prisma7.config.ts ./
+COPY prisma.config.ts ./
 # DATABASE_URL só precisa existir para o "prisma generate" do postinstall; nenhuma conexão é aberta no build
 ENV DATABASE_URL="postgresql://build:build@localhost:5432/build"
 RUN npm ci
@@ -35,7 +35,7 @@ COPY --from=construcao /app/node_modules ./node_modules
 COPY --from=construcao /app/dist ./dist
 COPY --from=construcao /app/package.json ./
 COPY prisma ./prisma
-COPY prisma7.config.ts ./
+COPY prisma.config.ts ./
 USER node
 # Aplica as migrations e cria o administrador inicial SOMENTE se ADMIN_EMAIL/ADMIN_SENHA estiverem definidos
 CMD ["sh", "-c", "npx prisma migrate deploy && if [ -n \"$ADMIN_EMAIL\" ]; then node dist/prisma/seed.js; fi"]

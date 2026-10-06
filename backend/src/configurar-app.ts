@@ -1,6 +1,8 @@
 import { BadRequestException, ValidationError, ValidationPipe, VersioningType } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { randomUUID } from 'node:crypto';
+import type { NextFunction, Request, Response } from 'express';
 import helmet from 'helmet';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { LogRequisicaoInterceptor } from './common/interceptors/log-requisicao.interceptor';
@@ -17,6 +19,15 @@ export function configurarApp(app: NestExpressApplication) {
   // com 0 (padrão) o cabeçalho é ignorado e ninguém consegue forjar o próprio IP.
   const proxies = config.getOrThrow<number>('trustProxy');
   if (proxies > 0) app.set('trust proxy', proxies);
+  // ID de requisição: cada pedido ganha um identificador (o do cliente, se vier num formato seguro, ou um novo),
+  // devolvido no cabeçalho X-Request-Id e escrito no log. Com ele, uma reclamação ("deu erro às 14h") vira uma busca.
+  app.use((req: Request, res: Response, proximo: NextFunction) => {
+    const enviado = req.header('x-request-id');
+    const id = enviado && /^[\w.-]{8,64}$/.test(enviado) ? enviado : randomUUID();
+    (req as Request & { idRequisicao?: string }).idRequisicao = id;
+    res.setHeader('X-Request-Id', id);
+    proximo();
+  });
   app.use(helmet()); // cabeçalhos de segurança HTTP (CSP, X-Frame-Options, HSTS...)
 
   // Versionamento na URL: /v1/equipamentos. Uma v2 futura convive com a v1 sem quebrar quem a usa.

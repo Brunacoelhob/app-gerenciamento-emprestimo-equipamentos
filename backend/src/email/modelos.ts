@@ -11,7 +11,7 @@ function moldura(titulo: string, corpo: string): string {
 <h1 style="margin:0 0 16px;font-size:20px">${escapar(titulo)}</h1>
 ${corpo}
 </div>
-<p style="color:#5b6676;font-size:12px;margin:16px 4px">Empréstimo de Equipamentos. Este é um e-mail automático: não responda.</p>
+<p style="color:#5b6676;font-size:12px;margin:16px 4px">Equipment loan. Este é um e-mail automático: não responda.</p>
 </div></body></html>`;
 }
 
@@ -205,6 +205,33 @@ export function emailContaCriada(dados: { para: string; nome: string; link: stri
 <p>Para entrar, use este e-mail e a senha que a pessoa que criou a conta combinou com você. Depois do primeiro acesso, troque a senha no seu perfil.</p>
 <p style="margin:24px 0"><a href="${escapar(link)}" style="background:#2457c5;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:bold;display:inline-block">Entrar</a></p>
 <p style="font-size:13px;color:#5b6676">Se você não esperava este e-mail, ignore-o: nenhuma ação é necessária.</p>`,
+    ),
+  };
+}
+
+export function emailEquipamentoDisponivel(dados: {
+  para: string;
+  nome: string;
+  equipamento: string;
+  link: string;
+}): Mensagem {
+  const { para, nome, equipamento, link } = dados;
+  return {
+    para,
+    assunto: `Chegou a sua vez: ${equipamento} está disponível`,
+    texto: [
+      `Olá, ${nome}.`,
+      '',
+      `O equipamento "${equipamento}", que você esperava na fila, foi devolvido e está disponível.`,
+      'Quem pegar primeiro leva: o empréstimo é por ordem de chegada.',
+      link,
+    ].join('\n'),
+    html: moldura(
+      'Chegou a sua vez',
+      `<p>Olá, ${escapar(nome)}.</p>
+<p>O equipamento <strong>${escapar(equipamento)}</strong>, que você esperava na fila, foi devolvido e está disponível.</p>
+<p style="margin:24px 0"><a href="${escapar(link)}" style="background:#2457c5;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:bold;display:inline-block">Ver o equipamento</a></p>
+<p style="font-size:13px;color:#5b6676">Quem pegar primeiro leva: o empréstimo é por ordem de chegada.</p>`,
     ),
   };
 }

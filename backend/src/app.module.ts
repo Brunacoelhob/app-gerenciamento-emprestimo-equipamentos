@@ -16,6 +16,7 @@ import { RecuperacaoSenhaModule } from './recuperacao-senha/recuperacao-senha.mo
 import { NotificacoesModule } from './notificacoes/notificacoes.module';
 import { PrivacidadeModule } from './privacidade/privacidade.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { ReservasModule } from './reservas/reservas.module';
 import { SaudeModule } from './saude/saude.module';
 import { SessoesModule } from './sessoes/sessoes.module';
 import { UsuariosModule } from './usuarios/usuarios.module';
@@ -35,6 +36,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     RecuperacaoSenhaModule,
     EquipamentosModule,
     EmprestimosModule,
+    ReservasModule,
     DashboardModule,
     NotificacoesModule,
     PrivacidadeModule,

@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class TokensRespostaDto {
   @ApiProperty({
@@ -7,11 +7,12 @@ export class TokensRespostaDto {
   })
   accessToken: string;
 
-  @ApiProperty({
-    description: 'Token de renovação (padrão 7 dias, uso único: a cada renovação vem um novo).',
+  @ApiPropertyOptional({
+    description:
+      'Token de renovação (padrão 7 dias, uso único). Para NAVEGADORES ele NÃO vem aqui: vai no cookie HttpOnly `emp_sessao`. Só aparece para clientes que mandam o cabeçalho X-Tipo-Cliente: api.',
     example: 'q3Zr...',
   })
-  refreshToken: string;
+  refreshToken?: string;
 
   @ApiProperty({ example: 'Bearer' })
   tipo: 'Bearer';
@@ -19,3 +20,6 @@ export class TokensRespostaDto {
   @ApiProperty({ description: 'Quando o accessToken expira.', example: '2026-10-01T12:15:00.000Z' })
   accessTokenExpiraEm: Date;
 }
+
+// O que o serviço sempre produz (com o refresh token). O controlador decide se ele vai no corpo ou só no cookie.
+export type TokensCompletos = TokensRespostaDto & { refreshToken: string };

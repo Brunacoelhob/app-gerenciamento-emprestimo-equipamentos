@@ -1,12 +1,22 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import { IsBoolean, IsEnum, IsInt, IsOptional, IsPositive } from 'class-validator';
+import { IsBoolean, IsEnum, IsIn, IsInt, IsOptional, IsPositive, IsString, MaxLength } from 'class-validator';
 import { StatusEmprestimo } from '../../../generated/prisma/enums';
 import { PaginacaoDto } from '../../common/dto/paginacao.dto';
 import { paraBooleano } from '../../usuarios/dto/listar-usuarios.dto';
 
 // Filtros que valem para "meus empréstimos" e para a listagem geral do ADMIN.
 export class ListarMeusEmprestimosDto extends PaginacaoDto {
+  @ApiPropertyOptional({
+    example: 'notebook',
+    description:
+      'Busca por parte do nome do equipamento. Para ADMIN, também procura no nome e no e-mail de quem pegou.',
+  })
+  @IsOptional()
+  @IsString({ message: 'A busca deve ser um texto.' })
+  @MaxLength(120, { message: 'A busca deve ter no máximo 120 caracteres.' })
+  busca?: string;
+
   @ApiPropertyOptional({
     enum: StatusEmprestimo,
     description: 'Um status inválido devolve 400 (não é ignorado em silêncio).',
@@ -37,4 +47,16 @@ export class ListarEmprestimosDto extends ListarMeusEmprestimosDto {
   @IsInt({ message: 'O equipamentoId deve ser um número inteiro.' })
   @IsPositive({ message: 'O equipamentoId deve ser positivo.' })
   equipamentoId?: number;
+}
+
+export class RelatorioEmprestimosDto extends ListarEmprestimosDto {
+  @ApiPropertyOptional({ enum: ['pdf', 'xlsx', 'csv'], example: 'xlsx', description: 'Tipo do arquivo gerado.' })
+  @IsIn(['pdf', 'xlsx', 'csv'], { message: 'O formato deve ser pdf, xlsx ou csv.' })
+  formato: 'pdf' | 'xlsx' | 'csv';
+}
+
+export class RelatorioMeusEmprestimosDto extends ListarMeusEmprestimosDto {
+  @ApiPropertyOptional({ enum: ['pdf', 'xlsx', 'csv'], example: 'xlsx', description: 'Tipo do arquivo gerado.' })
+  @IsIn(['pdf', 'xlsx', 'csv'], { message: 'O formato deve ser pdf, xlsx ou csv.' })
+  formato: 'pdf' | 'xlsx' | 'csv';
 }

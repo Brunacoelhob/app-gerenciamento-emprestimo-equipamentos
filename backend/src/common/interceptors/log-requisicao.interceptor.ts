@@ -9,14 +9,14 @@ export class LogRequisicaoInterceptor implements NestInterceptor {
   private readonly log = new Logger('HTTP');
 
   intercept(contexto: ExecutionContext, proximo: CallHandler): Observable<unknown> {
-    const requisicao = contexto.switchToHttp().getRequest<Request & { user?: { id: number } }>();
+    const requisicao = contexto.switchToHttp().getRequest<Request & { user?: { id: number }; idRequisicao?: string }>();
     const resposta = contexto.switchToHttp().getResponse<Response>();
     const inicio = Date.now();
 
     const registrar = () => {
       const usuario = requisicao.user ? ` usuario=${requisicao.user.id}` : '';
       this.log.log(
-        `${requisicao.method} ${requisicao.originalUrl} ${resposta.statusCode} ${Date.now() - inicio}ms${usuario}`,
+        `${requisicao.method} ${requisicao.originalUrl} ${resposta.statusCode} ${Date.now() - inicio}ms${usuario} id=${requisicao.idRequisicao ?? '-'}`,
       );
     };
 

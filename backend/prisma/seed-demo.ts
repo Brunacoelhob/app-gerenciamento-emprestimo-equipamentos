@@ -11,7 +11,7 @@ import { Role, StatusEmprestimo } from '../generated/prisma/enums';
 //
 // Todas as contas de demonstração usam a MESMA senha: a de DEMO_SENHA, ou uma aleatória (impressa uma única vez).
 
-const DOMINIO = 'demo.exemplo.com';
+const DOMINIO = 'equipmentloan.com';
 const DIA = 86_400_000;
 
 const PESSOAS = [
@@ -182,7 +182,7 @@ async function main() {
         await prisma.usuario.create({
           data: {
             nome: p.nome,
-            email: `${primeiro}.${resto.join('')}@${DOMINIO}`,
+            email: `${primeiro}.${resto[resto.length - 1]}@${DOMINIO}`,
             senhaHash,
             role: p.role,
             cpf: cpfFicticio(i + 1),

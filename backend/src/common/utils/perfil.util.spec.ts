@@ -36,7 +36,7 @@ describe('avatarValido', () => {
   });
 
   it('recusa animal fora do acervo, SVG, tipo declarado que não bate com o arquivo e texto grande demais', () => {
-    expect(avatarValido('animal:dragao')).toBe(false);
+    expect(avatarValido('animal:unicornio')).toBe(false);
     expect(avatarValido('data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=')).toBe(false);
     expect(avatarValido('data:image/png;base64,' + Buffer.from('<script>alert(1)</script>').toString('base64'))).toBe(
       false,

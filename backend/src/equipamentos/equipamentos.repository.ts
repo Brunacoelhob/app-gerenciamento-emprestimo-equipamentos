@@ -32,7 +32,13 @@ export class EquipamentosRepository {
   async listar(filtro: FiltroEquipamentos, intervalo: { skip: number; take: number }) {
     const where: Prisma.EquipamentoWhereInput = {
       ...(filtro.ativo !== undefined && { ativo: filtro.ativo }),
-      ...(filtro.busca && { nome: { contains: filtro.busca, mode: 'insensitive' } }),
+      ...(filtro.busca?.trim() && {
+        OR: [
+          { nome: { contains: filtro.busca.trim(), mode: 'insensitive' } },
+          { descricao: { contains: filtro.busca.trim(), mode: 'insensitive' } },
+          { codigo: { equals: filtro.busca.trim().toUpperCase() } }, // o QR code da etiqueta busca por ele
+        ],
+      }),
       ...(filtro.emprestado !== undefined && {
         emprestimos: filtro.emprestado
           ? { some: { status: StatusEmprestimo.ATIVO } }

@@ -76,4 +76,12 @@ describe('lerConfiguracao', () => {
     expect(c).toMatchObject({ smtpHost: 'smtp.exemplo.com', smtpPorta: 465, smtpSeguro: true });
     expect(() => lerConfiguracao({ ...base, SMTP_PORTA: '0' })).toThrow('SMTP_PORTA');
   });
+
+  it('cookie Secure: ligado em produção, desligado fora dela, e pode ser decidido de propósito', () => {
+    const producao = { ...base, NODE_ENV: 'production', APP_URL: 'https://app.exemplo.com' };
+    expect(lerConfiguracao(base).cookieSeguro).toBe(false);
+    expect(lerConfiguracao(producao).cookieSeguro).toBe(true);
+    expect(lerConfiguracao({ ...producao, COOKIE_SEGURO: 'false' }).cookieSeguro).toBe(false);
+    expect(lerConfiguracao({ ...base, COOKIE_SEGURO: 'true' }).cookieSeguro).toBe(true);
+  });
 });

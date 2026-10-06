@@ -94,6 +94,7 @@ describe('AuthService', () => {
   describe('login', () => {
     const conta = {
       id: 1,
+      codigo: '4B7E90AA13C5',
       nome: 'A',
       email: 'a@t.com',
       senhaHash: '',

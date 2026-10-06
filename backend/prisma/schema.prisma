@@ -26,6 +26,7 @@ enum StatusEmprestimo {
 
 model Usuario {
   id           Int            @id @default(autoincrement())
+  codigo       String         @unique @default(dbgenerated("upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 12))"))
   nome         String
   email        String         @unique // sempre minúsculo (ver CHECK na migration)
   senhaHash    String // hash bcrypt: a senha em si nunca é guardada
@@ -47,22 +48,26 @@ model Usuario {
   emprestimos  Emprestimo[]
   refreshTokens RefreshToken[]
   recuperacoesSenha RecuperacaoSenha[]
+  reservas     Reserva[]
 }
 
 model Equipamento {
   id           Int          @id @default(autoincrement())
+  codigo       String         @unique @default(dbgenerated("upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 12))"))
   nome         String
   descricao    String?
   ativo        Boolean      @default(true)
   criadoEm     DateTime     @default(now())
   atualizadoEm DateTime     @default(now()) @updatedAt
   emprestimos  Emprestimo[]
+  reservas     Reserva[]
   // "emprestado" NÃO é uma coluna: é derivado da existência de um empréstimo ATIVO,
   // para o estado ter uma única fonte da verdade e nunca divergir.
 }
 
 model Emprestimo {
   id             Int              @id @default(autoincrement())
+  codigo       String         @unique @default(dbgenerated("upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 12))"))
   usuarioId      Int
   usuario        Usuario          @relation(fields: [usuarioId], references: [id])
   equipamentoId  Int
@@ -71,6 +76,7 @@ model Emprestimo {
   dataRetirada   DateTime         @default(now())
   prazoDevolucao DateTime // combinado na retirada; passou disso e ainda ATIVO = atrasado
   dataDevolucao  DateTime?
+  renovacoes     Int              @default(0) // vezes que o prazo foi estendido (limite: MAX_RENOVACOES)
   // Controle das notificações por e-mail: guardam QUANDO o aviso saiu, para não repetir (e para duas instâncias
   // da API não avisarem a mesma pessoa duas vezes: quem grava primeiro, envia)
   lembreteEnviadoEm   DateTime?
@@ -123,3 +129,26 @@ model RegistroAuditoria {
   @@index([acao, criadoEm])
   @@index([atorId, criadoEm])
 }
+
+enum StatusReserva {
+  AGUARDANDO
+  ATENDIDA
+  CANCELADA
+}
+
+// Fila de espera por um equipamento emprestado. Quem aguarda há mais tempo é avisado primeiro quando ele é devolvido.
+// (O índice único parcial "Reserva_aguardando_unica" vive na migration: o Prisma não modela índice parcial.)
+model Reserva {
+  id            Int           @id @default(autoincrement())
+  usuarioId     Int
+  usuario       Usuario       @relation(fields: [usuarioId], references: [id])
+  equipamentoId Int
+  equipamento   Equipamento   @relation(fields: [equipamentoId], references: [id])
+  status        StatusReserva @default(AGUARDANDO)
+  criadoEm      DateTime      @default(now())
+  avisadoEm     DateTime? // quando o último aviso de "disponível" saiu
+
+  @@index([equipamentoId, status, criadoEm])
+  @@index([usuarioId, status])
+}
+

@@ -17,7 +17,7 @@ async function iniciar() {
     const documento = SwaggerModule.createDocument(
       app,
       new DocumentBuilder()
-        .setTitle('Empréstimo de Equipamentos')
+        .setTitle('Equipment loan')
         .setDescription('API de empréstimo de equipamentos: autenticação, usuários, equipamentos e empréstimos.')
         .setVersion('1.0')
         .addBearerAuth()

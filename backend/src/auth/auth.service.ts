@@ -17,7 +17,7 @@ import { UsuariosRepository } from '../usuarios/usuarios.repository';
 import { AlterarSenhaDto } from './dto/alterar-senha.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegistrarUsuarioDto } from './dto/registrar-usuario.dto';
-import { TokensRespostaDto } from './dto/tokens-resposta.dto';
+import { TokensCompletos } from './dto/tokens-resposta.dto';
 
 const MS_POR_DIA = 24 * 3_600_000;
 const hashDoToken = (token: string) => createHash('sha256').update(token).digest('hex');
@@ -57,7 +57,7 @@ export class AuthService {
     return this.config.getOrThrow<boolean>('cadastroPublico');
   }
 
-  async login(dto: LoginDto): Promise<TokensRespostaDto> {
+  async login(dto: LoginDto): Promise<TokensCompletos> {
     const usuario = await this.usuarios.buscarPorEmailComHash(dto.email);
     const senhaConfere = await bcrypt.compare(dto.senha, usuario?.senhaHash ?? this.hashFalso);
 
@@ -72,7 +72,7 @@ export class AuthService {
    * Troca um refresh token por um par novo (rotação). O token antigo morre na hora.
    * Se alguém apresentar um token JÁ usado, é sinal de roubo: todas as sessões da pessoa são encerradas.
    */
-  async renovar(refreshToken: string): Promise<TokensRespostaDto> {
+  async renovar(refreshToken: string): Promise<TokensCompletos> {
     const sessao = await this.sessoes.buscarPorHash(hashDoToken(refreshToken));
     if (!sessao) throw new UnauthorizedException('Sessão inválida. Entre novamente.');
 
@@ -125,7 +125,7 @@ export class AuthService {
     await this.sessoes.revogarTodasDoUsuario(usuarioId);
   }
 
-  private async emitirTokens(usuarioId: number): Promise<TokensRespostaDto> {
+  private async emitirTokens(usuarioId: number): Promise<TokensCompletos> {
     // O token de acesso leva só o id: papel e situação da conta são lidos do banco a cada requisição.
     const accessToken = await this.jwt.signAsync({ sub: usuarioId });
     const { exp } = this.jwt.decode<{ exp: number }>(accessToken);

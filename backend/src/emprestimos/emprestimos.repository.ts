@@ -4,8 +4,8 @@ import { PrismaService } from '../prisma/prisma.service';
 
 // Dados juntados em cada empréstimo para exibição (sem o hash de senha, nunca).
 const DETALHES = {
-  equipamento: { select: { id: true, nome: true } },
-  usuario: { select: { id: true, nome: true, email: true } },
+  equipamento: { select: { id: true, codigo: true, nome: true } },
+  usuario: { select: { id: true, codigo: true, nome: true, email: true, telefone: true } },
 } satisfies Prisma.EmprestimoInclude;
 
 export type EmprestimoDetalhado = Prisma.EmprestimoGetPayload<{ include: typeof DETALHES }>;
@@ -21,6 +21,10 @@ export interface FiltroEmprestimos {
   equipamentoId?: number;
   status?: StatusEmprestimo;
   atrasados?: boolean;
+  /** Parte do nome do equipamento. */
+  busca?: string;
+  /** Também procura a busca no nome e no e-mail de quem pegou (só para quem pode ver todos os empréstimos). */
+  buscarPessoa?: boolean;
 }
 
 @Injectable()
@@ -74,6 +78,32 @@ export class EmprestimosRepository {
     return count === 1;
   }
 
+  /**
+   * Estende o prazo de um empréstimo. As condições (ativo, no prazo, abaixo do limite) estão DENTRO do UPDATE:
+   * duas renovações simultâneas nunca passam do limite. Devolve false se alguma condição falhou.
+   * O lembrete e o aviso de atraso são zerados: o novo prazo merece os seus próprios avisos.
+   */
+  async renovar(id: number, dias: number, maxRenovacoes: number, agora: Date): Promise<boolean> {
+    const atual = await this.prisma.emprestimo.findUnique({ where: { id }, select: { prazoDevolucao: true } });
+    if (!atual) return false;
+    const novoPrazo = new Date(atual.prazoDevolucao.getTime() + dias * 24 * 3_600_000);
+    const { count } = await this.prisma.emprestimo.updateMany({
+      where: {
+        id,
+        status: StatusEmprestimo.ATIVO,
+        renovacoes: { lt: maxRenovacoes },
+        prazoDevolucao: { gte: agora, equals: atual.prazoDevolucao }, // o prazo lido continua o mesmo
+      },
+      data: {
+        prazoDevolucao: novoPrazo,
+        renovacoes: { increment: 1 },
+        lembreteEnviadoEm: null,
+        ultimoAvisoAtrasoEm: null,
+      },
+    });
+    return count === 1;
+  }
+
   async listar(filtro: FiltroEmprestimos, intervalo: { skip: number; take: number }) {
     const where: Prisma.EmprestimoWhereInput = {
       ...(filtro.usuarioId !== undefined && { usuarioId: filtro.usuarioId }),
@@ -81,6 +111,17 @@ export class EmprestimosRepository {
       ...(filtro.status && { status: filtro.status }),
       // Atrasado = ainda ATIVO e com o prazo vencido.
       ...(filtro.atrasados && { status: StatusEmprestimo.ATIVO, prazoDevolucao: { lt: new Date() } }),
+      ...(filtro.busca?.trim() && {
+        OR: [
+          { equipamento: { nome: { contains: filtro.busca.trim(), mode: 'insensitive' } } },
+          ...(filtro.buscarPessoa
+            ? [
+                { usuario: { nome: { contains: filtro.busca.trim(), mode: 'insensitive' as const } } },
+                { usuario: { email: { contains: filtro.busca.trim().toLowerCase() } } },
+              ]
+            : []),
+        ],
+      }),
     };
     const [total, itens] = await Promise.all([
       this.prisma.emprestimo.count({ where }),

@@ -1,0 +1,27 @@
+# Atualizações automáticas de dependências: um PR por semana por pasta, agrupando as mudanças pequenas.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /backend
+    schedule: { interval: weekly }
+    groups:
+      menores-e-correcoes: { update-types: [minor, patch] }
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule: { interval: weekly }
+    groups:
+      menores-e-correcoes: { update-types: [minor, patch] }
+  - package-ecosystem: npm
+    directory: /e2e
+    schedule: { interval: weekly }
+    groups:
+      menores-e-correcoes: { update-types: [minor, patch] }
+  - package-ecosystem: docker
+    directory: /backend
+    schedule: { interval: weekly }
+  - package-ecosystem: docker
+    directory: /frontend
+    schedule: { interval: weekly }
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }

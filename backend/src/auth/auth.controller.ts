@@ -1,4 +1,17 @@
-import { Body, Controller, Get, HttpCode, Patch, Post } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Patch,
+  Post,
+  Req,
+  Res,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import type { Request, Response } from 'express';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -25,8 +38,16 @@ import { AuthService } from './auth.service';
 import { AlterarSenhaDto } from './dto/alterar-senha.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegistrarUsuarioDto } from './dto/registrar-usuario.dto';
+import {
+  limparCookie,
+  lerCookieSessao,
+  NOME_COOKIE,
+  opcoesCookie,
+  pediuTokenNoCorpo,
+  temCabecalhoAntiCsrf,
+} from './cookie-sessao';
 import { RenovarSessaoDto } from './dto/renovar-sessao.dto';
-import { TokensRespostaDto } from './dto/tokens-resposta.dto';
+import { TokensCompletos, TokensRespostaDto } from './dto/tokens-resposta.dto';
 
 const UM_MINUTO = 60_000;
 // 5 tentativas de login por minuto por IP (padrão). LIMITE_LOGIN_POR_MINUTO só deve subir em testes automatizados.
@@ -37,10 +58,34 @@ const UMA_HORA = 3_600_000;
 @ApiTags('Autenticação')
 @Controller('auth')
 export class AuthController {
+  private readonly cookieSeguro: boolean;
+  private readonly diasDaSessao: number;
+
   constructor(
     private readonly auth: AuthService,
     private readonly usuarios: UsuariosService,
-  ) {}
+    config: ConfigService,
+  ) {
+    this.cookieSeguro = config.getOrThrow<boolean>('cookieSeguro');
+    this.diasDaSessao = config.getOrThrow<number>('refreshDias');
+  }
+
+  // O refresh token vai para o cookie HttpOnly. Ele só aparece no corpo da resposta para quem pede (clientes que
+  // não são navegadores): assim o JavaScript de uma página nunca o recebe.
+  private entregarSessao(tokens: TokensCompletos, req: Request, res: Response): TokensRespostaDto {
+    res.cookie(NOME_COOKIE, tokens.refreshToken, opcoesCookie(this.cookieSeguro, this.diasDaSessao));
+    if (pediuTokenNoCorpo(req)) return tokens;
+    return { accessToken: tokens.accessToken, tipo: tokens.tipo, accessTokenExpiraEm: tokens.accessTokenExpiraEm };
+  }
+
+  // Do corpo (clientes de API) ou do cookie (navegador). O cookie exige o cabeçalho anti-CSRF.
+  private refreshTokenDaRequisicao(dto: RenovarSessaoDto, req: Request): string {
+    if (dto.refreshToken) return dto.refreshToken;
+    const doCookie = lerCookieSessao(req);
+    if (!doCookie) throw new UnauthorizedException('Sessão inválida. Entre novamente.');
+    if (!temCabecalhoAntiCsrf(req)) throw new BadRequestException('Cabeçalho obrigatório ausente.');
+    return doCookie;
+  }
 
   @ApiOperation({
     summary: 'Configurações públicas que a tela de login precisa saber',
@@ -80,8 +125,8 @@ export class AuthController {
   @Throttle({ default: { limit: LIMITE_LOGIN, ttl: UM_MINUTO } }) // freio contra força bruta
   @HttpCode(200)
   @Post('login')
-  login(@Body() dto: LoginDto) {
-    return this.auth.login(dto);
+  async login(@Body() dto: LoginDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    return this.entregarSessao(await this.auth.login(dto), req, res);
   }
 
   @ApiOperation({
@@ -95,8 +140,15 @@ export class AuthController {
   @Throttle({ default: { limit: 30, ttl: UM_MINUTO } })
   @HttpCode(200)
   @Post('renovar')
-  renovar(@Body() dto: RenovarSessaoDto) {
-    return this.auth.renovar(dto.refreshToken);
+  async renovar(@Body() dto: RenovarSessaoDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const token = this.refreshTokenDaRequisicao(dto, req);
+    try {
+      return this.entregarSessao(await this.auth.renovar(token), req, res);
+    } catch (erro) {
+      // Sessão inválida, vencida ou reutilizada: o cookie não serve mais e não deve continuar sendo reenviado
+      if (erro instanceof UnauthorizedException) limparCookie(res, this.cookieSeguro);
+      throw erro;
+    }
   }
 
   @ApiOperation({ summary: 'Sai: invalida o refresh token informado (idempotente)' })
@@ -104,8 +156,10 @@ export class AuthController {
   @Publica()
   @HttpCode(204)
   @Post('sair')
-  async sair(@Body() dto: RenovarSessaoDto) {
-    await this.auth.sair(dto.refreshToken);
+  async sair(@Body() dto: RenovarSessaoDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const token = dto.refreshToken ?? lerCookieSessao(req);
+    if (token) await this.auth.sair(token);
+    limparCookie(res, this.cookieSeguro); // sempre: sair com o cookie já vencido também limpa
   }
 
   @ApiOperation({ summary: 'Dados do usuário autenticado' })

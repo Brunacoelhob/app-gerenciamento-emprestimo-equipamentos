@@ -55,6 +55,28 @@ jobs:
       - name: Build
         run: npm run build
 
+  seguranca:
+    name: Segurança - vulnerabilidades conhecidas nas dependências
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - pasta: backend
+            # Há 4 avisos "altos" só em dependências indiretas da CLI do Prisma (deepmerge-ts, mysql2), que não rodam
+            # na API e cujo conserto automático (--force) troca versões do Prisma. Revisar a cada atualização dele.
+            nivel: critical
+          - pasta: frontend
+            nivel: high
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      # Só o que vai para produção (omit=dev)
+      - name: npm audit
+        working-directory: ${{ matrix.pasta }}
+        run: npm audit --omit=dev --audit-level=${{ matrix.nivel }}
+
   frontend:
     name: Frontend - testes e build
     runs-on: ubuntu-latest
