@@ -38,7 +38,7 @@ jobs:
       JWT_SECRET: segredo-de-ci-com-mais-de-32-caracteres-xxxxxxxx
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '24' # o Jest só carrega os pacotes ESM do Nest 12 no Node 24.9+
           cache: npm
@@ -69,7 +69,7 @@ jobs:
             nivel: high
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
       # Só o que vai para produção (omit=dev)
@@ -85,7 +85,7 @@ jobs:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: npm
@@ -164,7 +164,7 @@ jobs:
           done
           docker compose ps
           curl --fail --silent http://127.0.0.1:8080/api/saude
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: npm
