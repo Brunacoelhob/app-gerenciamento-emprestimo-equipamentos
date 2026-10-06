@@ -50,9 +50,9 @@ describe('AuthService', () => {
         ),
       } as unknown as ConfigService;
       const fechado = new AuthService(usuarios, sessoes, jwt, config, { registrar: jest.fn() } as never);
-      await expect(fechado.registrar({ nome: 'A', email: 'a@t.com', senha: 'Senha12345' })).rejects.toBeInstanceOf(
-        ForbiddenException,
-      );
+      await expect(
+        fechado.registrar({ nome: 'A', email: 'a@t.com', senha: 'Senha12345', aceitoPolitica: true }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
       expect(usuarios.criar).not.toHaveBeenCalled();
       expect(fechado.cadastroPublico()).toBe(false);
     });
@@ -76,6 +76,8 @@ describe('AuthService', () => {
         cidade: null,
         uf: null,
         avatar: null,
+        politicaAceitaEm: null,
+        politicaVersao: null,
         criadoEm: new Date(),
       });
       // mesmo que um objeto malicioso chegasse com role, o serviço o ignora
@@ -85,9 +87,9 @@ describe('AuthService', () => {
 
     it('e-mail repetido dá 409', async () => {
       usuarios.criar.mockResolvedValue(null);
-      await expect(servico.registrar({ nome: 'A', email: 'a@t.com', senha: 'Senha12345' })).rejects.toBeInstanceOf(
-        ConflictException,
-      );
+      await expect(
+        servico.registrar({ nome: 'A', email: 'a@t.com', senha: 'Senha12345', aceitoPolitica: true }),
+      ).rejects.toBeInstanceOf(ConflictException);
     });
   });
 
@@ -110,6 +112,8 @@ describe('AuthService', () => {
       cidade: null,
       uf: null,
       avatar: null,
+      politicaAceitaEm: null,
+      politicaVersao: null,
       criadoEm: new Date(),
       atualizadoEm: new Date(),
     };

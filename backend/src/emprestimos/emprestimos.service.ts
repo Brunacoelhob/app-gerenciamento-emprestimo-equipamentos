@@ -38,6 +38,10 @@ export class EmprestimosService {
       case 'criado':
         await this.reservas.atendida(usuarioId, dto.equipamentoId); // saiu da fila dele, se estava
         return paraEmprestimoResposta(resultado.emprestimo);
+      case 'reservado':
+        throw new ConflictException(
+          `Este equipamento está reservado para a primeira pessoa da fila até ${resultado.ate.toLocaleString('pt-BR', { timeZone: this.config.getOrThrow<string>('notificacoesFuso') })}. Entre na fila para ser a próxima.`,
+        );
       case 'inexistente':
         throw new NotFoundException('Equipamento não encontrado.');
       case 'inativo':
@@ -58,7 +62,7 @@ export class EmprestimosService {
     // A condição "ainda ATIVO" está dentro do UPDATE: só uma devolução vence, mesmo com várias ao mesmo tempo.
     const devolvido = await this.emprestimos.marcarDevolvido(emprestimoId, new Date());
     if (!devolvido) throw new ConflictException('Este empréstimo já foi devolvido.');
-    this.reservas.avisarProximo(emprestimo.equipamento.id); // quem espera na fila é avisado
+    this.reservas.avisarPendentes(); // quem tem a vez agora é avisado por e-mail
 
     return paraEmprestimoResposta((await this.emprestimos.buscarPorId(emprestimoId))!);
   }

@@ -3,8 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { randomUUID } from 'node:crypto';
 import type { NextFunction, Request, Response } from 'express';
+import { raw } from 'express';
 import helmet from 'helmet';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { MetricasService } from './saude/metricas.service';
 import { LogRequisicaoInterceptor } from './common/interceptors/log-requisicao.interceptor';
 
 // Configuração HTTP compartilhada entre a API real (main.ts) e os testes e2e:
@@ -37,6 +39,9 @@ export function configurarApp(app: NestExpressApplication) {
   const origens = config.getOrThrow<string[]>('corsOrigens');
   app.enableCors({ origin: origens.length > 0 ? origens : false });
 
+  // Foto do equipamento: o corpo é a própria imagem (binário, até 400 KB). Só nesta rota e só para tipos de imagem.
+  app.use('/v1/equipamentos', raw({ type: ['image/jpeg', 'image/png', 'image/webp'], limit: '400kb' }));
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true, // remove campos desconhecidos...
@@ -54,5 +59,5 @@ export function configurarApp(app: NestExpressApplication) {
     }),
   );
   app.useGlobalFilters(new HttpExceptionFilter());
-  app.useGlobalInterceptors(new LogRequisicaoInterceptor());
+  app.useGlobalInterceptors(new LogRequisicaoInterceptor(app.get(MetricasService)));
 }

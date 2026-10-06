@@ -25,11 +25,16 @@ describe('ReservasService', () => {
       minhas: jest.fn(),
       buscarPorId: jest.fn(),
       cancelar: jest.fn(),
-      primeiroDaFila: jest.fn(),
-      registrarAviso: jest.fn(),
+      promover: jest.fn().mockResolvedValue(null),
+      emVez: jest.fn().mockResolvedValue(new Set()),
+      equipamentosComFila: jest.fn(),
+      vezesSemAviso: jest.fn(),
+      reivindicarAviso: jest.fn(),
     } as unknown as jest.Mocked<ReservasRepository>;
     email = { enviar: jest.fn().mockResolvedValue(undefined) };
-    const config = { getOrThrow: () => 'http://localhost:4200' } as unknown as ConfigService;
+    const config = {
+      getOrThrow: (chave: string) => (chave === 'notificacoesFuso' ? 'America/Sao_Paulo' : 'http://localhost:4200'),
+    } as unknown as ConfigService;
     servico = new ReservasService(repo, email as unknown as EmailService, config);
   });
 
@@ -38,7 +43,13 @@ describe('ReservasService', () => {
       repo.buscarEquipamento.mockResolvedValue(equipamento());
       repo.criar.mockResolvedValue({ id: 7 } as never);
       repo.minhas.mockResolvedValue([
-        { id: 7, criadoEm: new Date(), posicao: 3, equipamento: { id: 5, codigo: 'ABC', nome: 'Notebook' } },
+        {
+          id: 7,
+          criadoEm: new Date(),
+          posicao: 3,
+          prioridadeAte: null,
+          equipamento: { id: 5, codigo: 'ABC', nome: 'Notebook' },
+        },
       ] as never);
       const r = await servico.criar(ana, { equipamentoId: 5 });
       expect(r.posicao).toBe(3);
@@ -78,35 +89,47 @@ describe('ReservasService', () => {
     });
   });
 
-  describe('avisarProximo', () => {
+  describe('avisos de "chegou a sua vez"', () => {
     const esperar = () => new Promise((r) => setTimeout(r, 20));
-
-    it('manda e-mail ao primeiro da fila e registra o aviso', async () => {
-      repo.primeiroDaFila.mockResolvedValue({
-        id: 7,
-        usuario: { nome: 'Ana', email: 'ana@teste.com' },
-        equipamento: { nome: 'Notebook' },
-      } as never);
-      servico.avisarProximo(5);
-      await esperar();
-      expect(repo.registrarAviso).toHaveBeenCalledWith(7, expect.any(Date));
-      expect(email.enviar).toHaveBeenCalledWith(expect.objectContaining({ para: 'ana@teste.com' }));
+    const vez = (sobrescrever: object = {}) => ({
+      id: 7,
+      prioridadeAte: new Date(Date.now() + 3_600_000),
+      usuario: { nome: 'Ana', email: 'ana@teste.com' },
+      equipamento: { nome: 'Notebook' },
+      ...sobrescrever,
     });
 
-    it('fila vazia não manda nada, e falha de e-mail não vira erro para quem devolveu', async () => {
-      repo.primeiroDaFila.mockResolvedValue(null);
-      servico.avisarProximo(5);
+    it('manda e-mail com o prazo exclusivo a quem tem a vez e só uma vez', async () => {
+      repo.vezesSemAviso.mockResolvedValue([vez()] as never);
+      repo.reivindicarAviso.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+      servico.avisarPendentes();
+      await esperar();
+      servico.avisarPendentes(); // outra instância já reivindicou o aviso
+      await esperar();
+      expect(email.enviar).toHaveBeenCalledTimes(1);
+      expect(email.enviar).toHaveBeenCalledWith(
+        expect.objectContaining({ para: 'ana@teste.com', texto: expect.stringContaining('reservado para você até') }),
+      );
+    });
+
+    it('ninguém com a vez: nada é enviado; falha de e-mail não vira erro para quem chamou', async () => {
+      repo.vezesSemAviso.mockResolvedValue([]);
+      servico.avisarPendentes();
       await esperar();
       expect(email.enviar).not.toHaveBeenCalled();
 
-      repo.primeiroDaFila.mockResolvedValue({
-        id: 7,
-        usuario: { nome: 'Ana', email: 'ana@teste.com' },
-        equipamento: { nome: 'Notebook' },
-      } as never);
+      repo.vezesSemAviso.mockResolvedValue([vez()] as never);
+      repo.reivindicarAviso.mockResolvedValue(true);
       email.enviar.mockRejectedValue(new Error('SMTP fora do ar'));
-      expect(() => servico.avisarProximo(5)).not.toThrow();
+      expect(() => servico.avisarPendentes()).not.toThrow();
       await esperar();
+    });
+
+    it('a rotina periódica passa a vez em cada equipamento com fila e avisa', async () => {
+      repo.equipamentosComFila.mockResolvedValue([1, 2]);
+      repo.vezesSemAviso.mockResolvedValue([]);
+      await servico.manterFilas();
+      expect(repo.promover).toHaveBeenCalledTimes(2);
     });
   });
 });

@@ -1,5 +1,6 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { intervalo, montarPagina } from '../common/dto/pagina';
+import { fotoValida, TIPOS_FOTO } from '../common/utils/perfil.util';
 import { AtualizarEquipamentoDto } from './dto/atualizar-equipamento.dto';
 import { CriarEquipamentoDto } from './dto/criar-equipamento.dto';
 import { paraEquipamentoResposta } from './dto/equipamento-resposta.dto';
@@ -32,9 +33,10 @@ export class EquipamentosService {
       { ativo: dto.ativo, emprestado: dto.emprestado, busca: dto.busca },
       intervalo(dto),
     );
-    const filas = await this.reservas.tamanhoDasFilas(itens.map((i) => i.id));
+    const ids = itens.map((i) => i.id);
+    const [filas, emVez] = await Promise.all([this.reservas.tamanhoDasFilas(ids), this.reservas.emVez(ids)]);
     return montarPagina(
-      itens.map((i) => paraEquipamentoResposta(i, filas.get(i.id) ?? 0)),
+      itens.map((i) => paraEquipamentoResposta(i, filas.get(i.id) ?? 0, emVez.has(i.id))),
       total,
       dto,
     );
@@ -62,15 +64,46 @@ export class EquipamentosService {
         { chave: 'situacao', titulo: 'Situação', largura: 14 },
         { chave: 'cadastro', titulo: 'Cadastro', largura: 11 },
       ],
-      linhas: itens.map(paraEquipamentoResposta).map((e) => ({
-        codigo: e.codigo,
-        nome: e.nome,
-        descricao: e.descricao,
-        situacao: !e.ativo ? 'Desativado' : e.emprestado ? 'Emprestado' : 'Disponível',
-        cadastro: f.data(e.criadoEm),
-      })),
+      linhas: itens
+        .map((i) => paraEquipamentoResposta(i))
+        .map((e) => ({
+          codigo: e.codigo,
+          nome: e.nome,
+          descricao: e.descricao,
+          situacao: !e.ativo ? 'Desativado' : e.emprestado ? 'Emprestado' : 'Disponível',
+          cadastro: f.data(e.criadoEm),
+        })),
     });
     return { arquivo, total, cortado };
+  }
+
+  async salvarFoto(id: number, tipo: string | undefined, corpo: unknown) {
+    if (!(await this.equipamentos.buscarPorId(id))) throw new NotFoundException('Equipamento não encontrado.');
+    const tipoLimpo = (tipo ?? '').split(';')[0].trim().toLowerCase();
+    if (!Buffer.isBuffer(corpo) || !(TIPOS_FOTO as readonly string[]).includes(tipoLimpo)) {
+      throw new BadRequestException(
+        'Envie a imagem (PNG, JPEG ou WEBP) como corpo da requisição, com o Content-Type dela.',
+      );
+    }
+    if (!fotoValida(tipoLimpo, corpo)) {
+      throw new BadRequestException(
+        'Imagem inválida: o conteúdo não corresponde ao tipo informado ou passa de 400 KB.',
+      );
+    }
+    await this.equipamentos.salvarFoto(id, tipoLimpo, corpo);
+    return this.obter(id);
+  }
+
+  async removerFoto(id: number) {
+    if (!(await this.equipamentos.buscarPorId(id))) throw new NotFoundException('Equipamento não encontrado.');
+    await this.equipamentos.removerFoto(id);
+    return this.obter(id);
+  }
+
+  async foto(codigo: string) {
+    const foto = await this.equipamentos.buscarFotoPorCodigo(codigo);
+    if (!foto) throw new NotFoundException('Este equipamento não tem foto.');
+    return foto;
   }
 
   async obter(id: number) {

@@ -11,6 +11,7 @@ export interface FiltroEquipamentos {
 // Junta, em cada equipamento, só se existe um empréstimo ATIVO (basta o primeiro): é daí que sai o "emprestado".
 const COM_EMPRESTIMO_ATIVO = {
   emprestimos: { where: { status: StatusEmprestimo.ATIVO }, select: { id: true }, take: 1 },
+  foto: { select: { atualizadoEm: true } }, // só a versão: os bytes da imagem ficam de fora das listagens
 } satisfies Prisma.EquipamentoInclude;
 
 export type EquipamentoComSituacao = Prisma.EquipamentoGetPayload<{ include: typeof COM_EMPRESTIMO_ATIVO }>;
@@ -51,6 +52,23 @@ export class EquipamentosRepository {
       this.prisma.equipamento.findMany({ where, include: COM_EMPRESTIMO_ATIVO, orderBy: { id: 'asc' }, ...intervalo }),
     ]);
     return { total, itens };
+  }
+
+  salvarFoto(equipamentoId: number, tipo: string, dados: Buffer) {
+    return this.prisma.fotoEquipamento.upsert({
+      where: { equipamentoId },
+      create: { equipamentoId, tipo, dados: new Uint8Array(dados) },
+      update: { tipo, dados: new Uint8Array(dados) },
+    });
+  }
+
+  async removerFoto(equipamentoId: number): Promise<boolean> {
+    const { count } = await this.prisma.fotoEquipamento.deleteMany({ where: { equipamentoId } });
+    return count > 0;
+  }
+
+  buscarFotoPorCodigo(codigo: string) {
+    return this.prisma.fotoEquipamento.findFirst({ where: { equipamento: { codigo } } });
   }
 
   atualizar(

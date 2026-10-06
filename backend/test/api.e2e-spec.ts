@@ -6,6 +6,7 @@
 process.env.DATABASE_URL = process.env.DATABASE_URL_TESTE;
 process.env.JWT_SECRET = 'segredo-de-teste-com-mais-de-32-caracteres-0123456789';
 process.env.NODE_ENV = 'test';
+process.env.METRICAS_TOKEN = 'token-de-metricas-de-teste';
 process.env.NOTIFICACOES_ATIVAS = 'false'; // os avisos são disparados à mão nos testes, nunca pelo relógio
 process.env.BCRYPT_CUSTO = '4'; // rápido nos testes; em produção o padrão é 12
 delete process.env.CORS_ORIGENS;
@@ -136,7 +137,7 @@ describe('API de empréstimo de equipamentos (integração)', () => {
     it('cadastro cria sempre um USER e nunca devolve a senha', async () => {
       const r = await http
         .post('/v1/auth/registro')
-        .send({ nome: 'Maria Silva', email: 'maria@teste.com', senha: SENHA })
+        .send({ nome: 'Maria Silva', email: 'maria@teste.com', senha: SENHA, aceitoPolitica: true })
         .expect(201);
       expect(r.body).toMatchObject({ nome: 'Maria Silva', email: 'maria@teste.com', role: 'USER', ativo: true });
       expect(JSON.stringify(r.body)).not.toMatch(/senha|hash/i);
@@ -145,7 +146,7 @@ describe('API de empréstimo de equipamentos (integração)', () => {
     it('enviar role=ADMIN no cadastro é recusado (400) e NÃO cria a conta', async () => {
       const r = await http
         .post('/v1/auth/registro')
-        .send({ nome: 'Atacante', email: 'atacante@teste.com', senha: SENHA, role: 'ADMIN' })
+        .send({ nome: 'Atacante', email: 'atacante@teste.com', senha: SENHA, role: 'ADMIN', aceitoPolitica: true })
         .expect(400);
       expect(r.body.mensagem).toEqual(['O campo "role" não é permitido.']);
       expect(await prisma.usuario.count({ where: { email: 'atacante@teste.com' } })).toBe(0);
@@ -196,11 +197,11 @@ describe('API de empréstimo de equipamentos (integração)', () => {
     it('e-mail é normalizado: maiúsculas e espaços não criam outra conta', async () => {
       await http
         .post('/v1/auth/registro')
-        .send({ nome: 'Ana Souza', email: 'Ana.Souza@Teste.com ', senha: SENHA })
+        .send({ nome: 'Ana Souza', email: 'Ana.Souza@Teste.com ', senha: SENHA, aceitoPolitica: true })
         .expect(201);
       await http
         .post('/v1/auth/registro')
-        .send({ nome: 'Ana Dois', email: 'ANA.SOUZA@teste.com', senha: SENHA })
+        .send({ nome: 'Ana Dois', email: 'ANA.SOUZA@teste.com', senha: SENHA, aceitoPolitica: true })
         .expect(409);
       const r = await http
         .post('/v1/auth/login')
@@ -222,15 +223,32 @@ describe('API de empréstimo de equipamentos (integração)', () => {
 
     it('senha fraca, e-mail inválido, nome curto e campos desconhecidos dão 400 com mensagens claras', async () => {
       const casos = [
-        { nome: 'Bia Lima', email: 'bia@teste.com', senha: '1234567' }, // curta
-        { nome: 'Bia Lima', email: 'bia@teste.com', senha: 'somenteletras' }, // sem número
-        { nome: 'Bia Lima', email: 'bia@teste.com', senha: '12345678901' }, // sem letra
-        { nome: 'Bia Lima', email: 'bia@teste.com', senha: 'a1'.repeat(40) }, // acima de 72 (limite do bcrypt)
-        { nome: 'Bia Lima', email: 'nao-e-email', senha: SENHA },
-        { nome: 'B', email: 'bia@teste.com', senha: SENHA },
-        { nome: 'Bia Lima', email: 'bia@teste.com', senha: SENHA, ativo: false }, // campo desconhecido
+        { nome: 'Bia Lima', email: 'bia@teste.com', senha: '1234567', aceitoPolitica: true }, // curta
+        { nome: 'Bia Lima', email: 'bia@teste.com', senha: 'somenteletras', aceitoPolitica: true }, // sem número
+        { nome: 'Bia Lima', email: 'bia@teste.com', senha: '12345678901', aceitoPolitica: true }, // sem letra
+        { nome: 'Bia Lima', email: 'bia@teste.com', senha: 'a1'.repeat(40), aceitoPolitica: true }, // acima de 72 (limite do bcrypt)
+        { nome: 'Bia Lima', email: 'nao-e-email', senha: SENHA, aceitoPolitica: true },
+        { nome: 'B', email: 'bia@teste.com', senha: SENHA, aceitoPolitica: true },
+        { nome: 'Bia Lima', email: 'bia@teste.com', senha: SENHA, ativo: false, aceitoPolitica: true }, // campo desconhecido
       ];
       for (const corpo of casos) await http.post('/v1/auth/registro').send(corpo).expect(400);
+    });
+
+    it('o aceite da Política de Privacidade é obrigatório e fica registrado (quando e qual versão)', async () => {
+      const base = { nome: 'Dora Aceite', email: 'dora@teste.com', senha: SENHA };
+      for (const corpo of [base, { ...base, aceitoPolitica: false }, { ...base, aceitoPolitica: 'true' }]) {
+        const r = await http.post('/v1/auth/registro').send(corpo).expect(400);
+        expect(JSON.stringify(r.body.mensagem)).toContain('Política de Privacidade');
+      }
+      expect(await prisma.usuario.count({ where: { email: 'dora@teste.com' } })).toBe(0); // nada foi criado
+
+      await http
+        .post('/v1/auth/registro')
+        .send({ ...base, aceitoPolitica: true })
+        .expect(201);
+      const salvo = await prisma.usuario.findUniqueOrThrow({ where: { email: 'dora@teste.com' } });
+      expect(salvo.politicaVersao).toBe('0.1-modelo');
+      expect(Date.now() - (salvo.politicaAceitaEm?.getTime() ?? 0)).toBeLessThan(10_000);
     });
 
     it('login com senha errada, e-mail inexistente ou conta desativada dá a MESMA resposta', async () => {
@@ -1176,7 +1194,7 @@ describe('API de empréstimo de equipamentos (integração)', () => {
       await http.patch('/v1/auth/eu').set(auth(outra.token)).send({ cpf: pessoa.cpf }).expect(200);
       await http
         .post('/v1/auth/registro')
-        .send({ nome: 'Quem Voltou', email: pessoa.email, senha: 'SenhaForte123' })
+        .send({ nome: 'Quem Voltou', email: pessoa.email, senha: 'SenhaForte123', aceitoPolitica: true })
         .expect(201);
     });
   });
@@ -1867,6 +1885,241 @@ describe('API de empréstimo de equipamentos (integração)', () => {
   });
 
   // =====================================================================================================
+  describe('prioridade de quem reservou primeiro', () => {
+    const aguardar = (ms = 300) => new Promise((r) => setTimeout(r, ms));
+    async function filaDe(...pessoas: { token: string }[]) {
+      const dono = await criarUsuario('USER');
+      const equipamento = await criarEquipamento();
+      await http.post('/v1/emprestimos').set(auth(dono.token)).send({ equipamentoId: equipamento.id }).expect(201);
+      for (const p of pessoas) {
+        await http.post('/v1/reservas').set(auth(p.token)).send({ equipamentoId: equipamento.id }).expect(201);
+        await new Promise((r) => setTimeout(r, 15)); // ordem de chegada bem definida
+      }
+      const emp = await prisma.emprestimo.findFirstOrThrow({ where: { equipamentoId: equipamento.id } });
+      return {
+        dono,
+        equipamento,
+        devolver: () => http.patch(`/v1/emprestimos/${emp.id}/devolucao`).set(auth(dono.token)).expect(200),
+      };
+    }
+    const limpar = async () => {
+      await prisma.reserva.deleteMany();
+      await prisma.emprestimo.deleteMany();
+    };
+
+    it('ao devolver, só o PRIMEIRO da fila pode pegar; um intruso recebe 409 e o segundo também', async () => {
+      const ana = await criarUsuario('USER');
+      const bia = await criarUsuario('USER');
+      const intruso = await criarUsuario('USER');
+      const { equipamento, devolver } = await filaDe(ana, bia);
+      await devolver();
+
+      const bloqueado = await http
+        .post('/v1/emprestimos')
+        .set(auth(intruso.token))
+        .send({ equipamentoId: equipamento.id })
+        .expect(409);
+      expect(JSON.stringify(bloqueado.body)).toContain('reservado');
+      await http.post('/v1/emprestimos').set(auth(bia.token)).send({ equipamentoId: equipamento.id }).expect(409); // 2ª da fila espera
+
+      const minhas = await http.get('/v1/reservas/minhas').set(auth(ana.token)).expect(200);
+      expect(minhas.body[0].minhaVez).toBe(true);
+      expect(minhas.body[0].prioridadeAte).toBeTruthy();
+      const daBia = await http.get('/v1/reservas/minhas').set(auth(bia.token)).expect(200);
+      expect(daBia.body[0].minhaVez).toBe(false);
+
+      const admin = await criarUsuario('ADMIN');
+      const lista = await http
+        .get(`/v1/equipamentos?busca=${encodeURIComponent(equipamento.nome)}`)
+        .set(auth(admin.token))
+        .expect(200);
+      expect(lista.body.itens[0].reservado).toBe(true);
+
+      await http.post('/v1/emprestimos').set(auth(ana.token)).send({ equipamentoId: equipamento.id }).expect(201); // a primeira pega
+      await limpar();
+    });
+
+    it('a pessoa da vez não pega a tempo: a vez expira e passa para a próxima da fila, com e-mail', async () => {
+      const ana = await criarUsuario('USER');
+      const bia = await criarUsuario('USER');
+      const { equipamento, devolver } = await filaDe(ana, bia);
+      await devolver();
+      await aguardar();
+
+      emails.length = 0;
+      // o prazo exclusivo da Ana acaba
+      await prisma.reserva.updateMany({
+        where: { usuarioId: ana.id, status: 'AGUARDANDO' },
+        data: { prioridadeAte: new Date(Date.now() - 1000) },
+      });
+      // a próxima tentativa (de qualquer pessoa) já encontra a fila em ordem: a vez é da Bia
+      const admin = await criarUsuario('ADMIN');
+      await http.post('/v1/emprestimos').set(auth(admin.token)).send({ equipamentoId: equipamento.id }).expect(409);
+      expect(await prisma.reserva.count({ where: { usuarioId: ana.id, status: 'EXPIRADA' } })).toBe(1);
+      const daBia = await http.get('/v1/reservas/minhas').set(auth(bia.token)).expect(200);
+      expect(daBia.body[0].minhaVez).toBe(true);
+
+      await http.post('/v1/emprestimos').set(auth(bia.token)).send({ equipamentoId: equipamento.id }).expect(201);
+      await limpar();
+    });
+
+    it('quem tem a vez e desiste (sai da fila) passa a vez para o próximo e ele é avisado', async () => {
+      const ana = await criarUsuario('USER');
+      const bia = await criarUsuario('USER');
+      const { devolver } = await filaDe(ana, bia);
+      await devolver();
+      const minha = (await http.get('/v1/reservas/minhas').set(auth(ana.token)).expect(200)).body[0];
+
+      emails.length = 0;
+      await http.delete(`/v1/reservas/${minha.id}`).set(auth(ana.token)).expect(204);
+      await aguardar();
+      const daBia = await http.get('/v1/reservas/minhas').set(auth(bia.token)).expect(200);
+      expect(daBia.body[0].minhaVez).toBe(true);
+      expect(emails.some((e) => e.para === bia.email && e.texto.includes('reservado para você até'))).toBe(true);
+      await limpar();
+    });
+
+    it('sem fila, o equipamento devolvido continua livre para qualquer pessoa (ordem de chegada)', async () => {
+      const outra = await criarUsuario('USER');
+      const { equipamento, devolver } = await filaDe();
+      await devolver();
+      await http.post('/v1/emprestimos').set(auth(outra.token)).send({ equipamentoId: equipamento.id }).expect(201);
+      await limpar();
+    });
+
+    it('a rotina periódica passa a vez e avisa sozinha, sem ninguém tentar pegar', async () => {
+      const ana = await criarUsuario('USER');
+      const bia = await criarUsuario('USER');
+      const { devolver } = await filaDe(ana, bia);
+      await devolver();
+      await aguardar();
+      await prisma.reserva.updateMany({
+        where: { usuarioId: ana.id, status: 'AGUARDANDO' },
+        data: { prioridadeAte: new Date(Date.now() - 1000) },
+      });
+      emails.length = 0;
+      const { ReservasService } = await import('../src/reservas/reservas.service.js');
+      await app.get(ReservasService).manterFilas();
+      expect(emails.some((e) => e.para === bia.email)).toBe(true);
+      expect(await prisma.reserva.count({ where: { usuarioId: ana.id, status: 'EXPIRADA' } })).toBe(1);
+      await limpar();
+    });
+  });
+
+  // =====================================================================================================
+  describe('foto do equipamento', () => {
+    // Cabeçalhos reais de cada formato seguidos de enchimento: o servidor confere só os bytes iniciais
+    const jpeg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(200, 1)]);
+    const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47]), Buffer.alloc(200, 2)]);
+    const enviar = (token: string, id: number, tipo: string, corpo: Buffer) =>
+      http.put(`/v1/equipamentos/${id}/foto`).set(auth(token)).set('Content-Type', tipo).send(corpo);
+    const binario = (res: NodeJS.ReadableStream, cb: (erro: Error | null, corpo: Buffer) => void) => {
+      const partes: Buffer[] = [];
+      res.on('data', (p: Buffer) => partes.push(p));
+      res.on('end', () => cb(null, Buffer.concat(partes)));
+    };
+
+    it('o ADMIN envia a foto; a lista traz só a versão; a imagem sai pelo código, sem login, e é guardada no cache', async () => {
+      const admin = await criarUsuario('ADMIN');
+      const e = await criarEquipamento();
+      const antes = await http.get(`/v1/equipamentos/${e.id}`).set(auth(admin.token)).expect(200);
+      expect(antes.body.fotoVersao).toBeNull();
+
+      const r = await enviar(admin.token, e.id, 'image/jpeg', jpeg).expect(200);
+      expect(typeof r.body.fotoVersao).toBe('number');
+      expect(JSON.stringify(r.body)).not.toContain('dados'); // os bytes nunca vão para o JSON
+
+      const img = await http
+        .get(`/v1/equipamentos/foto/${e.codigo}`)
+        .buffer(true)
+        .parse(binario as never)
+        .expect(200);
+      expect(img.headers['content-type']).toContain('image/jpeg');
+      expect(img.headers['cache-control']).toContain('immutable');
+      expect((img.body as Buffer).equals(jpeg)).toBe(true);
+      // o código aceita minúsculas (vem de uma URL digitada)
+      await http.get(`/v1/equipamentos/foto/${e.codigo.toLowerCase()}`).expect(200);
+
+      // trocar a foto muda a versão
+      await new Promise((r2) => setTimeout(r2, 20));
+      const troca = await enviar(admin.token, e.id, 'image/png', png).expect(200);
+      expect(troca.body.fotoVersao).toBeGreaterThan(r.body.fotoVersao);
+    });
+
+    it('recusa: usuário comum (403), sem login (401), SVG/HTML disfarçado, tipo que não bate, vazio e corpo que não é imagem', async () => {
+      const admin = await criarUsuario('ADMIN');
+      const comum = await criarUsuario('USER');
+      const e = await criarEquipamento();
+
+      await enviar(comum.token, e.id, 'image/jpeg', jpeg).expect(403);
+      await http.put(`/v1/equipamentos/${e.id}/foto`).set('Content-Type', 'image/jpeg').send(jpeg).expect(401);
+      await enviar(admin.token, e.id, 'image/png', jpeg).expect(400); // diz PNG, mas os bytes são JPEG
+      await enviar(
+        admin.token,
+        e.id,
+        'image/jpeg',
+        Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"></svg>'),
+      ).expect(400);
+      await enviar(admin.token, e.id, 'image/svg+xml', Buffer.from('<svg></svg>')).expect(400);
+      await http.put(`/v1/equipamentos/${e.id}/foto`).set(auth(admin.token)).send({ imagem: 'x' }).expect(400); // JSON, não imagem
+      await enviar(admin.token, 999999, 'image/jpeg', jpeg).expect(404);
+    });
+
+    it('imagem grande demais (mais de 400 KB) é recusada', async () => {
+      const admin = await criarUsuario('ADMIN');
+      const e = await criarEquipamento();
+      const grande = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.alloc(450 * 1024, 3)]);
+      const r = await enviar(admin.token, e.id, 'image/jpeg', grande);
+      expect(r.status).toBe(413);
+      expect(JSON.stringify(r.body)).toContain('400 KB');
+    });
+
+    it('remover apaga a foto (e a imagem some, 404); equipamento sem foto também dá 404; entra na auditoria', async () => {
+      const admin = await criarUsuario('ADMIN');
+      const e = await criarEquipamento();
+      await http.get(`/v1/equipamentos/foto/${e.codigo}`).expect(404);
+
+      await enviar(admin.token, e.id, 'image/jpeg', jpeg).expect(200);
+      const r = await http.delete(`/v1/equipamentos/${e.id}/foto`).set(auth(admin.token)).expect(200);
+      expect(r.body.fotoVersao).toBeNull();
+      await http.get(`/v1/equipamentos/foto/${e.codigo}`).expect(404);
+      await http.get('/v1/equipamentos/foto/CODIGOINEXISTENTE').expect(404);
+
+      await new Promise((r2) => setTimeout(r2, 300));
+      const lista = await http.get('/v1/auditoria?acao=EQUIPAMENTO_FOTO_ATUALIZADA').set(auth(admin.token)).expect(200);
+      expect(lista.body.itens.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  // =====================================================================================================
+  describe('métricas de monitoramento', () => {
+    it('sem o token certo é 401; com ele, 200 em texto no formato do Prometheus, com números de verdade', async () => {
+      await http.get('/metricas').expect(401);
+      await http.get('/metricas').set('Authorization', 'Bearer token-errado').expect(401);
+      await http.get('/metricas').set('Authorization', 'Bearer token-de-metricas-de-teste-123').expect(401); // tamanho igual, valor diferente
+
+      const dono = await criarUsuario('USER');
+      const equipamento = await criarEquipamento();
+      await http.post('/v1/emprestimos').set(auth(dono.token)).send({ equipamentoId: equipamento.id }).expect(201);
+
+      const r = await http.get('/metricas').set('Authorization', 'Bearer token-de-metricas-de-teste').expect(200);
+      expect(r.headers['content-type']).toContain('text/plain');
+      expect(r.headers['cache-control']).toBe('no-store');
+      expect(r.text).toContain('emprestimo_up 1');
+      expect(r.text).toContain('emprestimo_db_up 1');
+      expect(r.text).toMatch(/emprestimo_emprestimos_ativos [1-9]\d*/);
+      expect(r.text).toMatch(/emprestimo_http_requests_total\{status="2xx"\} [1-9]\d*/);
+      expect(r.text).toMatch(/emprestimo_http_requests_total\{status="4xx"\} [1-9]\d*/); // os 401 acima
+      await prisma.emprestimo.deleteMany();
+    });
+
+    it('a rota não aparece na documentação nem exige login de usuário', async () => {
+      const r = await http.get('/metricas').expect(401);
+      expect(JSON.stringify(r.body)).toContain('Token de métricas');
+    });
+  });
+
+  // =====================================================================================================
   describe('limite de requisições', () => {
     it('mais de 5 logins por minuto devolvem 429', async () => {
       const pessoa = await criarUsuario('USER');
@@ -1891,7 +2144,7 @@ describe('API de empréstimo de equipamentos (integração)', () => {
           (
             await http
               .post('/v1/auth/registro')
-              .send({ nome: `Massa ${i}`, email: `massa${i}@teste.com`, senha: SENHA })
+              .send({ nome: `Massa ${i}`, email: `massa${i}@teste.com`, senha: SENHA, aceitoPolitica: true })
           ).status,
         );
       }

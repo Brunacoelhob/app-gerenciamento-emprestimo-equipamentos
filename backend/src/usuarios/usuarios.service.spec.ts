@@ -20,6 +20,8 @@ const usuario = (sobrescrever: Partial<UsuarioPublico> = {}): UsuarioPublico => 
   bairro: null,
   cidade: null,
   uf: null,
+  politicaAceitaEm: null,
+  politicaVersao: null,
   avatar: null,
   criadoEm: new Date(),
   ...sobrescrever,

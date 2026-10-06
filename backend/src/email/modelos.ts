@@ -214,16 +214,20 @@ export function emailEquipamentoDisponivel(dados: {
   nome: string;
   equipamento: string;
   link: string;
+  ate?: string;
 }): Mensagem {
-  const { para, nome, equipamento, link } = dados;
+  const { para, nome, equipamento, link, ate } = dados;
+  const prazo = ate
+    ? `Ele está reservado para você até ${ate}. Depois disso, a vez passa para a próxima pessoa da fila.`
+    : 'Quem pegar primeiro leva.';
   return {
     para,
     assunto: `Chegou a sua vez: ${equipamento} está disponível`,
     texto: [
       `Olá, ${nome}.`,
       '',
-      `O equipamento "${equipamento}", que você esperava na fila, foi devolvido e está disponível.`,
-      'Quem pegar primeiro leva: o empréstimo é por ordem de chegada.',
+      `Chegou a sua vez! O equipamento "${equipamento}", que você esperava na fila, foi devolvido e está disponível.`,
+      prazo,
       link,
     ].join('\n'),
     html: moldura(
@@ -231,7 +235,7 @@ export function emailEquipamentoDisponivel(dados: {
       `<p>Olá, ${escapar(nome)}.</p>
 <p>O equipamento <strong>${escapar(equipamento)}</strong>, que você esperava na fila, foi devolvido e está disponível.</p>
 <p style="margin:24px 0"><a href="${escapar(link)}" style="background:#2457c5;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:bold;display:inline-block">Ver o equipamento</a></p>
-<p style="font-size:13px;color:#5b6676">Quem pegar primeiro leva: o empréstimo é por ordem de chegada.</p>`,
+<p style="font-size:13px;color:#5b6676">${escapar(prazo)}</p>`,
     ),
   };
 }

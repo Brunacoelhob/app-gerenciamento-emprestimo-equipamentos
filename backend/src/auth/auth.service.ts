@@ -16,6 +16,7 @@ import { SessoesRepository } from '../sessoes/sessoes.repository';
 import { UsuariosRepository } from '../usuarios/usuarios.repository';
 import { AlterarSenhaDto } from './dto/alterar-senha.dto';
 import { LoginDto } from './dto/login.dto';
+import { POLITICA_VERSAO } from '../common/politica';
 import { RegistrarUsuarioDto } from './dto/registrar-usuario.dto';
 import { TokensCompletos } from './dto/tokens-resposta.dto';
 
@@ -48,7 +49,15 @@ export class AuthService {
       );
     }
     const senhaHash = await bcrypt.hash(dto.senha, this.custo);
-    const criado = await this.usuarios.criar({ nome: dto.nome, email: dto.email, senhaHash, role: Role.USER });
+    const criado = await this.usuarios.criar({
+      nome: dto.nome,
+      email: dto.email,
+      senhaHash,
+      role: Role.USER,
+      // Registro do consentimento: quando e qual versão da política a pessoa aceitou
+      politicaAceitaEm: new Date(),
+      politicaVersao: POLITICA_VERSAO,
+    });
     if (!criado) throw new ConflictException('Já existe um usuário com esse e-mail.');
     return criado;
   }

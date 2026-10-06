@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, StatusEmprestimo } from '../../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { promoverFila } from '../reservas/fila.util';
 
 // Dados juntados em cada empréstimo para exibição (sem o hash de senha, nunca).
 const DETALHES = {
@@ -14,7 +15,8 @@ export type ResultadoRetirada =
   | { tipo: 'criado'; emprestimo: EmprestimoDetalhado }
   | { tipo: 'inexistente' }
   | { tipo: 'inativo' }
-  | { tipo: 'indisponivel' };
+  | { tipo: 'indisponivel' }
+  | { tipo: 'reservado'; ate: Date };
 
 export interface FiltroEmprestimos {
   usuarioId?: number;
@@ -48,6 +50,10 @@ export class EmprestimosRepository {
         const jaEmprestado = await tx.emprestimo.count({ where: { equipamentoId, status: StatusEmprestimo.ATIVO } });
         if (jaEmprestado > 0) return { tipo: 'indisponivel' } as const;
 
+        // Quem reservou primeiro tem a vez: outra pessoa não passa na frente enquanto o prazo exclusivo vale
+        const vez = await promoverFila(tx, equipamentoId, new Date());
+        if (vez && vez.usuarioId !== usuarioId) return { tipo: 'reservado', ate: vez.ate } as const;
+
         const emprestimo = await tx.emprestimo.create({
           data: { usuarioId, equipamentoId, prazoDevolucao },
           include: DETALHES,
@@ -71,11 +77,21 @@ export class EmprestimosRepository {
    * Devolve false se outro pedido devolveu antes (devolução dupla simultânea).
    */
   async marcarDevolvido(id: number, quando: Date): Promise<boolean> {
-    const { count } = await this.prisma.emprestimo.updateMany({
-      where: { id, status: StatusEmprestimo.ATIVO },
-      data: { status: StatusEmprestimo.DEVOLVIDO, dataDevolucao: quando },
+    return this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.emprestimo.updateMany({
+        where: { id, status: StatusEmprestimo.ATIVO },
+        data: { status: StatusEmprestimo.DEVOLVIDO, dataDevolucao: quando },
+      });
+      if (count !== 1) return false;
+      // O equipamento voltou: a vez passa, na mesma transação, para o primeiro da fila (ninguém fura nesse intervalo)
+      const { equipamentoId } = await tx.emprestimo.findUniqueOrThrow({
+        where: { id },
+        select: { equipamentoId: true },
+      });
+      await tx.$queryRaw`SELECT "id" FROM "Equipamento" WHERE "id" = ${equipamentoId} FOR UPDATE`;
+      await promoverFila(tx, equipamentoId, quando);
+      return true;
     });
-    return count === 1;
   }
 
   /**

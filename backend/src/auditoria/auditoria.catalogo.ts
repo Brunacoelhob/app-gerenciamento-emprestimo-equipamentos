@@ -21,6 +21,8 @@ export const CATALOGO_ACOES = {
   EQUIPAMENTO_EDITADO: { rotulo: 'Equipamento editado', categoria: 'acervo', critica: false },
   EQUIPAMENTO_DESATIVADO: { rotulo: 'Equipamento desativado', categoria: 'acervo', critica: false },
   EQUIPAMENTO_REATIVADO: { rotulo: 'Equipamento reativado', categoria: 'acervo', critica: false },
+  EQUIPAMENTO_FOTO_ATUALIZADA: { rotulo: 'Foto do equipamento atualizada', categoria: 'acervo', critica: false },
+  EQUIPAMENTO_FOTO_REMOVIDA: { rotulo: 'Foto do equipamento removida', categoria: 'acervo', critica: false },
   DEVOLUCAO_POR_ADMIN: { rotulo: 'Devolução feita por administrador', categoria: 'emprestimo', critica: false },
   EMPRESTIMO_RENOVADO: { rotulo: 'Prazo renovado', categoria: 'emprestimo', critica: false },
   SENHA_ALTERADA: { rotulo: 'Senha alterada', categoria: 'seguranca', critica: false },

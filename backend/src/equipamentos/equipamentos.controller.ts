@@ -1,6 +1,21 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query, Res, StreamableFile } from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
-import type { Response } from 'express';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Put,
+  Query,
+  Req,
+  Res,
+  StreamableFile,
+} from '@nestjs/common';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
+import type { Request, Response } from 'express';
+import { Publica } from '../common/decorators/publica.decorator';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -72,6 +87,62 @@ export class EquipamentosController {
       'X-Relatorio-Cortado': String(cortado),
     });
     return new StreamableFile(arquivo.buffer);
+  }
+
+  @ApiOperation({
+    summary: 'Foto do equipamento (pública, pelo código aleatório)',
+    description:
+      'Pública de propósito: o navegador carrega <img> sem enviar o token. O código tem 12 caracteres aleatórios, não dá para adivinhá-lo, e a imagem é só a foto do objeto.',
+  })
+  @ApiOkResponse({ description: 'A imagem (PNG, JPEG ou WEBP).' })
+  @ApiNotFoundResponse({ description: 'Equipamento sem foto.' })
+  @Publica()
+  @SkipThrottle()
+  @Get('foto/:codigo')
+  async foto(@Param('codigo') codigo: string, @Res({ passthrough: true }) res: Response) {
+    const foto = await this.equipamentos.foto(codigo.toUpperCase());
+    res.set({
+      'Content-Type': foto.tipo,
+      // A URL leva a versão (?v=): trocar a foto muda a URL, então o navegador pode guardar por muito tempo
+      'Cache-Control': 'public, max-age=31536000, immutable',
+      'Content-Disposition': 'inline',
+    });
+    return new StreamableFile(Buffer.from(foto.dados));
+  }
+
+  @ApiOperation({
+    summary: 'Envia ou troca a foto do equipamento (somente ADMIN)',
+    description:
+      'O corpo é a própria imagem, com Content-Type image/png, image/jpeg ou image/webp (até 400 KB). O conteúdo é conferido pelos bytes.',
+  })
+  @ApiOkResponse({ type: EquipamentoRespostaDto })
+  @ApiBadRequestResponse({ description: 'Imagem inválida, de outro tipo ou grande demais.' })
+  @ApiForbiddenResponse({ description: 'O usuário autenticado não é ADMIN.' })
+  @ApiNotFoundResponse({ description: 'Equipamento não encontrado.' })
+  @Roles(Role.ADMIN)
+  @Auditar<EquipamentoRespostaDto>({
+    entidade: 'equipamento',
+    acao: 'EQUIPAMENTO_FOTO_ATUALIZADA',
+    detalhes: (_c, r) => ({ nome: r?.nome }),
+  })
+  @Put(':id/foto')
+  salvarFoto(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
+    return this.equipamentos.salvarFoto(id, req.headers['content-type'], req.body);
+  }
+
+  @ApiOperation({ summary: 'Remove a foto do equipamento (somente ADMIN)' })
+  @ApiOkResponse({ type: EquipamentoRespostaDto })
+  @ApiForbiddenResponse({ description: 'O usuário autenticado não é ADMIN.' })
+  @ApiNotFoundResponse({ description: 'Equipamento não encontrado.' })
+  @Roles(Role.ADMIN)
+  @Auditar<EquipamentoRespostaDto>({
+    entidade: 'equipamento',
+    acao: 'EQUIPAMENTO_FOTO_REMOVIDA',
+    detalhes: (_c, r) => ({ nome: r?.nome }),
+  })
+  @Delete(':id/foto')
+  removerFoto(@Param('id', ParseIntPipe) id: number) {
+    return this.equipamentos.removerFoto(id);
   }
 
   @ApiOperation({ summary: 'Detalha um equipamento' })

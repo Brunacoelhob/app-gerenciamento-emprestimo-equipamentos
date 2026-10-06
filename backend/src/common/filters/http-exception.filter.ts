@@ -44,6 +44,23 @@ export class HttpExceptionFilter implements ExceptionFilter {
       return;
     }
 
+    // Erros do leitor de corpo do Express (antes de chegar ao Nest): corpo grande demais ou JSON quebrado
+    const tipo = (excecao as { type?: string } | null)?.type;
+    if (tipo === 'entity.too.large' || tipo === 'entity.parse.failed') {
+      const status = tipo === 'entity.too.large' ? HttpStatus.PAYLOAD_TOO_LARGE : HttpStatus.BAD_REQUEST;
+      resposta.status(status).json({
+        statusCode: status,
+        erro: ROTULOS_STATUS[status],
+        mensagem:
+          status === HttpStatus.PAYLOAD_TOO_LARGE
+            ? 'O corpo da requisição é grande demais (a foto do equipamento aceita até 400 KB).'
+            : 'O corpo da requisição não é um JSON válido.',
+        caminho: requisicao.url,
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
     // Erro não previsto: registra o detalhe no log (com a pilha) mas NÃO o devolve ao cliente.
     this.log.error(
       `${requisicao.method} ${requisicao.url}`,

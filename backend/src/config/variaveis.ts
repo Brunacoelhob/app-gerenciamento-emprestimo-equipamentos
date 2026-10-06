@@ -14,6 +14,8 @@ export interface Configuracao {
   /** Origens liberadas no CORS. Vazio = nenhuma origem de navegador. */
   corsOrigens: string[];
   swaggerAtivo: boolean;
+  /** Token para ler GET /metricas. Vazio = a rota fica desligada (404). */
+  metricasToken: string;
   /** Quantos proxies reversos confiáveis existem na frente da API (0 = acesso direto). Define de onde sai o IP do cliente. */
   trustProxy: number;
   /** Endereço público da interface web: vai nos links dos e-mails (ex.: https://app.exemplo.com). */
@@ -98,6 +100,7 @@ export function lerConfiguracao(env: Record<string, unknown> = process.env): Con
       .map((o) => o.trim())
       .filter(Boolean),
     // Em produção o Swagger fica desligado, a menos que seja ligado de propósito.
+    metricasToken: texto('METRICAS_TOKEN'),
     swaggerAtivo: texto('SWAGGER_ATIVO') ? texto('SWAGGER_ATIVO') === 'true' : ambiente !== 'production',
     trustProxy: inteiro(texto('TRUST_PROXY'), 0, 'TRUST_PROXY', 0, 5),
     appUrl: lerAppUrl(texto('APP_URL'), ambiente),

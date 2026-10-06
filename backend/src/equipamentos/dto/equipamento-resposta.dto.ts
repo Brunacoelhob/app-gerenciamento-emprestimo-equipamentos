@@ -12,11 +12,24 @@ export class EquipamentoRespostaDto {
   @ApiProperty({ example: false, description: 'Existe um empréstimo ativo. Valor derivado, nunca fica desatualizado.' })
   emprestado: boolean;
   @ApiProperty({ example: true, description: 'Pode ser retirado agora: ativo e não emprestado.' }) disponivel: boolean;
+  @ApiProperty({
+    example: 1760000000000,
+    nullable: true,
+    type: Number,
+    description: 'Versão da foto (ou null se não tem). A imagem sai de GET /v1/equipamentos/foto/{codigo}?v=versão.',
+  })
+  fotoVersao: number | null;
   @ApiProperty({ example: 2, description: 'Quantas pessoas esperam na fila deste equipamento.' }) fila: number;
+  @ApiProperty({ example: false, description: 'Livre, mas guardado para a primeira pessoa da fila (prazo exclusivo).' })
+  reservado: boolean;
   @ApiProperty({ example: '2026-10-01T12:00:00.000Z' }) criadoEm: Date;
 }
 
-export function paraEquipamentoResposta(e: EquipamentoComSituacao, fila = 0): EquipamentoRespostaDto {
+export function paraEquipamentoResposta(
+  e: EquipamentoComSituacao,
+  fila = 0,
+  reservado = false,
+): EquipamentoRespostaDto {
   const emprestado = e.emprestimos.length > 0;
   return {
     id: e.id,
@@ -26,7 +39,9 @@ export function paraEquipamentoResposta(e: EquipamentoComSituacao, fila = 0): Eq
     ativo: e.ativo,
     emprestado,
     disponivel: e.ativo && !emprestado,
+    fotoVersao: e.foto ? e.foto.atualizadoEm.getTime() : null,
     fila,
+    reservado,
     criadoEm: e.criadoEm,
   };
 }

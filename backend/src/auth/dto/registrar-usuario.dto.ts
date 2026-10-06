@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsEmail, IsString, MaxLength, MinLength } from 'class-validator';
+import { Equals, IsEmail, IsString, MaxLength, MinLength } from 'class-validator';
 import { aparar, normalizarEmail } from '../../common/utils/texto.util';
 import { SenhaForte } from '../../common/validacao/senha-forte.decorator';
 
@@ -23,4 +23,11 @@ export class RegistrarUsuarioDto {
 
   @SenhaForte()
   senha: string;
+
+  @ApiProperty({
+    example: true,
+    description: 'Aceite da Política de Privacidade. Precisa ser true: sem ele a conta não é criada.',
+  })
+  @Equals(true, { message: 'É preciso aceitar a Política de Privacidade para criar a conta.' })
+  aceitoPolitica: boolean;
 }

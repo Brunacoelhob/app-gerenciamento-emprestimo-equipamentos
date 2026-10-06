@@ -71,3 +71,21 @@ export function avatarValido(valor: string): boolean {
       return inicio.subarray(0, 4).toString('ascii') === 'RIFF' && inicio.subarray(8, 12).toString('ascii') === 'WEBP';
   }
 }
+
+export const TIPOS_FOTO = ['image/jpeg', 'image/png', 'image/webp'] as const;
+export const FOTO_MAX_BYTES = 400 * 1024;
+
+/** Confere os bytes iniciais: o cabeçalho Content-Type sozinho não basta (SVG e HTML disfarçados são recusados). */
+export function fotoValida(tipo: string, dados: Buffer): boolean {
+  if (dados.length === 0 || dados.length > FOTO_MAX_BYTES) return false;
+  switch (tipo) {
+    case 'image/png':
+      return dados.subarray(0, 4).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+    case 'image/jpeg':
+      return dados.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff]));
+    case 'image/webp':
+      return dados.subarray(0, 4).toString('ascii') === 'RIFF' && dados.subarray(8, 12).toString('ascii') === 'WEBP';
+    default:
+      return false;
+  }
+}

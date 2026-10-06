@@ -1,0 +1,24 @@
+# Monitor externo: a cada 15 minutos confere se a aplicação publicada responde. Só roda se o segredo URL_PRODUCAO
+# estiver definido (Settings > Secrets and variables > Actions). Se falhar, o GitHub avisa por e-mail quem
+# estiver com as notificações de Actions ligadas; ALERTA_WEBHOOK (opcional) manda também para Slack/Discord/Teams.
+name: Monitor da aplicação
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  saude:
+    name: Conferir /saude
+    runs-on: ubuntu-latest
+    env:
+      URL: ${{ secrets.URL_PRODUCAO }}
+      ALERTA_WEBHOOK: ${{ secrets.ALERTA_WEBHOOK }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verificar
+        if: ${{ env.URL != '' }}
+        run: |
+          chmod +x scripts/monitorar-saude.sh
+          ESTADO="$RUNNER_TEMP/estado" ./scripts/monitorar-saude.sh

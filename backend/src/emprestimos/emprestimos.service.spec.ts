@@ -32,7 +32,7 @@ describe('EmprestimosService', () => {
   let repo: jest.Mocked<EmprestimosRepository>;
   let servico: EmprestimosService;
   let relatorios: { gerar: jest.Mock };
-  let reservas: { atendida: jest.Mock; avisarProximo: jest.Mock };
+  let reservas: { atendida: jest.Mock; avisarPendentes: jest.Mock };
 
   beforeEach(() => {
     repo = {
@@ -45,7 +45,7 @@ describe('EmprestimosService', () => {
     relatorios = {
       gerar: jest.fn().mockResolvedValue({ buffer: Buffer.from('x'), tipo: 'text/csv', extensao: 'csv' }),
     };
-    reservas = { atendida: jest.fn().mockResolvedValue(undefined), avisarProximo: jest.fn() };
+    reservas = { atendida: jest.fn().mockResolvedValue(undefined), avisarPendentes: jest.fn() };
     const config = { getOrThrow: () => 'America/Sao_Paulo' } as unknown as ConfigService;
     servico = new EmprestimosService(
       repo,
@@ -99,7 +99,7 @@ describe('EmprestimosService', () => {
       repo.marcarDevolvido.mockResolvedValue(true);
       await expect(servico.devolver({ id: 1, role: Role.USER }, 10)).resolves.toBeDefined();
       expect(repo.marcarDevolvido).toHaveBeenCalledWith(10, expect.any(Date));
-      expect(reservas.avisarProximo).toHaveBeenCalledWith(5); // quem está na fila é avisado
+      expect(reservas.avisarPendentes).toHaveBeenCalled(); // quem tem a vez é avisado
     });
 
     it('outro USER não devolve o empréstimo alheio, e nada é alterado', async () => {

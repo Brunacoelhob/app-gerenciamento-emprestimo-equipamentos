@@ -9,6 +9,8 @@ const PUBLICOS = {
   email: true,
   role: true,
   ativo: true,
+  politicaAceitaEm: true,
+  politicaVersao: true,
   cpf: true,
   telefone: true,
   cep: true,
@@ -35,7 +37,14 @@ export class UsuariosRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   /** Devolve null se o e-mail já existir (violação do índice único), em vez de lançar erro do Prisma. */
-  async criar(dados: { nome: string; email: string; senhaHash: string; role: Role }): Promise<UsuarioPublico | null> {
+  async criar(dados: {
+    nome: string;
+    email: string;
+    senhaHash: string;
+    role: Role;
+    politicaAceitaEm?: Date;
+    politicaVersao?: string;
+  }): Promise<UsuarioPublico | null> {
     try {
       return await this.prisma.usuario.create({ data: dados, select: PUBLICOS });
     } catch (erro) {

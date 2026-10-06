@@ -1,4 +1,5 @@
 import { ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Interval } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { Prisma, Role } from '../../generated/prisma/client';
 import type { UsuarioAutenticado } from '../common/interfaces/usuario-autenticado.interface';
@@ -21,7 +22,9 @@ export class ReservasService {
     const equipamento = await this.reservas.buscarEquipamento(dto.equipamentoId);
     if (!equipamento) throw new NotFoundException('Equipamento não encontrado.');
     if (!equipamento.ativo) throw new ConflictException('Este equipamento está fora de uso e não tem fila.');
-    if (equipamento.emprestimos.length === 0) {
+    await this.reservas.promover(equipamento.id); // fila em ordem antes de decidir
+    const reservado = (await this.reservas.emVez([equipamento.id])).has(equipamento.id);
+    if (equipamento.emprestimos.length === 0 && !reservado) {
       throw new ConflictException('Este equipamento está disponível agora: pegue-o direto, sem fila.');
     }
     if (equipamento.emprestimos.some((e) => e.usuarioId === usuario.id)) {
@@ -52,6 +55,9 @@ export class ReservasService {
       throw new ForbiddenException('Você só pode sair das suas próprias filas.');
     }
     if (!(await this.reservas.cancelar(id))) throw new ConflictException('Esta reserva já não está na fila.');
+    // Se era quem tinha a vez, ela passa para o próximo da fila
+    await this.reservas.promover(reserva.equipamentoId);
+    this.avisarPendentes();
   }
 
   /** Quantas pessoas esperam por cada equipamento. */
@@ -64,28 +70,49 @@ export class ReservasService {
     return this.reservas.marcarAtendida(usuarioId, equipamentoId);
   }
 
+  /** Passa a vez de quem deixou o prazo vencer e avisa quem passou a ter a vez. Roda a cada 5 minutos. */
+  @Interval(5 * 60_000)
+  async manterFilas(): Promise<void> {
+    try {
+      for (const id of await this.reservas.equipamentosComFila()) await this.reservas.promover(id);
+      await this.enviarAvisos();
+    } catch (erro) {
+      this.log.error(`Falha ao manter as filas: ${erro instanceof Error ? erro.message : 'erro desconhecido'}`);
+    }
+  }
+
   /**
-   * O equipamento foi devolvido: avisa por e-mail quem espera há mais tempo. Em segundo plano e sem nunca derrubar
-   * a devolução: se o e-mail falhar, a devolução já valeu e o erro só vai para o log.
+   * Avisa por e-mail quem tem a vez agora. Em segundo plano e sem nunca derrubar a ação de quem chamou (a devolução
+   * já valeu): se o e-mail falhar, o erro só vai para o log.
    */
-  avisarProximo(equipamentoId: number): void {
-    void (async () => {
-      const proximo = await this.reservas.primeiroDaFila(equipamentoId);
-      if (!proximo) return;
-      await this.reservas.registrarAviso(proximo.id, new Date());
+  avisarPendentes(): void {
+    void this.enviarAvisos().catch((erro: unknown) =>
+      this.log.error(`Falha ao avisar a fila: ${erro instanceof Error ? erro.message : 'erro desconhecido'}`),
+    );
+  }
+
+  private async enviarAvisos(): Promise<void> {
+    for (const vez of await this.reservas.vezesSemAviso()) {
+      if (!(await this.reservas.reivindicarAviso(vez.id, new Date()))) continue;
       await this.email.enviar(
         emailEquipamentoDisponivel({
-          para: proximo.usuario.email,
-          nome: proximo.usuario.nome,
-          equipamento: proximo.equipamento.nome,
+          para: vez.usuario.email,
+          nome: vez.usuario.nome,
+          equipamento: vez.equipamento.nome,
           link: `${this.config.getOrThrow<string>('appUrl')}/equipamentos`,
+          ate: vez.prioridadeAte
+            ? vez.prioridadeAte.toLocaleString('pt-BR', {
+                timeZone: this.config.getOrThrow<string>('notificacoesFuso'),
+              })
+            : undefined,
         }),
       );
-    })().catch((erro: unknown) =>
-      this.log.error(
-        `Falha ao avisar a fila do equipamento ${equipamentoId}: ${erro instanceof Error ? erro.message : 'erro desconhecido'}`,
-      ),
-    );
+    }
+  }
+
+  /** Quais equipamentos estão reservados para alguém agora. */
+  emVez(equipamentoIds: number[]) {
+    return this.reservas.emVez(equipamentoIds);
   }
 }
 
@@ -93,7 +120,17 @@ function paraRespostaDaFila(r: {
   id: number;
   criadoEm: Date;
   posicao: number;
+  prioridadeAte: Date | null;
   equipamento: { id: number; codigo: string; nome: string };
 }) {
-  return { id: r.id, criadoEm: r.criadoEm, posicao: r.posicao, equipamento: r.equipamento };
+  // minhaVez: o prazo exclusivo para pegar o equipamento ainda vale para esta pessoa
+  const minhaVez = !!r.prioridadeAte && r.prioridadeAte.getTime() > Date.now();
+  return {
+    id: r.id,
+    criadoEm: r.criadoEm,
+    posicao: r.posicao,
+    minhaVez,
+    prioridadeAte: minhaVez ? r.prioridadeAte : null,
+    equipamento: r.equipamento,
+  };
 }
