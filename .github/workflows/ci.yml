@@ -37,7 +37,7 @@ jobs:
       DATABASE_URL_TESTE: postgresql://postgres:postgres@127.0.0.1:5432/emprestimo_teste?schema=public
       JWT_SECRET: segredo-de-ci-com-mais-de-32-caracteres-xxxxxxxx
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: '24' # o Jest só carrega os pacotes ESM do Nest 12 no Node 24.9+
@@ -68,7 +68,7 @@ jobs:
           - pasta: frontend
             nivel: high
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -84,7 +84,7 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -106,7 +106,7 @@ jobs:
       JWT_SECRET: segredo-de-ci-com-mais-de-32-caracteres-xxxxxxxx
       APP_URL: http://localhost:8080
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Valida o docker-compose
         run: docker compose config -q
       - name: Constrói as imagens
@@ -154,7 +154,7 @@ jobs:
       LIMITE_RECUPERACAO_POR_HORA: 100000
       LIMITE_REDEFINICAO_POR_HORA: 100000
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Sobe a aplicação inteira (com o Mailpit)
         run: |
           docker compose --profile dev up -d --build
