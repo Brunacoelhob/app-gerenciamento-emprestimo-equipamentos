@@ -4,7 +4,7 @@
 #   construcao -> instala as dependências e gera os arquivos estáticos do Angular
 #   producao   -> nginx (sem privilégios de root) serve os arquivos e encaminha /api para a API
 
-FROM node:24-bookworm-slim AS construcao
+FROM node:25-bookworm-slim AS construcao
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
