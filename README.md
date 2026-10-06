@@ -18,6 +18,8 @@ API REST para controlar quem está com cada equipamento (notebooks, projetores, 
 - **Dois papéis:** `USER` retira e devolve equipamentos; `ADMIN` também cadastra equipamentos, vê todos os empréstimos e gerencia usuários.
 - **Equipamentos:** cadastro, edição, busca, desativação (só se não estiver emprestado) e situação sempre correta (`emprestado`/`disponivel` são derivados, nunca ficam desatualizados).
 - **Empréstimos:** prazo de 1 a 30 dias (padrão 7), devolução pelo dono ou por um ADMIN, **atraso** calculado, e listagens com filtros (status, atrasados, pessoa, equipamento).
+- **Renovação e fila de espera:** o prazo pode ser renovado até 2 vezes antes de vencer; quem quer um equipamento emprestado entra na fila e recebe e-mail quando ele for devolvido. O administrador imprime uma **etiqueta com QR code** por equipamento.
+- **Relatórios** em PDF, Excel e CSV de auditoria, empréstimos e equipamentos, com os filtros da tela.
 - **Listagens paginadas** com metadados (`total`, `totalPaginas`) e ordenação estável.
 - **Documentação interativa (Swagger)** em `/docs` fora de produção, e rota de saúde `/saude`.
 
@@ -109,7 +111,7 @@ npm start                       # http://localhost:4200
 
 O servidor de desenvolvimento encaminha `/api/*` para a API (veja `frontend/proxy.conf.json`), então **não é preciso configurar CORS** localmente.
 
-A interface tem: login e sessão (renovação automática do token), **dashboard** com oito indicadores e gráficos (movimentação diária, situação do acervo, rankings e atrasos; o administrador vê o sistema todo e cada pessoa vê os próprios empréstimos), cada card com uma janela explicando o que o número significa e como é calculado, botão **Voltar** nas páginas, equipamentos, empréstimos, **perfil** (foto do acervo de bichinhos ou enviada, dados pessoais com CPF, telefone e CEP com preenchimento do endereço, troca de senha), **gestão de usuários** para administradores (criar contas e perfis) e uma **barra de acessibilidade fixa no topo** de todas as telas, com um botão ao lado do outro: tamanho do texto (A− e A+), alto contraste, modo escuro/claro, fonte para dislexia, cores para daltonismo, redução de animações e [VLibras](https://vlibras.gov.br/) (tradução para Libras, carregada só quando você aperta o botão). As escolhas ficam salvas no navegador.
+A interface tem: login e sessão (renovação automática do token), **dashboard** com oito indicadores e gráficos (movimentação diária, situação do acervo, rankings e atrasos; o administrador vê o sistema todo e cada pessoa vê os próprios empréstimos), cada card com uma janela explicando o que o número significa e como é calculado, botão **Voltar** nas páginas, equipamentos, empréstimos, **perfil** (foto do acervo de bichinhos ou enviada, dados pessoais com CPF, telefone e CEP com preenchimento do endereço, troca de senha), **gestão de usuários** para administradores (criar contas e perfis) e uma **barra de acessibilidade fixa no topo** de todas as telas, com um botão ao lado do outro: tamanho do texto (A− e A+), alto contraste, modo escuro/claro, fonte para dislexia, cores para daltonismo, redução de animações e [VLibras](https://vlibras.gov.br/) (tradução para Libras) com o ícone no canto direito da tela. O daltonismo tem um menu com os tipos (protanopia, deuteranopia, tritanopia e acromatopsia), cada um com a sua paleta. As escolhas ficam salvas no navegador. A sessão fica num **cookie `HttpOnly`**, que o JavaScript da página não consegue ler.
 
 As imagens do acervo de avatares são do [Twemoji](https://github.com/jdecked/twemoji) (CC-BY 4.0), em `frontend/public/avatares/`.
 
@@ -119,7 +121,7 @@ Para ver o sistema "vivo" (pessoas, equipamentos, empréstimos devolvidos, em an
 
 ```bash
 cd backend
-npm run seed:demo   # contas @demo.exemplo.com; a senha aleatória aparece uma única vez (ou defina DEMO_SENHA)
+npm run seed:demo   # contas @equipmentloan.com; a senha aleatória aparece uma única vez (ou defina DEMO_SENHA)
 ```
 
 Pode rodar de novo sem duplicar nada, e se recusa a rodar em produção. Para apagar a demonstração anterior e gerar tudo de novo (≈85 dias de histórico, com atrasos), use `npm run seed:demo -- --refazer`.
@@ -163,6 +165,12 @@ Todas as rotas de negócio ficam em `/v1`. Tudo exige o cabeçalho `Authorizatio
 | `PATCH` | `/v1/emprestimos/:id/devolucao` | dono ou ADMIN | Devolve |
 | `GET` | `/v1/emprestimos/meus` | logado | Os seus (`status`, `atrasados`) |
 | `GET` | `/v1/emprestimos` | ADMIN | Todos (`usuarioId`, `equipamentoId`, `status`, `atrasados`) |
+| `PATCH` | `/v1/emprestimos/:id/renovacao` | dono ou ADMIN | Soma `dias` (1 a 14, padrão 7) ao prazo; no máximo 2 vezes, só antes de vencer |
+| `GET` | `/v1/emprestimos/relatorio` · `/meus/relatorio` | ADMIN · logado | Relatório (`formato=pdf\|xlsx\|csv`) com os mesmos filtros da listagem |
+| `GET` | `/v1/equipamentos/relatorio` | ADMIN | Relatório do acervo |
+| `POST` | `/v1/reservas` | logado | Entra na fila de um equipamento emprestado (`equipamentoId`) |
+| `GET` | `/v1/reservas/minhas` | logado | As suas filas, com a posição em cada uma |
+| `DELETE` | `/v1/reservas/:id` | dono ou ADMIN | Sai da fila |
 | `GET` | `/saude` | público | API e banco no ar |
 
 ### Respostas e erros
@@ -186,8 +194,8 @@ Em erros de validação (`400`), `mensagem` é uma lista com um texto por campo 
 No diretório `backend/`:
 
 ```bash
-npm test            # 44 testes unitários (regras de negócio, sem banco)
-npm run test:e2e    # 49 testes de integração: API inteira + PostgreSQL de teste
+npm test            # 101 testes unitários (regras de negócio, sem banco)
+npm run test:e2e    # 112 testes de integração: API inteira + PostgreSQL de teste
 npm run lint        # sem erros
 ```
 

@@ -23,6 +23,7 @@ No `.env`:
 | `SWAGGER_ATIVO` | Deixe desligado em produção |
 | `APP_URL` | O endereço público da interface (ex.: `https://app.exemplo.com`). **Obrigatória**: vai nos links dos e-mails de recuperação de senha |
 | `LIMITE_LOGIN_POR_MINUTO`, `LIMITE_GERAL_POR_MINUTO`, `LIMITE_CADASTRO_POR_HORA`, `LIMITE_RECUPERACAO_POR_HORA`, `LIMITE_REDEFINICAO_POR_HORA` | **Deixe em branco em produção** (padrões: 5/min no login, 100/min geral, 10/h cadastro, 5/h pedido de nova senha, 10/h redefinição). Existem só para a suíte de interface, que faz dezenas de logins do mesmo IP. O limite do login é a principal defesa contra adivinhação de senhas |
+| `COOKIE_SEGURO` | **Deixe em branco.** A sessão vai num cookie `HttpOnly` que, em produção, só viaja por HTTPS (`Secure`). Só use `false` para testar a stack em `http://` fora de `localhost`; em produção real o acesso precisa ser por HTTPS, senão o navegador não guarda o cookie e ninguém consegue entrar |
 | `CADASTRO_PUBLICO` | `true` (padrão) deixa qualquer pessoa criar a própria conta na tela de login (sempre como usuário comum). Use `false` se só administradores devem criar contas |
 | `NOTIFICACOES_ATIVAS`, `NOTIFICACOES_CRON`, `NOTIFICACOES_FUSO` | Avisos automáticos de vencimento e atraso (padrão: ligados, todo dia às 8h, fuso de São Paulo). Dependem do SMTP abaixo |
 | `SMTP_HOST`, `SMTP_PORTA`, `SMTP_SEGURO`, `SMTP_USUARIO`, `SMTP_SENHA`, `EMAIL_REMETENTE` | O servidor de e-mail (qualquer provedor SMTP). `SMTP_SEGURO=true` para a porta 465. **Sem `SMTP_HOST` os e-mails não são enviados** e "esqueci minha senha" não chega a ninguém |
@@ -60,17 +61,17 @@ Se a API ficar exposta diretamente, mantenha `TRUST_PROXY` em `0`: assim ningué
 
 ## 4. Backup e restauração
 
-Os dados ficam no volume `dados_banco`.
+Os dados ficam no volume `dados_banco`. Há dois scripts prontos, **testados** (backup e restauração de verdade):
 
 ```bash
-# backup
-docker compose exec -T banco pg_dump -U "$DB_USER" -d "$DB_NOME" -Fc > backup-$(date +%F).dump
+# backup: um arquivo .sql.gz por execução, mantendo os últimos 14 dias (MANTER_DIAS muda isso)
+./scripts/backup-banco.sh /var/backups/emprestimos
 
-# restauração (em um banco vazio)
-docker compose exec -T banco pg_restore -U "$DB_USER" -d "$DB_NOME" --clean --if-exists < backup-AAAA-MM-DD.dump
+# restauração: pede para digitar "restaurar" e SUBSTITUI os dados atuais pelos do arquivo
+./scripts/restaurar-banco.sh /var/backups/emprestimos/emprestimos-20261009-030000.sql.gz
 ```
 
-Agende o `pg_dump` (cron) e copie os arquivos para fora do servidor.
+Agende o backup no cron (`0 3 * * *  cd /caminho/do/projeto && ./scripts/backup-banco.sh /var/backups/emprestimos`) e **copie os arquivos para fora do servidor**: backup na mesma máquina não protege contra a perda dela. Restaure num ambiente à parte de tempos em tempos: backup que nunca foi restaurado é só uma esperança.
 
 ## 5. Atualizar
 
@@ -84,12 +85,14 @@ As migrations têm **pré-checagens**: se os dados antigos violarem uma regra no
 ## 6. Monitoramento
 
 - `GET /saude` (pública, sem limite de requisições): use em um monitor externo e no *healthcheck* do Docker.
-- `docker compose logs -f api`: uma linha por requisição (método, rota, status, duração, id do usuário), sem corpo nem tokens; erros inesperados com pilha.
+- `docker compose logs -f api`: uma linha por requisição (método, rota, status, duração, id do usuário e `id=` da requisição), sem corpo nem tokens; erros inesperados com pilha.
+- **ID de requisição:** toda resposta traz o cabeçalho `X-Request-Id` (o do cliente, se vier num formato seguro, ou um novo). Quando alguém reclamar de um erro, peça esse valor e procure-o no log.
+- **Dependências:** o Dependabot abre um PR por semana por pasta; o CI roda `npm audit` (só dependências de produção) a cada push.
 
 ## 7. Lista de conferência antes de publicar
 
 - [ ] `JWT_SECRET`, `DB_SENHA` e `ADMIN_SENHA` trocados e fortes.
-- [ ] HTTPS ativo e `CORS_ORIGENS` com o domínio real.
+- [ ] HTTPS ativo (**obrigatório**: o cookie da sessão é `Secure`) e `CORS_ORIGENS` com o domínio real.
 - [ ] Decidiu se o **cadastro aberto** deve ficar ligado (`CADASTRO_PUBLICO`): com ele, qualquer pessoa com acesso à tela cria uma conta e pode pegar equipamentos emprestados.
 - [ ] `APP_URL` com o endereço real e SMTP configurado: peça "esqueci minha senha" com uma conta de teste e confira que o e-mail chega e o link abre a tela certa.
 - [ ] Banco **sem** porta publicada (o compose já não publica).

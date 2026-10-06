@@ -24,7 +24,7 @@ export async function entrar(page: Page, email: string, senha: string) {
 
 export async function sair(page: Page) {
   await page.getByRole('button', { name: 'Sair' }).click();
-  await expect(page.getByRole('heading', { name: 'Empréstimo de Equipamentos' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Equipment loan' })).toBeVisible();
 }
 
 export async function entrarComoAdmin(page: Page) {
@@ -40,7 +40,7 @@ export async function criarUsuario(page: Page, nome: string, email: string, senh
   await page.getByLabel('E-mail (será o login)').fill(email);
   await page.getByLabel('Senha inicial').fill(senha);
   await page.getByRole('button', { name: 'Criar conta' }).click();
-  await expect(page.getByRole('status')).toContainText(`Conta de ${nome} criada`);
+  await expect(page.locator('.swal2-toast')).toContainText(`Conta de ${nome} criada`);
 }
 
 /** Como administrador, cadastra um equipamento pela tela de Equipamentos. */
@@ -50,7 +50,7 @@ export async function criarEquipamento(page: Page, nome: string, descricao = 'Cr
   await page.getByLabel('Nome', { exact: true }).fill(nome);
   await page.getByLabel('Descrição (opcional)').fill(descricao);
   await page.getByRole('button', { name: 'Salvar' }).click();
-  await expect(page.getByRole('status')).toContainText('Equipamento cadastrado');
+  await expect(page.locator('.swal2-toast')).toContainText('Equipamento cadastrado');
 }
 
 /** Procura a mensagem mais recente enviada a um e-mail na caixa de entrada de teste (Mailpit). */

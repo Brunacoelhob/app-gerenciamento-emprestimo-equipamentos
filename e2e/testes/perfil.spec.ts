@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './base';
 import { cpfAleatorio, criarUsuario, emailUnico, pngValido, entrar, entrarComoAdmin, sair, SENHA_PADRAO, unico } from './ajudantes';
 
 // Cria uma pessoa nova (para os testes não mexerem na conta do administrador) e entra com ela
@@ -19,26 +19,26 @@ test.describe('perfil', () => {
     await entrarComoPessoaNova(page);
     const gato = page.getByRole('button', { name: 'Gato' });
     await gato.click();
-    await expect(page.getByRole('status')).toContainText('Foto atualizada');
+    await expect(page.locator('.swal2-toast')).toContainText('Foto atualizada');
     await expect(gato).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('.lateral app-avatar img')).toHaveAttribute('src', /avatares\/gato\.svg/);
 
     await page.getByRole('button', { name: 'Remover foto' }).click();
-    await expect(page.getByRole('status')).toContainText('Foto removida');
+    await expect(page.locator('.swal2-toast')).toContainText('Foto removida');
   });
 
   test('envia uma foto de verdade (reduzida no navegador) e a API a aceita', async ({ page }) => {
     await entrarComoPessoaNova(page);
     const png = pngValido();
     await page.locator('input[type=file]').setInputFiles({ name: 'foto.png', mimeType: 'image/png', buffer: png });
-    await expect(page.getByRole('status')).toContainText('Foto atualizada');
+    await expect(page.locator('.swal2-toast')).toContainText('Foto atualizada');
     await expect(page.locator('.lateral app-avatar img')).toHaveAttribute('src', /^data:image\//);
   });
 
   test('arquivo que não é imagem é recusado no navegador, antes de ir para a API', async ({ page }) => {
     await entrarComoPessoaNova(page);
     await page.locator('input[type=file]').setInputFiles({ name: 'texto.txt', mimeType: 'text/plain', buffer: Buffer.from('oi') });
-    await expect(page.getByRole('alert')).toContainText('PNG, JPEG ou WEBP');
+    await expect(page.locator('.swal2-popup')).toContainText('PNG, JPEG ou WEBP');
   });
 
   test('dados pessoais: máscaras, CPF inválido barrado, CPF válido salvo e o CEP preenche o endereço', async ({ page }) => {
@@ -55,7 +55,7 @@ test.describe('perfil', () => {
     await page.getByLabel('CPF').fill(cpf);
     await page.getByLabel('Número').fill('1578');
     await page.getByRole('button', { name: 'Salvar alterações' }).click();
-    await expect(page.getByRole('status')).toContainText('Perfil atualizado');
+    await expect(page.locator('.swal2-toast')).toContainText('Perfil atualizado');
 
     // recarrega: os dados continuam lá, formatados
     await page.reload();
@@ -77,20 +77,22 @@ test.describe('perfil', () => {
     const { email } = await entrarComoPessoaNova(page);
     await page.getByRole('button', { name: 'Excluir minha conta' }).click();
 
-    const janela = page.getByRole('dialog');
-    await janela.getByLabel('Digite a sua senha para confirmar').fill('senha-errada-123');
-    await janela.getByRole('button', { name: 'Excluir definitivamente' }).click();
-    await expect(janela.getByRole('alert')).toContainText('A senha está incorreta');
+    const janela = page.locator('.swal2-popup');
+    await janela.locator('input[type=password]').fill('senha-errada-123');
+    await janela.locator('.swal2-confirm').click();
+    await expect(janela).toContainText('A senha está incorreta');
+    await janela.locator('.swal2-confirm').click(); // fecha o aviso de erro
 
-    await janela.getByLabel('Digite a sua senha para confirmar').fill(SENHA_PADRAO);
-    await janela.getByRole('button', { name: 'Excluir definitivamente' }).click();
+    await page.getByRole('button', { name: 'Excluir minha conta' }).click();
+    await page.locator('.swal2-popup input[type=password]').fill(SENHA_PADRAO);
+    await page.locator('.swal2-popup .swal2-confirm').click();
     await expect(page).toHaveURL(/\/login\?aviso=conta-excluida/);
-    await expect(page.getByRole('status')).toContainText('conta foi excluída');
+    await expect(page.locator('.swal2-toast')).toContainText('conta foi excluída');
 
     await page.getByLabel('E-mail', { exact: true }).fill(email);
     await page.getByLabel('Senha', { exact: true }).fill(SENHA_PADRAO);
     await page.getByRole('button', { name: 'Entrar' }).click();
-    await expect(page.getByRole('alert')).toContainText('Credenciais inválidas');
+    await expect(page.locator('.alerta.erro')).toContainText('Credenciais inválidas');
   });
 
   test('trocar a senha pelo perfil encerra a sessão e a nova senha entra', async ({ page }) => {

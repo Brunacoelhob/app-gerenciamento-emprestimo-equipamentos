@@ -7,8 +7,8 @@ Legenda: `[x]` feito e verificado · `[~]` feito, mas com parte **não verificad
 
 | Parte | Situação |
 |---|---|
-| API (NestJS + PostgreSQL) | 63 testes unitários e 81 de integração passando; lint e tipos limpos |
-| Interface (Angular) | 19 testes unitários + 31 testes de interface (Playwright); build de produção sem erros |
+| API (NestJS + PostgreSQL) | 101 testes unitários e 112 de integração passando; lint e tipos limpos |
+| Interface (Angular) | 33 testes unitários + 54 testes de interface (Playwright); build de produção sem erros |
 | Docker | `docker compose` sobe banco, migrações, API e interface (nginx); o CI constrói e confere a saúde |
 | CI (GitHub Actions) | Backend, frontend e Docker |
 
@@ -46,10 +46,16 @@ Legenda: `[x]` feito e verificado · `[~]` feito, mas com parte **não verificad
 - [x] Dados de demonstração (`npm run seed:demo`, ~85 dias de histórico, com atrasos)
 
 ### Acessibilidade
-- [x] Barra no topo de todas as telas, com os botões lado a lado: tamanho do texto, alto contraste, modo escuro/claro, fonte para dislexia, cores para daltonismo, reduzir animações
-- [x] **VLibras** (tradução para Libras) acionado pela barra: o painel abre e fecha e o avatar 3D aparece (visto em captura de tela). *A tradução de um texto em si não foi exercitada.*
+- [x] Barra **fixa no topo** de todas as telas (continua visível ao rolar): tamanho do texto, alto contraste, modo escuro/claro, fonte para dislexia, reduzir animações e **daltonismo** (botão compacto que abre um menu com Nenhum, Protanopia, Deuteranopia, Tritanopia e Acromatopsia; cada tipo tem a sua paleta)
+- [x] **VLibras** no canto direito da tela, como nos sites do governo (sempre carregado, fora da barra). O avatar 3D aparece (visto em captura de tela). *A tradução de um texto em si não foi exercitada. O script vem de `vlibras.gov.br` em toda visita: se isso for um problema de privacidade, o VLibras precisa ser desligável.*
 - [x] Gráficos que não dependem só da cor (linha tracejada, legenda com números, tabela alternativa)
 - [x] Preferências salvas no navegador
+
+### Sessão em cookie HttpOnly
+- [x] O token de renovação vai num **cookie `HttpOnly`**, `SameSite=Strict`, `Secure` em produção e com caminho restrito: o JavaScript da página **não o enxerga** (antes ficava no `localStorage`)
+- [x] Não aparece no corpo das respostas; renovar e sair pelo cookie exigem um cabeçalho anti-CSRF; clientes de API pedem o token com `X-Tipo-Cliente: api`
+- [x] Funciona atrás do nginx (reescrita do caminho do cookie) e no servidor de desenvolvimento do Angular
+- [x] Testado: 7 testes de integração, 3 unitários no front, 2 de interface (cookie `HttpOnly`, sem token no armazenamento) e a suíte inteira contra a stack de produção do Docker
 
 ### Segurança da interface
 - [x] **CSP em modo bloqueio** no nginx: scripts só do próprio site e do VLibras, **nenhum script inline**. As origens do VLibras foram medidas no navegador (e ele redireciona arquivos para `cdn.jsdelivr.net`)
@@ -58,7 +64,7 @@ Legenda: `[x]` feito e verificado · `[~]` feito, mas com parte **não verificad
 - [~] *`style-src` ainda aceita `'unsafe-inline'`: o Angular injeta os estilos dos componentes em tempo de execução. Fechar isso exige um nonce por requisição (nginx + Angular).*
 
 ### Testes de interface (Playwright)
-- [x] 31 testes em navegador de verdade: login e sessão, fluxo completo de empréstimo, recuperação de senha por e-mail, cadastro, perfil (avatar, CPF, baixar e excluir dados), barra de acessibilidade e dashboard
+- [x] 41 testes em navegador de verdade: login e sessão, fluxo completo de empréstimo, recuperação de senha por e-mail, cadastro, perfil (avatar, CPF, baixar e excluir dados), barra de acessibilidade e dashboard
 - [x] Job `interface` no CI: sobe a aplicação inteira no Docker (com o Mailpit) e roda a suíte
 - [x] Já pegaram um defeito real: abrir `/login` com sessão salva mostrava o formulário em vez de ir ao dashboard (corrigido)
 - [~] *O job do CI foi ensaiado localmente contra a stack do Docker (30 passaram, 1 pulado), mas só roda de verdade no GitHub depois do push. O teste do VLibras fica fora do CI (depende de serviço externo).*
@@ -76,6 +82,10 @@ Legenda: `[x]` feito e verificado · `[~]` feito, mas com parte **não verificad
 - [x] **Excluir minha conta** (anonimização com confirmação por senha): apaga os dados pessoais, derruba as sessões, limpa o nome da trilha e **preserva o histórico** de empréstimos
 - [~] *Falta o que depende de decisão jurídica: política de privacidade, registro de consentimento e prazos de retenção. O CPF continua guardado em texto puro (sem criptografia em repouso).*
 
+### Busca por texto nas listagens
+- [x] **Equipamentos:** nome ou descrição · **Usuários:** nome ou e-mail · **Empréstimos:** equipamento (e, para o administrador, também pessoa por nome ou e-mail) · **Auditoria:** quem fez ou o número do registro
+- [x] A pesquisa roda **enquanto se digita** (com uma pequena pausa), combina com os outros filtros e o botão "Buscar" continua funcionando
+
 ### Gestão de contas
 - [x] **Busca** por nome ou e-mail na lista de usuários (combina com os filtros de perfil e situação)
 - [x] **E-mail de aviso** quando um administrador cria uma conta (a senha nunca vai no e-mail)
@@ -86,6 +96,19 @@ Legenda: `[x]` feito e verificado · `[~]` feito, mas com parte **não verificad
 - [x] Tela "Auditoria" (administrador), com filtro por ação e paginação
 - [x] Não registra segredos nem operações que falharam
 - [~] *Não é à prova de adulteração (acesso direto ao banco altera). Não registra leituras de dados pessoais.*
+
+### Fila de espera, renovação e QR code
+- [x] **Renovação de prazo:** a pessoa (ou um administrador) soma 7 dias (1 a 14 pela API), no máximo 2 vezes e só antes de vencer. A regra está dentro do `UPDATE`, então renovações simultâneas nunca passam do limite; os avisos por e-mail do prazo antigo são zerados; entra na auditoria ("Prazo renovado")
+- [x] **Fila de espera:** quem quer um equipamento emprestado entra na fila (índice único parcial: uma vez por pessoa, mesmo com cliques simultâneos). Ao devolver, o primeiro da fila recebe e-mail; quem pega o equipamento sai da fila; excluir a conta cancela as filas. A tela mostra "Minhas filas de espera" com a posição
+- [x] **QR code:** o administrador gera uma etiqueta imprimível por equipamento; o QR abre a lista já filtrada pelo código (`/equipamentos?busca=CÓDIGO`)
+- [~] *A fila avisa, mas **não reserva** o item: quem pegar primeiro leva. Reserva com prazo para retirar é uma decisão de regra de negócio que ainda não foi tomada.*
+
+### Relatórios, códigos e validações
+- [x] Relatório em PDF, Excel e CSV também para **empréstimos** (todos para o administrador, só os seus para as demais pessoas) e **equipamentos**, com os mesmos filtros da tela e aviso quando passa de 5000 linhas
+- [x] **Código público** aleatório (12 caracteres) em empréstimos, equipamentos e usuários; as telas mostram no máximo 5 caracteres, o resto fica no tooltip. O número sequencial deixou de aparecer
+- [x] Mensagens de validação **por campo** (qual regra falhou) e lista de requisitos da senha em tempo real; **SweetAlert2** para confirmações (desativar, devolver, renovar, tornar administrador, excluir conta) e avisos
+- [x] Aviso de **cookies** a cada carregamento (aceitar, recusar ou configurar): sem permissão, as preferências de acessibilidade não são guardadas e o VLibras (serviço do governo) não é carregado
+- [x] Acervo de avatares ampliado (29 animais)
 
 ### Recuperação de senha por e-mail
 - [x] "Esqueci minha senha" e "Redefinir senha" (telas e API)
@@ -102,22 +125,22 @@ Legenda: `[x]` feito e verificado · `[~]` feito, mas com parte **não verificad
 ## O que falta
 
 ### Prioridade alta
-- [ ] **Refresh token em cookie `HttpOnly`** (hoje fica no `localStorage`: um XSS o rouba)
 - [ ] **LGPD (o que sobrou):** política de privacidade, registro de consentimento, prazos de retenção e criptografia do CPF em repouso. Dependem de revisão jurídica
 
 ### Prioridade média
-- [ ] Reserva de equipamento e fila de espera; renovação de prazo
-- [ ] Categorias, número de patrimônio, foto do equipamento e QR code para retirada
-- [ ] Relatórios com exportação CSV
+- [ ] Reserva **com prazo para retirar** (hoje a fila só avisa); aprovação de renovação pelo administrador
+- [ ] Categorias, número de patrimônio e foto do equipamento
+- [ ] Relatórios também do dashboard
 - [ ] Avatar em armazenamento de objetos (hoje vai em base64 no banco e em cada listagem)
 - [ ] Gerar o cliente TypeScript do frontend a partir do OpenAPI (os tipos hoje são escritos à mão e podem divergir)
 - [ ] Limite de requisições em armazenamento compartilhado (Redis), se houver mais de uma instância
 
 ### Operação
-- [ ] Logs estruturados, métricas e alerta quando `/saude` falha
-- [ ] Backup do PostgreSQL agendado e restauração testada
+- [x] Backup e restauração do PostgreSQL em scripts testados (`scripts/`); falta **agendar** no servidor e copiar para fora dele
+- [x] ID de requisição (`X-Request-Id`) no log e no cabeçalho; Dependabot semanal e `npm audit` no CI (o backend barra só o crítico: há 4 avisos "altos" em dependências indiretas da CLI do Prisma, anotados no `ci.yml`)
+- [ ] Métricas e alerta quando `/saude` falha (precisa de um serviço externo de monitoramento)
 - [ ] Separar a aplicação das migrações no deploy de produção
-- [ ] Dependabot e `npm audit` na pipeline; revisar periodicamente os riscos aceitos em [`seguranca.md`](seguranca.md)
+- [ ] Revisar periodicamente os riscos aceitos em [`seguranca.md`](seguranca.md)
 
 ---
 
@@ -134,6 +157,6 @@ Coisas que existem no código, mas que eu não consegui comprovar:
 
 ## Notas para quem for continuar
 
-- Os **dados de demonstração** têm a mesma senha para todas as contas `@demo.exemplo.com`. Nunca rode `seed:demo` em produção (ele se recusa).
+- Os **dados de demonstração** têm a mesma senha para todas as contas `@equipmentloan.com`. Nunca rode `seed:demo` em produção (ele se recusa).
 - Antes de publicar, siga a lista de conferência no fim de [`deploy.md`](deploy.md): `JWT_SECRET`, `APP_URL`, SMTP, HTTPS e `TRUST_PROXY` corretos.
 - O servidor de desenvolvimento do Angular só lê o `angular.json` ao iniciar e pode travar num erro de build do meio de uma edição: se uma página nova não aparece, reinicie-o.

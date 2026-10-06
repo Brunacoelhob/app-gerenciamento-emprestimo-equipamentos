@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './base';
 import { criarEquipamento, criarUsuario, emailUnico, entrar, entrarComoAdmin, sair, SENHA_PADRAO, unico, menu } from './ajudantes';
 
 // O fluxo principal do sistema, do começo ao fim, com duas pessoas diferentes
@@ -30,7 +30,7 @@ test('administrador cadastra equipamento e conta; a pessoa pega emprestado, vê 
   await linha.getByRole('button', { name: 'Pegar' }).click();
   await page.getByLabel('Por quantos dias?').fill('3');
   await page.getByRole('button', { name: 'Confirmar' }).click();
-  await expect(page.getByRole('status')).toContainText('emprestado por 3 dia(s)');
+  await expect(page.locator('.swal2-toast')).toContainText('emprestado por 3 dia(s)');
   await expect(linha).toContainText('Emprestado');
   await expect(linha.getByRole('button', { name: 'Pegar' })).toHaveCount(0); // ninguém mais pega o mesmo item
 
@@ -44,8 +44,9 @@ test('administrador cadastra equipamento e conta; a pessoa pega emprestado, vê 
   // --- devolve
   await menu.getByRole('link', { name: 'Meus empréstimos' }).click();
   await meu.getByRole('button', { name: 'Devolver' }).click();
-  await expect(page.getByRole('status')).toContainText('devolvido');
-  await expect(meu).toContainText('Devolvido em');
+  await page.locator('.swal2-confirm').click();
+  await expect(page.locator('.swal2-toast')).toContainText('devolvido');
+  await expect(meu).toContainText('Devolvido');
 
   // --- o equipamento voltou a ficar disponível
   await menu.getByRole('link', { name: 'Equipamentos' }).click();
@@ -63,7 +64,8 @@ test('administrador desativa e reativa um equipamento; o histórico fica na audi
   await page.getByRole('button', { name: 'Buscar' }).click();
   const linha = page.getByRole('row', { name: new RegExp(equipamento) });
   await linha.getByRole('button', { name: 'Desativar' }).click();
-  await expect(page.getByRole('status')).toContainText('desativado');
+  await page.locator('.swal2-confirm').click();
+  await expect(page.locator('.swal2-toast')).toContainText('desativado');
   await expect(linha).toContainText('Desativado');
   await expect(linha.getByRole('button', { name: 'Pegar' })).toHaveCount(0);
 
@@ -84,7 +86,8 @@ test('conta criada pelo administrador pode ser desativada e deixa de entrar', as
   await page.getByRole('button', { name: 'Buscar' }).click();
   const linha = page.getByRole('row', { name: new RegExp(nome) });
   await linha.getByRole('button', { name: 'Desativar' }).click();
-  await expect(page.getByRole('status')).toContainText('desativada');
+  await page.locator('.swal2-confirm').click();
+  await expect(page.locator('.swal2-toast')).toContainText('desativada');
   await sair(page);
 
   await page.goto('/login');

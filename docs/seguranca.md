@@ -38,6 +38,7 @@ As falhas críticas foram **reproduzidas rodando a API original** contra um banc
 **Identidade e sessão**
 - Senhas com **bcrypt** (custo configurável, padrão 12); o hash nunca sai da camada de repositório (as consultas públicas nem selecionam o campo).
 - Resposta de login **idêntica** para e-mail inexistente, senha errada e conta desativada, e comparação com um hash falso quando o e-mail não existe (tempo de resposta parecido): não revela quais e-mails existem.
+- **Sessão em cookie `HttpOnly`:** o refresh token vai num cookie `HttpOnly` (o JavaScript da página **não** o enxerga: um XSS não o rouba), `SameSite=Strict`, `Secure` em produção e com `Path` restrito às rotas de autenticação (não viaja com cada chamada). Ele não aparece no corpo da resposta nem no `localStorage` (lá só há um indicador). Renovar e sair pelo cookie exigem o cabeçalho `X-Requested-With: emprestimos` (segunda barreira contra CSRF, além do `SameSite`). Clientes que não são navegadores pedem o token no corpo com `X-Tipo-Cliente: api`.
 - **Refresh token:** aleatório (48 bytes), guardado só como **SHA-256**; uso único (rotação); **reuso de um token já usado derruba todas as sessões** da pessoa; revogação atômica (dois pedidos simultâneos nunca vencem os dois).
 - Troca de senha e desativação de conta encerram todas as sessões.
 - **Recuperação de senha por e-mail:** o link carrega um token aleatório (32 bytes) guardado só como **SHA-256**; vale **30 minutos**, é de **uso único** (consumo atômico: dois cliques simultâneos nunca vencem os dois) e um pedido novo invalida o anterior. A resposta de "esqueci minha senha" é **idêntica** exista a conta ou não, e o envio roda em segundo plano (o tempo não revela nada). No máximo 3 pedidos por hora por conta e 5 por IP. Redefinir **encerra todas as sessões** e avisa a pessoa por e-mail. Em produção, sem SMTP o e-mail não é enviado e o conteúdo (que equivale a uma credencial) **nunca vai para o log**. O front-end remove o token do endereço assim que a página abre.
@@ -66,6 +67,9 @@ As falhas críticas foram **reproduzidas rodando a API original** contra um banc
 
 **Operação**
 - Limite de requisições: 100/min por IP, mais rígido no login (5/min), cadastro (10/h), troca de senha (5/min) e recuperação de senha (5 pedidos/h).
+- **ID de requisição** (`X-Request-Id`, aceito do cliente só num formato seguro) em toda resposta e no log, para rastrear um erro relatado por quem usa.
+- **Cookies e terceiros:** o aviso de cookies aparece a cada carregamento; sem a permissão, as preferências de acessibilidade não vão para o aparelho e o VLibras (serviço externo que vê o IP) não é carregado. O cookie de sessão (`HttpOnly`) é **necessário** e não depende dessa escolha.
+- **Relatórios:** células que começam com `=`, `+`, `-` ou `@` são neutralizadas (injeção de fórmula no Excel); um relatório de auditoria exportado fica registrado na própria trilha; as rotas pesadas têm limite de 10 por minuto.
 - Container sem root, `no-new-privileges`, banco **sem porta exposta** fora do Docker, API publicada só em `127.0.0.1`.
 - Segredos só no `.env` (no `.gitignore`); nenhum valor real em `.env.example`.
 
@@ -73,6 +77,7 @@ As falhas críticas foram **reproduzidas rodando a API original** contra um banc
 
 | Risco | Por que foi aceito |
 |---|---|
+| Quem tem XSS ainda age com a sessão da vítima enquanto a página estiver aberta (usa o token de acesso em memória, que dura 15 min) | O cookie `HttpOnly` impede o **roubo** do acesso de longa duração, mas não o abuso em tempo real dentro da página. A defesa é a CSP em bloqueio (sem script inline) e o Angular escapar tudo por padrão |
 | `npm audit` aponta 6 vulnerabilidades (4 altas) em `prisma`/`@prisma/config`/`deepmerge-ts`/`mysql2` e 2 moderadas em `@nestjs/swagger`/`js-yaml` | As quatro primeiras estão no **CLI do Prisma**, que o `@prisma/client` 7 traz como dependência par; o CLI só roda em build e migração, **nunca no tratamento de requisições**, e `mysql2` não é usado com PostgreSQL. A "correção" automática seria rebaixar o Prisma para a versão 6 (mudança incompatível). As do Swagger não atingem produção, onde ele fica desligado. Reavaliar a cada atualização do Prisma e do `@nestjs/swagger` |
 | O e-mail de redefinição fica na caixa de entrada de quem o recebe | Quem controla a caixa de e-mail controla a conta: é a premissa de qualquer recuperação por e-mail. Mitigado pela validade curta, pelo uso único, pelo encerramento das sessões e pelo e-mail de aviso depois da troca |
 | Pequena diferença de tempo entre "e-mail existe" e "não existe" no pedido de recuperação | A resposta é idêntica e o e-mail sai em segundo plano, mas só o caso "existe" grava no banco. Mitigado pelo limite por IP (5/h); para eliminar de vez, enfileirar o pedido |

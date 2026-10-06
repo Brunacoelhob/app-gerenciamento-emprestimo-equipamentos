@@ -65,11 +65,14 @@ services:
       LIMITE_CADASTRO_POR_HORA: ${LIMITE_CADASTRO_POR_HORA:-}
       LIMITE_RECUPERACAO_POR_HORA: ${LIMITE_RECUPERACAO_POR_HORA:-}
       LIMITE_REDEFINICAO_POR_HORA: ${LIMITE_REDEFINICAO_POR_HORA:-}
+      # Cookie da sessão com o atributo Secure (só HTTPS). Vazio = ligado em produção. COOKIE_SEGURO=false só para
+      # testar a stack em http fora de localhost: em produção real use HTTPS e deixe em branco
+      COOKIE_SEGURO: ${COOKIE_SEGURO:-}
       CADASTRO_PUBLICO: ${CADASTRO_PUBLICO:-true}
       NOTIFICACOES_ATIVAS: ${NOTIFICACOES_ATIVAS:-true}
       NOTIFICACOES_CRON: '${NOTIFICACOES_CRON:-0 8 * * *}'
       NOTIFICACOES_FUSO: ${NOTIFICACOES_FUSO:-America/Sao_Paulo}
-      EMAIL_REMETENTE: '${EMAIL_REMETENTE:-Empréstimo de Equipamentos <nao-responda@localhost>}'
+      EMAIL_REMETENTE: '${EMAIL_REMETENTE:-Equipment loan <nao-responda@localhost>}'
     depends_on:
       migrar:
         condition: service_completed_successfully

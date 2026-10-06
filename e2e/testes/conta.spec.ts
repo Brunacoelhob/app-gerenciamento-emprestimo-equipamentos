@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './base';
 import { criarUsuario, emailUnico, entrar, entrarComoAdmin, MAILPIT, sair, SENHA_PADRAO, ultimoEmailPara, unico } from './ajudantes';
 
 test.describe('recuperação de senha por e-mail', () => {
@@ -78,7 +78,7 @@ test.describe('cadastro aberto', () => {
     await page.getByLabel('Senha', { exact: true }).fill('curta');
     await page.getByLabel('Repita a senha').fill('outra');
     await page.getByRole('button', { name: 'Criar conta' }).click();
-    await expect(page.getByText('A senha não atende aos requisitos.')).toBeVisible();
+    await expect(page.getByText('Pelo menos 8 caracteres')).toBeVisible();
     await expect(page.getByText('As senhas não são iguais.')).toBeVisible();
 
     await page.getByLabel('Senha', { exact: true }).fill(SENHA_PADRAO);
