@@ -6,7 +6,7 @@
 #   migracao     -> serviço de uso único: aplica as migrations (e cria o 1º admin, se configurado)
 #   producao     -> a API: só dependências de execução, roda sem privilégios de root
 
-FROM node:22-bookworm-slim AS base
+FROM node:25-bookworm-slim AS base
 WORKDIR /app
 # openssl: exigido pelo motor de migrations do Prisma
 RUN apt-get update -y \
