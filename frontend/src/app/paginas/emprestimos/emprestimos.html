@@ -37,7 +37,7 @@
     @if (d.itens.length === 0) {
       <p class="vazio">Nenhum empréstimo encontrado.</p>
     } @else {
-      <table>
+      <table class="tabela-emprestimos">
         <thead>
           <tr>
             <th class="col-id">ID</th>
@@ -67,8 +67,8 @@
                   <div class="descricao">{{ e.usuario.email }}</div>
                 </td>
               }
-              <td>{{ e.dataRetirada | date: 'dd/MM/yyyy' }}</td>
-              <td>
+              <td class="datas">{{ e.dataRetirada | date: 'dd/MM/yyyy' }}</td>
+              <td class="datas">
                 <!-- devolvido: a data em que voltou; em andamento: a data combinada (prevista) -->
                 @if (e.status === 'DEVOLVIDO') {
                   {{ e.dataDevolucao | date: 'dd/MM/yyyy' }}

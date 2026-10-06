@@ -63,7 +63,7 @@ Se a API ficar exposta diretamente, mantenha `TRUST_PROXY` em `0`: assim ningué
 
 O serviço **`backup`** do `docker-compose.yml` faz uma cópia do banco todo dia às 03:00 (`BACKUP_HORA`), mantém 14 dias (`BACKUP_MANTER_DIAS`) e grava em `BACKUP_PASTA` (padrão `./backups`, no servidor). Sobe junto com o resto (`docker compose up -d`) e foi testado: gera o `.sql.gz`, agenda o próximo e descarta arquivo vazio.
 
-- **Copie a pasta para fora do servidor** (rclone, rsync, nuvem): backup só na mesma máquina não protege contra a perda dela.
+- **Cópia externa:** cada backup é copiado também para `BACKUP_PASTA_EXTERNA` (conferido byte a byte) com o mesmo rodízio. No projeto de portfólio essa pasta é local e **simula** um disco remoto; num servidor real, aponte-a para um disco de outra máquina ou uma pasta sincronizada com a nuvem (rclone mount, NFS), porque backup só na mesma máquina não protege contra a perda dela.
 - **Saiba se parou:** defina `BACKUP_AVISO_OK` com o endereço de um serviço de "batimento" (ex.: healthchecks.io). Ele recebe um aviso a cada backup bem-sucedido; se deixar de receber, alerta.
 - **Fora do Docker Compose** (ou para uma cópia na hora): `./scripts/backup-banco.sh /pasta/de/destino`.
 

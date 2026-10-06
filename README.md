@@ -122,6 +122,7 @@ Para ver o sistema "vivo" (pessoas, equipamentos, empréstimos devolvidos, em an
 
 ```bash
 cd backend
+npm run seed:fotos  # coloca fotos reais nos equipamentos que ainda não têm
 npm run seed:demo   # contas @equipmentloan.com; a senha aleatória aparece uma única vez (ou defina DEMO_SENHA)
 ```
 

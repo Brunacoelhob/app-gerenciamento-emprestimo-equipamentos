@@ -18,8 +18,14 @@ export async function entrar(page: Page, email: string, senha: string) {
   await page.goto('/login');
   await page.getByLabel('E-mail', { exact: true }).fill(email);
   await page.getByLabel('Senha', { exact: true }).fill(senha);
-  await page.getByRole('button', { name: 'Entrar' }).click();
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+  // Espera a resposta do login junto com o clique: se o servidor demorar ou recusar, o erro diz isso (em vez de só
+  // "não achei o título"), e uma máquina lenta ganha mais tempo antes de o teste desistir.
+  const [login] = await Promise.all([
+    page.waitForResponse((r) => r.url().includes('/auth/login') && r.request().method() === 'POST', { timeout: 30_000 }),
+    page.getByRole('button', { name: 'Entrar' }).click(),
+  ]);
+  expect(login.status(), `o login de ${email} respondeu ${login.status()}`).toBeLessThan(400);
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 30_000 });
 }
 
 export async function sair(page: Page) {

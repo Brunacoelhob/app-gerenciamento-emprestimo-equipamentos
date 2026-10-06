@@ -4,6 +4,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import * as bcrypt from 'bcrypt';
 import { Equipamento, Prisma, PrismaClient, Usuario } from '../generated/prisma/client';
 import { Role, StatusEmprestimo } from '../generated/prisma/enums';
+import { anexarFotos } from './fotos-demo';
 
 // Dados FICTÍCIOS para demonstração e desenvolvimento: pessoas, equipamentos e um histórico de empréstimos
 // (devolvidos, em andamento e atrasados). Nunca roda em produção. Pode ser executado de novo sem duplicar nada;
@@ -270,6 +271,7 @@ async function main() {
       }
     }
     await prisma.emprestimo.createMany({ data: emprestimos });
+    await anexarFotos(prisma); // fotos reais (prisma/fotos-demo)
     const devolvidos = emprestimos.filter((e) => e.status === StatusEmprestimo.DEVOLVIDO).length;
     const ativos = emprestimos.filter((e) => e.status === StatusEmprestimo.ATIVO);
     const andamento = ativos.length;

@@ -2,3 +2,5 @@
 * text=auto eol=lf
 *.png binary
 *.jpg binary
+# Scripts de shell precisam de fim de linha LF (CRLF quebra no Linux/Docker)
+*.sh text eol=lf

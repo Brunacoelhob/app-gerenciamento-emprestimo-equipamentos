@@ -101,7 +101,7 @@ Legenda: `[x]` feito e verificado · `[~]` feito, mas com parte **não verificad
 - [x] **Renovação de prazo:** a pessoa (ou um administrador) soma 7 dias (1 a 14 pela API), no máximo 2 vezes e só antes de vencer. A regra está dentro do `UPDATE`, então renovações simultâneas nunca passam do limite; os avisos por e-mail do prazo antigo são zerados; entra na auditoria ("Prazo renovado")
 - [x] **Fila de espera com prioridade:** quem reservou primeiro tem a vez. Ao devolver, a vez passa (na mesma transação) para o primeiro da fila, que recebe e-mail e tem **24 horas exclusivas** para pegar; ninguém fura (a retirada de outra pessoa é recusada com 409 e o equipamento aparece como "Reservado"). Passou o prazo sem pegar, a vez expira e vai para o próximo (conferido a cada 5 minutos e em cada tentativa de retirada). Desistir da fila também passa a vez. Índice único parcial: uma entrada por pessoa, mesmo com cliques simultâneos; excluir a conta cancela as filas
 - [x] **QR code:** o administrador gera uma etiqueta imprimível por equipamento; o QR abre a lista já filtrada pelo código (`/equipamentos?busca=CÓDIGO`)
-- [x] **Foto do equipamento:** o administrador envia (reduzida no navegador para JPEG de até 400 KB, conferida pelos bytes no servidor); aparece como miniatura na lista e na edição. Fica em tabela à parte (as listagens não carregam a imagem) e é servida por uma URL pública com o código aleatório e cache longo
+- [x] **Foto do equipamento:** o administrador envia (reduzida no navegador para JPEG de até 400 KB, conferida pelos bytes no servidor); aparece como miniatura na lista e na edição. Fica em tabela à parte (as listagens não carregam a imagem) e é servida por uma URL pública com o código aleatório e cache longo. Os equipamentos de demonstração têm **fotos reais** (Wikimedia Commons, créditos em `backend/prisma/fotos-demo/CREDITOS.md`), colocadas por `npm run seed:demo` ou, nos que já existem, por `npm run seed:fotos`
 
 ### Relatórios, códigos e validações
 - [x] Relatório em PDF, Excel e CSV também para **empréstimos** (todos para o administrador, só os seus para as demais pessoas) e **equipamentos**, com os mesmos filtros da tela e aviso quando passa de 5000 linhas
@@ -137,9 +137,9 @@ Legenda: `[x]` feito e verificado · `[~]` feito, mas com parte **não verificad
 - [ ] Limite de requisições em armazenamento compartilhado (Redis), se houver mais de uma instância
 
 ### Operação
-- [x] **Backup agendado:** serviço `backup` no `docker-compose.yml` (diário às 03:00, mantém 14 dias, aviso opcional de sucesso) e scripts de backup/restauração, todos testados. Falta só **copiar a pasta para fora do servidor** (depende de onde ele estiver)
+- [x] **Backup agendado:** serviço `backup` no `docker-compose.yml` (diário às 03:00, mantém 14 dias, aviso opcional de sucesso) e scripts de backup/restauração, todos testados. A **cópia externa está simulada**: cada backup é copiado e conferido numa segunda pasta (`BACKUP_PASTA_EXTERNA`), que num ambiente real aponta para um disco remoto ou uma pasta sincronizada com a nuvem
 - [x] ID de requisição (`X-Request-Id`) no log e no cabeçalho; Dependabot semanal e `npm audit` no CI (o backend barra só o crítico: há 4 avisos "altos" em dependências indiretas da CLI do Prisma, anotados no `ci.yml`)
-- [x] **Monitoramento:** `GET /metricas` (Prometheus, protegido por token), `scripts/monitorar-saude.sh` (alerta por webhook ao cair e ao voltar) e o workflow `monitor.yml` (confere a aplicação a cada 15 minutos). Falta **ligar**: definir `METRICAS_TOKEN`, o cron do script e/ou os segredos `URL_PRODUCAO` e `ALERTA_WEBHOOK`
+- [x] **Monitoramento:** `GET /metricas` (Prometheus, protegido por token), `scripts/monitorar-saude.sh` (alerta por webhook ao cair e ao voltar) e o workflow `monitor.yml` (confere a aplicação a cada 15 minutos). Para um ambiente real, basta ligar: definir `METRICAS_TOKEN`, o cron do script e/ou os segredos `URL_PRODUCAO` e `ALERTA_WEBHOOK`
 - [ ] Separar a aplicação das migrações no deploy de produção
 - [ ] Revisar periodicamente os riscos aceitos em [`seguranca.md`](seguranca.md)
 

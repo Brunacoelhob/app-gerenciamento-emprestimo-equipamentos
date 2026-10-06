@@ -723,13 +723,6 @@ td.equip {
   font-size: 0.75rem;
 }
 
-td.acoes-col {
-  white-space: nowrap;
-
-  .botao + .botao {
-    margin-left: 0.35rem;
-  }
-}
 
 .filas {
   margin-bottom: 1rem;
@@ -878,5 +871,47 @@ label.botao {
 
   input {
     margin-top: 0.25rem;
+  }
+}
+
+// Tabela de empréstimos: cabe na largura da tela, sem rolagem lateral. As ações ficam empilhadas (Renovar e Devolver
+// uma sobre a outra), o e-mail quebra se for comprido e as datas ficam compactas.
+.tabela-emprestimos {
+  th,
+  td {
+    padding: 0.7rem 0.4rem;
+  }
+
+  td.equip {
+    max-width: 10rem;
+  }
+
+  .pessoa-nome {
+    font-weight: 500;
+  }
+
+  .descricao {
+    overflow-wrap: anywhere;
+    font-size: 0.78rem;
+  }
+
+  .datas {
+    white-space: nowrap;
+    font-size: 0.88rem;
+  }
+
+  td.acoes-col {
+    width: 1%;
+    white-space: normal;
+
+    .botao {
+      display: block;
+      width: 100%;
+      text-align: center;
+    }
+
+    .botao + .botao {
+      margin: 0.35rem 0 0;
+    }
   }
 }

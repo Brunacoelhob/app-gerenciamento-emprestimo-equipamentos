@@ -136,6 +136,8 @@ services:
     volumes:
       - ./scripts/backup-agendado.sh:/backup-agendado.sh:ro
       - ${BACKUP_PASTA:-./backups}:/backups
+      # Destino da cópia externa (veja scripts/backup-agendado.sh). Por padrão é uma pasta local que simula um disco remoto
+      - ${BACKUP_PASTA_EXTERNA:-./backups-externos}:/backups-externos
     security_opt:
       - no-new-privileges:true
     networks: [rede]

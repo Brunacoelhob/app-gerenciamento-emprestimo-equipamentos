@@ -24,7 +24,8 @@
     "test:e2e": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --config ./test/jest-e2e.json",
     "migrate": "prisma migrate deploy",
     "seed": "npm run build && node dist/prisma/seed.js",
-    "seed:demo": "npm run build && node dist/prisma/seed-demo.js"
+    "seed:demo": "npm run build && node dist/prisma/seed-demo.js",
+    "seed:fotos": "npm run build && node dist/prisma/seed-fotos.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
