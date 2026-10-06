@@ -80,7 +80,9 @@
                     >até {{ e.prazoDevolucao | date: 'dd/MM/yyyy' }}</span
                   >
                   @if (e.renovacoes > 0) {
-                    <small class="renovado" title="Quantas vezes o prazo foi renovado">renovado {{ e.renovacoes }}×</small>
+                    <small class="renovado" title="Quantas vezes o prazo foi renovado"
+                      >renovado {{ e.renovacoes }}×</small
+                    >
                   }
                 }
               </td>

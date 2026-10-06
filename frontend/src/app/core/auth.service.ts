@@ -53,7 +53,12 @@ export class AuthService {
   }
 
   cadastrar(nome: string, email: string, senha: string) {
-    return this.http.post<Usuario>(`${API}/auth/registro`, { nome, email, senha });
+    return this.http.post<Usuario>(`${API}/auth/registro`, {
+      nome,
+      email,
+      senha,
+      aceitoPolitica: true,
+    });
   }
 
   // LGPD: levar os próprios dados e excluir a conta (anonimização)

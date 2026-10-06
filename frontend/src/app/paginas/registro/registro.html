@@ -80,6 +80,27 @@
         }
       </div>
 
+      <div class="campo aceite">
+        <label class="opcao-aceite">
+          <input
+            type="checkbox"
+            formControlName="aceite"
+            [attr.aria-invalid]="form.controls.aceite.touched && form.controls.aceite.invalid"
+          />
+          <span>
+            Li e concordo com a
+            <a routerLink="/privacidade" target="_blank" rel="noopener">Política de Privacidade</a>.
+          </span>
+        </label>
+        <app-erro-campo
+          [controle]="form.controls.aceite"
+          rotulo="aceite"
+          [mensagens]="{
+            required: 'É preciso aceitar a Política de Privacidade para criar a conta.',
+          }"
+        />
+      </div>
+
       <button class="botao" type="submit" [disabled]="enviando()">
         {{ enviando() ? 'Criando...' : 'Criar conta' }}
       </button>

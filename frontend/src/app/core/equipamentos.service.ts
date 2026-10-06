@@ -38,4 +38,19 @@ export class EquipamentosService {
   atualizar(id: number, dados: { nome?: string; descricao?: string; ativo?: boolean }) {
     return this.http.patch<Equipamento>(`${API}/equipamentos/${id}`, dados);
   }
+
+  /** Endereço da foto (pública, pelo código aleatório). A versão na URL faz o navegador buscar de novo ao trocar a foto. */
+  fotoUrl(e: Pick<Equipamento, 'codigo' | 'fotoVersao'>): string | null {
+    return e.fotoVersao ? `${API}/equipamentos/foto/${e.codigo}?v=${e.fotoVersao}` : null;
+  }
+
+  enviarFoto(id: number, foto: Blob) {
+    return this.http.put<Equipamento>(`${API}/equipamentos/${id}/foto`, foto, {
+      headers: { 'Content-Type': foto.type },
+    });
+  }
+
+  removerFoto(id: number) {
+    return this.http.delete<Equipamento>(`${API}/equipamentos/${id}/foto`);
+  }
 }

@@ -71,7 +71,9 @@ export interface Equipamento {
   ativo: boolean;
   emprestado: boolean;
   disponivel: boolean;
+  fotoVersao: number | null;
   fila: number;
+  reservado: boolean;
   criadoEm: string;
 }
 
@@ -79,6 +81,8 @@ export interface Reserva {
   id: number;
   criadoEm: string;
   posicao: number;
+  minhaVez: boolean;
+  prioridadeAte: string | null;
   equipamento: { id: number; codigo: string; nome: string };
 }
 

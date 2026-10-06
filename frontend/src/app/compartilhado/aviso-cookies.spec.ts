@@ -1,10 +1,12 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { describe, expect, it } from 'vitest';
 import { ConsentimentoService } from '../core/consentimento.service';
 import { AvisoCookies } from './aviso-cookies';
 
 function montar() {
   TestBed.resetTestingModule();
+  TestBed.configureTestingModule({ providers: [provideRouter([])] });
   const fixture = TestBed.createComponent(AvisoCookies);
   fixture.detectChanges();
   const raiz = fixture.nativeElement as HTMLElement;

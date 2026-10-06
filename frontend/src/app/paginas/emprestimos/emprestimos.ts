@@ -118,7 +118,9 @@ export class Emprestimos implements OnInit {
     this.servico.renovar(e.id).subscribe({
       next: (r) => {
         this.renovando.set(null);
-        this.alertas.sucesso(`Prazo de "${e.equipamento.nome}" renovado até ${new Date(r.prazoDevolucao).toLocaleDateString('pt-BR')}.`);
+        this.alertas.sucesso(
+          `Prazo de "${e.equipamento.nome}" renovado até ${new Date(r.prazoDevolucao).toLocaleDateString('pt-BR')}.`,
+        );
         this.carregar(this.dados()?.meta.pagina ?? 1);
       },
       error: (err: unknown) => {

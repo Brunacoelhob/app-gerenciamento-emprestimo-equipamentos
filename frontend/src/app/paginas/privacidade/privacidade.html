@@ -1,0 +1,161 @@
+<main class="pagina-privacidade">
+  <article class="cartao">
+    <header>
+      <h1>Política de Privacidade</h1>
+      <p class="meta">Equipment loan · versão {{ versao }}</p>
+    </header>
+
+    <div class="aviso-modelo" role="note">
+      <strong>Texto preliminar.</strong>
+      Esta política descreve o que o sistema faz hoje com os seus dados. Os itens marcados
+      <span class="pendente">a definir</span> serão preenchidos conforme a orientação jurídica, e o
+      texto será revisado antes do uso em produção.
+    </div>
+
+    <nav aria-label="Nesta página" class="indice">
+      <a href="#quem">Quem somos</a>
+      <a href="#dados">Dados coletados</a>
+      <a href="#uso">Para que usamos</a>
+      <a href="#compartilhamento">Compartilhamento</a>
+      <a href="#cookies">Cookies</a>
+      <a href="#prazo">Por quanto tempo</a>
+      <a href="#direitos">Seus direitos</a>
+      <a href="#seguranca">Segurança</a>
+      <a href="#contato">Contato</a>
+    </nav>
+
+    <section id="quem">
+      <h2>1. Quem somos</h2>
+      <p>
+        O Equipment loan é um sistema de empréstimo de equipamentos. O controlador dos dados é
+        <span class="pendente">razão social e CNPJ a definir</span>.
+      </p>
+    </section>
+
+    <section id="dados">
+      <h2>2. Quais dados coletamos</h2>
+      <ul>
+        <li>
+          <strong>Conta:</strong> nome, e-mail e senha (guardada apenas como um código irreversível,
+          nunca em texto).
+        </li>
+        <li>
+          <strong>Perfil (opcional, preenchido por você):</strong> CPF, telefone, endereço (CEP,
+          rua, número, bairro, cidade e UF) e foto ou avatar.
+        </li>
+        <li>
+          <strong>Uso do sistema:</strong> empréstimos (qual equipamento, quando retirou e
+          devolveu), filas de espera e, para ações administrativas, um registro de quem fez o quê e
+          quando.
+        </li>
+        <li>
+          <strong>Registro do aceite:</strong> quando você aceitou esta política e qual versão leu.
+        </li>
+        <li>
+          <strong>Dados técnicos:</strong> endereço IP e horário das requisições (nos registros do
+          servidor) e uma identificação de sessão guardada em cookie.
+        </li>
+      </ul>
+    </section>
+
+    <section id="uso">
+      <h2>3. Para que usamos</h2>
+      <ul>
+        <li>
+          Permitir o empréstimo e a devolução de equipamentos e mostrar o histórico a quem tem
+          permissão.
+        </li>
+        <li>Avisar por e-mail sobre vencimento, atraso, fila de espera e redefinição de senha.</li>
+        <li>Manter a segurança do sistema e a trilha de auditoria das ações administrativas.</li>
+        <li>Lembrar suas preferências de acessibilidade, quando você permite.</li>
+      </ul>
+      <p>Base legal de cada finalidade: <span class="pendente">a definir com o jurídico</span>.</p>
+    </section>
+
+    <section id="compartilhamento">
+      <h2>4. Com quem compartilhamos</h2>
+      <ul>
+        <li>
+          <strong>Administradores do sistema:</strong> veem seu nome, e-mail e empréstimos. CPF e
+          telefone aparecem mascarados nas telas de administração.
+        </li>
+        <li>
+          <strong>Provedor de envio de e-mail:</strong> <span class="pendente">a definir</span>.
+          Recebe seu e-mail e o texto das mensagens.
+        </li>
+        <li>
+          <strong>VLibras (governo federal):</strong> só é carregado se você permitir em
+          &ldquo;Cookies&rdquo;. Ele vê o seu endereço IP.
+        </li>
+      </ul>
+      <p>Não vendemos nem cedemos seus dados para publicidade.</p>
+    </section>
+
+    <section id="cookies">
+      <h2>5. Cookies e armazenamento no aparelho</h2>
+      <ul>
+        <li>
+          <strong>Necessário:</strong> cookie de sessão (não acessível por scripts), para você
+          continuar logado com segurança.
+        </li>
+        <li>
+          <strong>Funcional (você escolhe):</strong> preferências de acessibilidade (tema,
+          contraste, tamanho do texto).
+        </li>
+        <li><strong>Terceiros (você escolhe):</strong> tradutor de Libras (VLibras).</li>
+      </ul>
+      <p>
+        O aviso de cookies aparece a cada acesso, para você poder mudar a escolha quando quiser.
+      </p>
+    </section>
+
+    <section id="prazo">
+      <h2>6. Por quanto tempo guardamos</h2>
+      <p>
+        Prazos definitivos: <span class="pendente">a definir com o jurídico</span>. Hoje: os dados
+        da conta ficam até você excluí-la; as sessões expiram sozinhas; ao excluir a conta, seus
+        dados pessoais são apagados e o histórico dos equipamentos é mantido sem identificar você.
+      </p>
+    </section>
+
+    <section id="direitos">
+      <h2>7. Seus direitos</h2>
+      <ul>
+        <li>
+          <strong>Acesso e portabilidade:</strong> em <a routerLink="/perfil">Meu perfil</a>,
+          &ldquo;Baixar meus dados&rdquo;.
+        </li>
+        <li>
+          <strong>Correção:</strong> edite seus dados em <a routerLink="/perfil">Meu perfil</a>.
+        </li>
+        <li>
+          <strong>Exclusão:</strong> em <a routerLink="/perfil">Meu perfil</a>, &ldquo;Excluir minha
+          conta&rdquo; (exige a senha e que você não tenha equipamentos emprestados).
+        </li>
+        <li>
+          <strong>Outros pedidos</strong> (informação sobre compartilhamento, revisão, oposição):
+          fale com o encarregado, no item 9.
+        </li>
+      </ul>
+    </section>
+
+    <section id="seguranca">
+      <h2>8. Segurança</h2>
+      <p>
+        Senhas protegidas por código irreversível, conexão cifrada (HTTPS) em produção, CPF e
+        telefone mascarados para administradores, limite de tentativas de login, registro de ações
+        administrativas e cópias de segurança do banco.
+      </p>
+    </section>
+
+    <section id="contato">
+      <h2>9. Contato do encarregado (DPO)</h2>
+      <p><span class="pendente">nome e e-mail do encarregado a definir</span></p>
+    </section>
+
+    <footer>
+      <p class="meta">Última revisão: texto preliminar, versão {{ versao }}.</p>
+      <button class="botao secundario" type="button" (click)="volta()">Voltar</button>
+    </footer>
+  </article>
+</main>

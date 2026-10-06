@@ -3,6 +3,11 @@ import { adminGuard, autenticadoGuard, visitanteGuard } from './core/auth.guard'
 
 export const routes: Routes = [
   {
+    // Pública: precisa abrir sem login (é linkada do cadastro, do rodapé e do aviso de cookies)
+    path: 'privacidade',
+    loadComponent: () => import('./paginas/privacidade/privacidade').then((m) => m.Privacidade),
+  },
+  {
     path: 'login',
     canActivate: [visitanteGuard],
     loadComponent: () => import('./paginas/login/login').then((m) => m.Login),

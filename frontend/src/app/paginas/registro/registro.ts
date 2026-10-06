@@ -39,6 +39,7 @@ export class Registro {
         ],
       ],
       confirmacao: ['', [Validators.required]],
+      aceite: [false, [Validators.requiredTrue]],
     },
     { validators: senhasIguais },
   );

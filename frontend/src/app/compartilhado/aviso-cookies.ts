@@ -1,10 +1,12 @@
 import { Component, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { ConsentimentoService } from '../core/consentimento.service';
 
 // Aviso de cookies: aparece a cada carregamento da página, com três caminhos (aceitar, recusar ou configurar).
 // Não bloqueia o resto da tela; fica acima do rodapé.
 @Component({
   selector: 'app-aviso-cookies',
+  imports: [RouterLink],
   template: `
     @if (!consentimento.decidido()) {
       <section
@@ -18,6 +20,7 @@ import { ConsentimentoService } from '../core/consentimento.service';
           Usamos cookies necessários para manter a sua sessão com segurança. Com a sua permissão,
           também lembramos as suas preferências de acessibilidade e carregamos o tradutor de Libras
           (VLibras), um serviço do governo federal.
+          <a routerLink="/privacidade">Saiba mais na Política de Privacidade</a>.
         </p>
 
         @if (configurando()) {

@@ -1,8 +1,10 @@
+import { DatePipe } from '@angular/common';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { Modal } from '../../compartilhado/modal';
 import { QrEquipamento } from '../../compartilhado/qr-equipamento';
+import { Icone } from '../../compartilhado/icone';
 import { ErroCampo } from '../../compartilhado/erro-campo';
 import { BuscaComAtraso } from '../../compartilhado/busca-com-atraso';
 import { IdCurto } from '../../compartilhado/id-curto';
@@ -16,6 +18,7 @@ import { ReservasService } from '../../core/reservas.service';
 import { EquipamentosService, SituacaoFiltro } from '../../core/equipamentos.service';
 import { mensagemDeErro } from '../../core/erro';
 import { Equipamento, Pagina, Reserva } from '../../core/modelos';
+import { prepararFotoEquipamento } from '../../compartilhado/imagem';
 
 type Painel =
   | { tipo: 'novo' }
@@ -24,7 +27,18 @@ type Painel =
 
 @Component({
   selector: 'app-equipamentos',
-  imports: [Modal, QrEquipamento, MenuExportar, ErroCampo, ReactiveFormsModule, FormsModule, Paginacao, IdCurto],
+  imports: [
+    Icone,
+    DatePipe,
+    Modal,
+    QrEquipamento,
+    MenuExportar,
+    ErroCampo,
+    ReactiveFormsModule,
+    FormsModule,
+    Paginacao,
+    IdCurto,
+  ],
   templateUrl: './equipamentos.html',
 })
 export class Equipamentos implements OnInit {
@@ -35,6 +49,7 @@ export class Equipamentos implements OnInit {
   private readonly reservas = inject(ReservasService);
   private readonly rota = inject(ActivatedRoute);
   protected readonly qrDe = signal<Equipamento | null>(null);
+  protected readonly enviandoFoto = signal(false);
   protected readonly minhasFilas = signal<Reserva[]>([]);
   private readonly relatorio = inject(RelatorioService);
   protected readonly formatos = FORMATOS_RELATORIO;
@@ -63,12 +78,59 @@ export class Equipamentos implements OnInit {
     this.carregarFilas();
   }
 
+  protected foto(e: Pick<Equipamento, 'codigo' | 'fotoVersao'>) {
+    return this.servico.fotoUrl(e);
+  }
+
+  protected async trocarFoto(evento: Event, atual: Equipamento) {
+    const campo = evento.target as HTMLInputElement;
+    const arquivo = campo.files?.[0];
+    campo.value = ''; // permite escolher o mesmo arquivo de novo
+    if (!arquivo) return;
+    this.enviandoFoto.set(true);
+    try {
+      const reduzida = await prepararFotoEquipamento(arquivo);
+      this.servico.enviarFoto(atual.id, reduzida).subscribe({
+        next: (e) => this.fotoAtualizada(e, 'Foto atualizada.'),
+        error: (err: unknown) => this.falhaNaFoto(mensagemDeErro(err)),
+      });
+    } catch (e) {
+      this.falhaNaFoto(e instanceof Error ? e.message : 'Não foi possível usar essa imagem.');
+    }
+  }
+
+  protected removerFoto(atual: Equipamento) {
+    this.enviandoFoto.set(true);
+    this.servico.removerFoto(atual.id).subscribe({
+      next: (e) => this.fotoAtualizada(e, 'Foto removida.'),
+      error: (err: unknown) => this.falhaNaFoto(mensagemDeErro(err)),
+    });
+  }
+
+  private fotoAtualizada(e: Equipamento, mensagem: string) {
+    this.enviandoFoto.set(false);
+    this.alertas.sucesso(mensagem);
+    this.painel.set({ tipo: 'editar', equipamento: e });
+    this.carregar(this.dados()?.meta.pagina ?? 1);
+  }
+
+  private falhaNaFoto(mensagem: string) {
+    this.enviandoFoto.set(false);
+    void this.alertas.erro(mensagem, 'Não foi possível trocar a foto');
+  }
+
   protected imprimirEtiqueta() {
     window.print();
   }
 
   protected carregarFilas() {
-    this.reservas.minhas().subscribe({ next: (r) => this.minhasFilas.set(r), error: () => undefined });
+    this.reservas
+      .minhas()
+      .subscribe({ next: (r) => this.minhasFilas.set(r), error: () => undefined });
+  }
+
+  protected minhaVez(equipamentoId: number) {
+    return this.minhasFilas().some((r) => r.equipamento.id === equipamentoId && r.minhaVez);
   }
 
   protected naFila(equipamentoId: number) {
@@ -78,11 +140,14 @@ export class Equipamentos implements OnInit {
   protected entrarNaFila(e: Equipamento) {
     this.reservas.entrar(e.id).subscribe({
       next: (r) => {
-        this.alertas.sucesso(`Você entrou na fila de "${e.nome}" (posição ${r.posicao}). Avisaremos por e-mail.`);
+        this.alertas.sucesso(
+          `Você entrou na fila de "${e.nome}" (posição ${r.posicao}). Avisaremos por e-mail.`,
+        );
         this.carregarFilas();
         this.carregar(this.dados()?.meta.pagina ?? 1);
       },
-      error: (err: unknown) => void this.alertas.erro(mensagemDeErro(err), 'Não foi possível entrar na fila'),
+      error: (err: unknown) =>
+        void this.alertas.erro(mensagemDeErro(err), 'Não foi possível entrar na fila'),
     });
   }
 
