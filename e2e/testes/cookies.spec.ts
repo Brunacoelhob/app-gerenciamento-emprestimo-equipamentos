@@ -40,4 +40,9 @@ test.describe('aviso de cookies', () => {
     expect(guardado).toContain('"dislexia":true'); // funcionais ficaram ligados
     await expect(page.locator('#vlibras-raiz')).toHaveCount(0); // terceiros ficaram desligados
   });
+
+  test('o aviso aponta para a política de privacidade', async ({ page }) => {
+    await page.goto('/login');
+    await expect(aviso(page).getByRole('link', { name: /Política de Privacidade/ })).toHaveAttribute('href', '/privacidade');
+  });
 });

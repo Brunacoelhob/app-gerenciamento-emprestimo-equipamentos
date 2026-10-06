@@ -19,6 +19,7 @@ API REST para controlar quem está com cada equipamento (notebooks, projetores, 
 - **Equipamentos:** cadastro, edição, busca, desativação (só se não estiver emprestado) e situação sempre correta (`emprestado`/`disponivel` são derivados, nunca ficam desatualizados).
 - **Empréstimos:** prazo de 1 a 30 dias (padrão 7), devolução pelo dono ou por um ADMIN, **atraso** calculado, e listagens com filtros (status, atrasados, pessoa, equipamento).
 - **Renovação e fila de espera:** o prazo pode ser renovado até 2 vezes antes de vencer; quem quer um equipamento emprestado entra na fila e recebe e-mail quando ele for devolvido. O administrador imprime uma **etiqueta com QR code** por equipamento.
+- **Fotos** dos equipamentos, **prioridade na fila** (24 horas exclusivas para quem reservou primeiro), **Política de Privacidade** com aceite no cadastro e **monitoramento** (`/metricas`, alerta de queda, backup diário).
 - **Relatórios** em PDF, Excel e CSV de auditoria, empréstimos e equipamentos, com os filtros da tela.
 - **Listagens paginadas** com metadados (`total`, `totalPaginas`) e ordenação estável.
 - **Documentação interativa (Swagger)** em `/docs` fora de produção, e rota de saúde `/saude`.
@@ -168,6 +169,9 @@ Todas as rotas de negócio ficam em `/v1`. Tudo exige o cabeçalho `Authorizatio
 | `PATCH` | `/v1/emprestimos/:id/renovacao` | dono ou ADMIN | Soma `dias` (1 a 14, padrão 7) ao prazo; no máximo 2 vezes, só antes de vencer |
 | `GET` | `/v1/emprestimos/relatorio` · `/meus/relatorio` | ADMIN · logado | Relatório (`formato=pdf\|xlsx\|csv`) com os mesmos filtros da listagem |
 | `GET` | `/v1/equipamentos/relatorio` | ADMIN | Relatório do acervo |
+| `PUT` · `DELETE` | `/v1/equipamentos/:id/foto` | ADMIN | Envia (corpo = a imagem, até 400 KB) ou remove a foto |
+| `GET` | `/v1/equipamentos/foto/:codigo` | público | A foto, pelo código aleatório do equipamento |
+| `GET` | `/metricas` | token de métricas | Métricas no formato Prometheus (desligada sem `METRICAS_TOKEN`) |
 | `POST` | `/v1/reservas` | logado | Entra na fila de um equipamento emprestado (`equipamentoId`) |
 | `GET` | `/v1/reservas/minhas` | logado | As suas filas, com a posição em cada uma |
 | `DELETE` | `/v1/reservas/:id` | dono ou ADMIN | Sai da fila |
@@ -194,8 +198,8 @@ Em erros de validação (`400`), `mensagem` é uma lista com um texto por campo 
 No diretório `backend/`:
 
 ```bash
-npm test            # 101 testes unitários (regras de negócio, sem banco)
-npm run test:e2e    # 112 testes de integração: API inteira + PostgreSQL de teste
+npm test            # 104 testes unitários (regras de negócio, sem banco)
+npm run test:e2e    # 124 testes de integração: API inteira + PostgreSQL de teste
 npm run lint        # sem erros
 ```
 

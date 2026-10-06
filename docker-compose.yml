@@ -49,6 +49,7 @@ services:
       REFRESH_DIAS: ${REFRESH_DIAS:-7}
       CORS_ORIGENS: ${CORS_ORIGENS:-}
       SWAGGER_ATIVO: ${SWAGGER_ATIVO:-false}
+      METRICAS_TOKEN: ${METRICAS_TOKEN:-}
       # A API fica atrás do nginx (1 proxy): o IP do cliente vem do X-Forwarded-For, e o limite de tentativas é por pessoa
       TRUST_PROXY: 1
       # Recuperação de senha por e-mail. APP_URL é o endereço público da interface (vai nos links dos e-mails).
@@ -111,6 +112,32 @@ services:
     read_only: true
     tmpfs:
       - /tmp
+    networks: [rede]
+
+  # Backup diário do banco (às 03:00, mantém 14 dias). Os arquivos vão para a pasta BACKUP_PASTA do servidor:
+  # copie-a para FORA da máquina. Restaurar: scripts/restaurar-banco.sh. Veja docs/deploy.md.
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    depends_on:
+      banco:
+        condition: service_healthy
+    entrypoint: ['sh', '/backup-agendado.sh']
+    environment:
+      PGHOST: banco
+      PGUSER: ${DB_USER:?defina DB_USER no .env}
+      PGPASSWORD: ${DB_SENHA:?defina DB_SENHA no .env}
+      PGDATABASE: ${DB_NOME:-emprestimo_equipamentos}
+      TZ: ${TZ:-America/Sao_Paulo}
+      BACKUP_HORA: ${BACKUP_HORA:-03:00}
+      BACKUP_MANTER_DIAS: ${BACKUP_MANTER_DIAS:-14}
+      BACKUP_AO_INICIAR: ${BACKUP_AO_INICIAR:-false}
+      BACKUP_AVISO_OK: ${BACKUP_AVISO_OK:-}
+    volumes:
+      - ./scripts/backup-agendado.sh:/backup-agendado.sh:ro
+      - ${BACKUP_PASTA:-./backups}:/backups
+    security_opt:
+      - no-new-privileges:true
     networks: [rede]
 
   # Só para desenvolvimento (docker compose --profile dev up -d): caixa de entrada de teste. Nenhum e-mail sai de

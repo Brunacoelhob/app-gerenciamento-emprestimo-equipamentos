@@ -83,6 +83,10 @@ test.describe('cadastro aberto', () => {
 
     await page.getByLabel('Senha', { exact: true }).fill(SENHA_PADRAO);
     await page.getByLabel('Repita a senha').fill(SENHA_PADRAO);
+    // sem o aceite da política, a conta não é criada
+    await page.getByRole('button', { name: 'Criar conta' }).click();
+    await expect(page.getByText('É preciso aceitar a Política de Privacidade')).toBeVisible();
+    await page.getByLabel(/Li e concordo/).check();
     await page.getByRole('button', { name: 'Criar conta' }).click();
     await expect(page.getByRole('heading', { name: 'Conta criada' })).toBeVisible();
 
@@ -98,6 +102,7 @@ test.describe('cadastro aberto', () => {
       await page.getByLabel('E-mail', { exact: true }).fill(email);
       await page.getByLabel('Senha', { exact: true }).fill(SENHA_PADRAO);
       await page.getByLabel('Repita a senha').fill(SENHA_PADRAO);
+      await page.getByLabel(/Li e concordo/).check();
       await page.getByRole('button', { name: 'Criar conta' }).click();
       await expect(page.getByText(esperado)).toBeVisible();
     }

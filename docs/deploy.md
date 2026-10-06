@@ -61,17 +61,18 @@ Se a API ficar exposta diretamente, mantenha `TRUST_PROXY` em `0`: assim ningué
 
 ## 4. Backup e restauração
 
-Os dados ficam no volume `dados_banco`. Há dois scripts prontos, **testados** (backup e restauração de verdade):
+O serviço **`backup`** do `docker-compose.yml` faz uma cópia do banco todo dia às 03:00 (`BACKUP_HORA`), mantém 14 dias (`BACKUP_MANTER_DIAS`) e grava em `BACKUP_PASTA` (padrão `./backups`, no servidor). Sobe junto com o resto (`docker compose up -d`) e foi testado: gera o `.sql.gz`, agenda o próximo e descarta arquivo vazio.
+
+- **Copie a pasta para fora do servidor** (rclone, rsync, nuvem): backup só na mesma máquina não protege contra a perda dela.
+- **Saiba se parou:** defina `BACKUP_AVISO_OK` com o endereço de um serviço de "batimento" (ex.: healthchecks.io). Ele recebe um aviso a cada backup bem-sucedido; se deixar de receber, alerta.
+- **Fora do Docker Compose** (ou para uma cópia na hora): `./scripts/backup-banco.sh /pasta/de/destino`.
 
 ```bash
-# backup: um arquivo .sql.gz por execução, mantendo os últimos 14 dias (MANTER_DIAS muda isso)
-./scripts/backup-banco.sh /var/backups/emprestimos
-
 # restauração: pede para digitar "restaurar" e SUBSTITUI os dados atuais pelos do arquivo
-./scripts/restaurar-banco.sh /var/backups/emprestimos/emprestimos-20261009-030000.sql.gz
+./scripts/restaurar-banco.sh backups/emprestimos-20261009-030000.sql.gz
 ```
 
-Agende o backup no cron (`0 3 * * *  cd /caminho/do/projeto && ./scripts/backup-banco.sh /var/backups/emprestimos`) e **copie os arquivos para fora do servidor**: backup na mesma máquina não protege contra a perda dela. Restaure num ambiente à parte de tempos em tempos: backup que nunca foi restaurado é só uma esperança.
+Restaure num ambiente à parte de tempos em tempos: backup que nunca foi restaurado é só uma esperança.
 
 ## 5. Atualizar
 
@@ -84,7 +85,10 @@ As migrations têm **pré-checagens**: se os dados antigos violarem uma regra no
 
 ## 6. Monitoramento
 
-- `GET /saude` (pública, sem limite de requisições): use em um monitor externo e no *healthcheck* do Docker.
+- **`GET /saude`** (pública, sem limite de requisições): API e banco no ar. Usada no *healthcheck* do Docker.
+- **Alerta de queda:** `scripts/monitorar-saude.sh` confere `/saude` e avisa por webhook (Slack, Discord, Teams) quando a aplicação cai e quando volta, sem repetir o alerta a cada minuto. Agende no cron do servidor: `* * * * *  URL=https://seu-dominio ALERTA_WEBHOOK=https://... /caminho/scripts/monitorar-saude.sh`. Como roda **de fora** do servidor, ele percebe também quando a máquina inteira cai.
+- **Monitor no GitHub:** o workflow `monitor.yml` confere a aplicação a cada 15 minutos. Ligue-o criando o segredo `URL_PRODUCAO` (e, se quiser, `ALERTA_WEBHOOK`) em *Settings > Secrets and variables > Actions*; sem o segredo ele não faz nada.
+- **Métricas:** defina `METRICAS_TOKEN` e leia `GET /metricas` com `Authorization: Bearer <token>` (formato Prometheus: Grafana, Datadog, Zabbix...). Traz o estado do banco, requisições por classe de status, tempo de resposta e indicadores do negócio (empréstimos ativos e atrasados, filas, equipamentos e usuários ativos). Sem o token, a rota fica desligada (404). Alerta sugerido: `emprestimo_db_up == 0` ou taxa de `status="5xx"` subindo.
 - `docker compose logs -f api`: uma linha por requisição (método, rota, status, duração, id do usuário e `id=` da requisição), sem corpo nem tokens; erros inesperados com pilha.
 - **ID de requisição:** toda resposta traz o cabeçalho `X-Request-Id` (o do cliente, se vier num formato seguro, ou um novo). Quando alguém reclamar de um erro, peça esse valor e procure-o no log.
 - **Dependências:** o Dependabot abre um PR por semana por pasta; o CI roda `npm audit` (só dependências de produção) a cada push.

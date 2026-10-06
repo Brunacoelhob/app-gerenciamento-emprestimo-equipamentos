@@ -7,8 +7,8 @@ Legenda: `[x]` feito e verificado · `[~]` feito, mas com parte **não verificad
 
 | Parte | Situação |
 |---|---|
-| API (NestJS + PostgreSQL) | 101 testes unitários e 112 de integração passando; lint e tipos limpos |
-| Interface (Angular) | 33 testes unitários + 54 testes de interface (Playwright); build de produção sem erros |
+| API (NestJS + PostgreSQL) | 104 testes unitários e 124 de integração passando; lint e tipos limpos |
+| Interface (Angular) | 33 testes unitários + 59 testes de interface (Playwright); build de produção sem erros |
 | Docker | `docker compose` sobe banco, migrações, API e interface (nginx); o CI constrói e confere a saúde |
 | CI (GitHub Actions) | Backend, frontend e Docker |
 
@@ -99,9 +99,9 @@ Legenda: `[x]` feito e verificado · `[~]` feito, mas com parte **não verificad
 
 ### Fila de espera, renovação e QR code
 - [x] **Renovação de prazo:** a pessoa (ou um administrador) soma 7 dias (1 a 14 pela API), no máximo 2 vezes e só antes de vencer. A regra está dentro do `UPDATE`, então renovações simultâneas nunca passam do limite; os avisos por e-mail do prazo antigo são zerados; entra na auditoria ("Prazo renovado")
-- [x] **Fila de espera:** quem quer um equipamento emprestado entra na fila (índice único parcial: uma vez por pessoa, mesmo com cliques simultâneos). Ao devolver, o primeiro da fila recebe e-mail; quem pega o equipamento sai da fila; excluir a conta cancela as filas. A tela mostra "Minhas filas de espera" com a posição
+- [x] **Fila de espera com prioridade:** quem reservou primeiro tem a vez. Ao devolver, a vez passa (na mesma transação) para o primeiro da fila, que recebe e-mail e tem **24 horas exclusivas** para pegar; ninguém fura (a retirada de outra pessoa é recusada com 409 e o equipamento aparece como "Reservado"). Passou o prazo sem pegar, a vez expira e vai para o próximo (conferido a cada 5 minutos e em cada tentativa de retirada). Desistir da fila também passa a vez. Índice único parcial: uma entrada por pessoa, mesmo com cliques simultâneos; excluir a conta cancela as filas
 - [x] **QR code:** o administrador gera uma etiqueta imprimível por equipamento; o QR abre a lista já filtrada pelo código (`/equipamentos?busca=CÓDIGO`)
-- [~] *A fila avisa, mas **não reserva** o item: quem pegar primeiro leva. Reserva com prazo para retirar é uma decisão de regra de negócio que ainda não foi tomada.*
+- [x] **Foto do equipamento:** o administrador envia (reduzida no navegador para JPEG de até 400 KB, conferida pelos bytes no servidor); aparece como miniatura na lista e na edição. Fica em tabela à parte (as listagens não carregam a imagem) e é servida por uma URL pública com o código aleatório e cache longo
 
 ### Relatórios, códigos e validações
 - [x] Relatório em PDF, Excel e CSV também para **empréstimos** (todos para o administrador, só os seus para as demais pessoas) e **equipamentos**, com os mesmos filtros da tela e aviso quando passa de 5000 linhas
@@ -125,20 +125,21 @@ Legenda: `[x]` feito e verificado · `[~]` feito, mas com parte **não verificad
 ## O que falta
 
 ### Prioridade alta
-- [ ] **LGPD (o que sobrou):** política de privacidade, registro de consentimento, prazos de retenção e criptografia do CPF em repouso. Dependem de revisão jurídica
+- [x] **LGPD, o básico:** página pública **Política de Privacidade** (`/privacidade`, linkada no rodapé, no cadastro e no aviso de cookies) descrevendo o que o sistema realmente faz; **aceite obrigatório no cadastro**, com data e versão registradas na conta (`politicaAceitaEm`, `politicaVersao`)
+- [ ] **LGPD, com o advogado:** preencher os trechos marcados "a definir" na política (controlador, encarregado, bases legais, prazos de retenção, provedor de e-mail), definir a rotina de retenção e decidir sobre criptografia do CPF em repouso. O aceite não é exigido de quem tem a conta criada por um administrador (decidir com o advogado)
 
 ### Prioridade média
-- [ ] Reserva **com prazo para retirar** (hoje a fila só avisa); aprovação de renovação pelo administrador
-- [ ] Categorias, número de patrimônio e foto do equipamento
+- [ ] Aprovação de renovação pelo administrador
+- [ ] Categorias e número de patrimônio do equipamento
 - [ ] Relatórios também do dashboard
 - [ ] Avatar em armazenamento de objetos (hoje vai em base64 no banco e em cada listagem)
 - [ ] Gerar o cliente TypeScript do frontend a partir do OpenAPI (os tipos hoje são escritos à mão e podem divergir)
 - [ ] Limite de requisições em armazenamento compartilhado (Redis), se houver mais de uma instância
 
 ### Operação
-- [x] Backup e restauração do PostgreSQL em scripts testados (`scripts/`); falta **agendar** no servidor e copiar para fora dele
+- [x] **Backup agendado:** serviço `backup` no `docker-compose.yml` (diário às 03:00, mantém 14 dias, aviso opcional de sucesso) e scripts de backup/restauração, todos testados. Falta só **copiar a pasta para fora do servidor** (depende de onde ele estiver)
 - [x] ID de requisição (`X-Request-Id`) no log e no cabeçalho; Dependabot semanal e `npm audit` no CI (o backend barra só o crítico: há 4 avisos "altos" em dependências indiretas da CLI do Prisma, anotados no `ci.yml`)
-- [ ] Métricas e alerta quando `/saude` falha (precisa de um serviço externo de monitoramento)
+- [x] **Monitoramento:** `GET /metricas` (Prometheus, protegido por token), `scripts/monitorar-saude.sh` (alerta por webhook ao cair e ao voltar) e o workflow `monitor.yml` (confere a aplicação a cada 15 minutos). Falta **ligar**: definir `METRICAS_TOKEN`, o cron do script e/ou os segredos `URL_PRODUCAO` e `ALERTA_WEBHOOK`
 - [ ] Separar a aplicação das migrações no deploy de produção
 - [ ] Revisar periodicamente os riscos aceitos em [`seguranca.md`](seguranca.md)
 

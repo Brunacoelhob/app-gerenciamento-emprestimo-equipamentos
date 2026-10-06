@@ -59,7 +59,8 @@ As falhas críticas foram **reproduzidas rodando a API original** contra um banc
 - **Minimização:** nas rotas de administrador, CPF e telefone saem **mascarados** (`***.***.***-25`, `(11) *****-4321`) e o endereço de rua não é enviado (só cidade e UF). A pessoa vê tudo apenas no próprio perfil.
 - **Acesso e portabilidade:** `GET /v1/auth/eu/dados` entrega um JSON com perfil, empréstimos e ações registradas (sem a senha), e a tela de perfil tem o botão "Baixar meus dados".
 - **Exclusão:** `POST /v1/auth/eu/anonimizar` (exige a senha) apaga nome, e-mail, CPF, telefone, endereço e avatar, derruba todas as sessões, remove o nome da trilha de auditoria e libera o e-mail e o CPF para uso futuro. O histórico de empréstimos permanece como "Usuário removido". É recusada com equipamentos emprestados e para o último administrador ativo.
-- **Não coberto (precisa de decisão jurídica):** política de privacidade, registro de consentimento, prazos de retenção e relatório ao titular além do que está acima.
+- **Política e consentimento:** a página `/privacidade` descreve o que é coletado e para quê; o cadastro aberto exige o aceite e guarda quando e qual versão (`politicaAceitaEm`/`politicaVersao`, também no "Baixar meus dados").
+- **Não coberto (precisa de decisão jurídica):** o texto definitivo da política (controlador, encarregado, bases legais, provedor de e-mail), prazos de retenção e a criptografia do CPF em repouso. Os trechos pendentes aparecem destacados na própria página.
 
 **Auditoria**
 - **Trilha de auditoria** (`GET /v1/auditoria`, só ADMIN, e a tela "Auditoria"): registra quem criou conta, mudou papel, desativou ou reativou conta, cadastrou, editou ou desativou equipamento, devolveu o empréstimo de outra pessoa, trocou ou redefiniu senha, trocou e-mail e quando um refresh token já usado reapareceu (possível roubo de acesso). Guarda o nome de quem agiu junto, então o registro continua legível se a conta for anonimizada. **Senhas e tokens nunca entram na trilha**, e uma operação que falha (409, 403...) não gera registro.
@@ -69,6 +70,8 @@ As falhas críticas foram **reproduzidas rodando a API original** contra um banc
 - Limite de requisições: 100/min por IP, mais rígido no login (5/min), cadastro (10/h), troca de senha (5/min) e recuperação de senha (5 pedidos/h).
 - **ID de requisição** (`X-Request-Id`, aceito do cliente só num formato seguro) em toda resposta e no log, para rastrear um erro relatado por quem usa.
 - **Cookies e terceiros:** o aviso de cookies aparece a cada carregamento; sem a permissão, as preferências de acessibilidade não vão para o aparelho e o VLibras (serviço externo que vê o IP) não é carregado. O cookie de sessão (`HttpOnly`) é **necessário** e não depende dessa escolha.
+- **Foto do equipamento:** o envio é só do ADMIN, vale só image/png, jpeg e webp, é conferido pelos bytes (SVG e HTML disfarçados são recusados) e limitado a 400 KB. A leitura é pública por escolha: o `<img>` do navegador não envia o token, o código tem 12 caracteres aleatórios e a imagem é só a foto do objeto.
+- **Métricas:** `GET /metricas` só existe com `METRICAS_TOKEN` definido (senão 404); o token é comparado em tempo constante. Não expõe dados pessoais, só contagens.
 - **Relatórios:** células que começam com `=`, `+`, `-` ou `@` são neutralizadas (injeção de fórmula no Excel); um relatório de auditoria exportado fica registrado na própria trilha; as rotas pesadas têm limite de 10 por minuto.
 - Container sem root, `no-new-privileges`, banco **sem porta exposta** fora do Docker, API publicada só em `127.0.0.1`.
 - Segredos só no `.env` (no `.gitignore`); nenhum valor real em `.env.example`.
