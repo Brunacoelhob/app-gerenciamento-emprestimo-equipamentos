@@ -12,7 +12,7 @@ COPY . .
 RUN npm run build
 
 # ---------------------------------------------------------------------------
-FROM nginxinc/nginx-unprivileged:1.27-alpine AS producao
+FROM nginxinc/nginx-unprivileged:1.29-alpine AS producao
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY cabecalhos.conf /etc/nginx/cabecalhos.conf
 COPY --from=construcao /app/dist/frontend/browser /usr/share/nginx/html
